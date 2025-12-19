@@ -1,79 +1,71 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 
 const STORAGE_KEY = 'ai_chatbot_knowledge';
 const HISTORY_KEY = 'ai_chatbot_history';
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const defaultKnowledge: Omit<KnowledgeItem, 'id'>[] = [
-  { question: 'merhaba', answer: 'Merhaba! Size nasıl yardımcı olabilirim?', timestamp: new Date(), confidence: 1.0 },
-  { question: 'nasılsın', answer: 'Teşekkür ederim, ben bir yapay zekayım. Size nasıl yardım edebilirim?', timestamp: new Date(), confidence: 1.0 },
-  { question: 'teşekkürler', answer: 'Rica ederim! Başka bir sorunuz var mı?', timestamp: new Date(), confidence: 1.0 },
+const defaultKnowledge: KnowledgeItem[] = [
+  { id: 'default-0', question: 'merhaba', answer: 'Merhaba! Size nasıl yardımcı olabilirim?', timestamp: new Date(), confidence: 1.0 },
+  { id: 'default-1', question: 'nasılsın', answer: 'Teşekkür ederim, ben bir yapay zekayım. Size nasıl yardım edebilirim?', timestamp: new Date(), confidence: 1.0 },
+  { id: 'default-2', question: 'teşekkürler', answer: 'Rica ederim! Başka bir sorunuz var mı?', timestamp: new Date(), confidence: 1.0 },
 ];
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>([]);
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>(defaultKnowledge);
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
+  const initialized = useRef(false);
 
-  // Load knowledge base from localStorage
+  // Load from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
         const parsed = JSON.parse(stored);
-        setKnowledgeBase(parsed.map((item: any) => ({
+        setKnowledgeBase(parsed.map((item: KnowledgeItem) => ({
           ...item,
           timestamp: new Date(item.timestamp),
         })));
-      } catch {
-        initializeDefaultKnowledge();
       }
-    } else {
-      initializeDefaultKnowledge();
+    } catch (e) {
+      console.error('Error loading knowledge:', e);
     }
     
-    // Load conversation history
-    const historyStored = localStorage.getItem(HISTORY_KEY);
-    if (historyStored) {
-      try {
+    try {
+      const historyStored = localStorage.getItem(HISTORY_KEY);
+      if (historyStored) {
         setConversationHistory(JSON.parse(historyStored));
-      } catch {
-        setConversationHistory([]);
       }
+    } catch (e) {
+      console.error('Error loading history:', e);
     }
   }, []);
 
-  const initializeDefaultKnowledge = () => {
-    const knowledge = defaultKnowledge.map((item, index) => ({
-      ...item,
-      id: `default-${index}`,
-    }));
-    setKnowledgeBase(knowledge);
-  };
-
   // Save knowledge base to localStorage
   useEffect(() => {
-    if (knowledgeBase.length > 0) {
+    if (knowledgeBase.length > 0 && initialized.current) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(knowledgeBase));
     }
   }, [knowledgeBase]);
 
   // Save conversation history
   useEffect(() => {
-    if (conversationHistory.length > 0) {
-      // Keep only last 20 messages for context
+    if (conversationHistory.length > 0 && initialized.current) {
       const trimmed = conversationHistory.slice(-20);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
     }
   }, [conversationHistory]);
 
-  const addMessage = useCallback((role: 'user' | 'bot', content: string) => {
+  const addMessage = useCallback((role: 'user' | 'bot', content: string): Message => {
     const newMessage: Message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       role,
@@ -99,7 +91,7 @@ export const useChatbot = () => {
     });
   }, []);
 
-  const learnNewResponse = useCallback((question: string, answer: string) => {
+  const learnNewResponse = useCallback((question: string, answer: string): KnowledgeItem => {
     const newItem: KnowledgeItem = {
       id: `learn-${Date.now()}`,
       question: question.toLowerCase().trim(),
@@ -111,7 +103,7 @@ export const useChatbot = () => {
     return newItem;
   }, []);
 
-  const streamChat = useCallback(async (userMessage: string) => {
+  const streamChat = useCallback(async (userMessage: string): Promise<string> => {
     const newHistory: ChatMessage[] = [...conversationHistory, { role: 'user', content: userMessage }];
     
     const resp = await fetch(CHAT_URL, {
@@ -161,7 +153,6 @@ export const useChatbot = () => {
             updateLastBotMessage(assistantContent);
           }
         } catch {
-          // Partial JSON, put back and wait
           textBuffer = line + "\n" + textBuffer;
           break;
         }
@@ -188,7 +179,6 @@ export const useChatbot = () => {
       }
     }
 
-    // Update conversation history
     setConversationHistory([...newHistory, { role: 'assistant', content: assistantContent }]);
     
     return assistantContent;
@@ -198,7 +188,6 @@ export const useChatbot = () => {
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
 
-    // Check for teach command
     if (trimmedInput.startsWith('/öğret ')) {
       const answer = trimmedInput.slice(7).trim();
       if (pendingQuestion && answer) {
@@ -214,12 +203,10 @@ export const useChatbot = () => {
       }
     }
 
-    // Add user message
     addMessage('user', trimmedInput);
     setIsTyping(true);
 
     try {
-      // Stream AI response
       await streamChat(trimmedInput);
     } catch (error) {
       console.error('Chat error:', error);
@@ -241,9 +228,8 @@ export const useChatbot = () => {
   }, []);
 
   const clearKnowledge = useCallback(() => {
-    setKnowledgeBase([]);
+    setKnowledgeBase(defaultKnowledge);
     localStorage.removeItem(STORAGE_KEY);
-    initializeDefaultKnowledge();
   }, []);
 
   const deleteKnowledgeItem = useCallback((id: string) => {
