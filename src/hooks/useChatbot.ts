@@ -2,33 +2,16 @@ import { useState, useCallback, useEffect } from 'react';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 
 const STORAGE_KEY = 'ai_chatbot_knowledge';
+const HISTORY_KEY = 'ai_chatbot_history';
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const defaultKnowledge: Omit<KnowledgeItem, 'id'>[] = [
   { question: 'merhaba', answer: 'Merhaba! Size nasıl yardımcı olabilirim?', timestamp: new Date(), confidence: 1.0 },
   { question: 'nasılsın', answer: 'Teşekkür ederim, ben bir yapay zekayım. Size nasıl yardım edebilirim?', timestamp: new Date(), confidence: 1.0 },
   { question: 'teşekkürler', answer: 'Rica ederim! Başka bir sorunuz var mı?', timestamp: new Date(), confidence: 1.0 },
-  { question: 'görüşürüz', answer: 'Görüşmek üzere! İyi günler.', timestamp: new Date(), confidence: 1.0 },
-  { question: 'yapay zeka nedir', answer: 'Yapay zeka, makinelerin insan zekasını taklit etme yeteneğidir. Öğrenme, problem çözme ve karar verme gibi görevleri gerçekleştirebilir.', timestamp: new Date(), confidence: 1.0 },
-  { question: 'sen kimsin', answer: 'Ben öğrenebilen bir yapay zeka chatbot\'uyum. Benimle sohbet ettikçe yeni şeyler öğrenebiliyorum!', timestamp: new Date(), confidence: 1.0 },
 ];
 
-// Simple tokenizer
-const tokenize = (text: string): string[] => {
-  return text.toLowerCase().trim().split(/\s+/).filter(Boolean);
-};
-
-// Calculate similarity between two texts
-const calculateSimilarity = (text1: string, text2: string): number => {
-  const tokens1 = new Set(tokenize(text1));
-  const tokens2 = new Set(tokenize(text2));
-  
-  if (tokens1.size === 0 || tokens2.size === 0) return 0;
-  
-  const intersection = new Set([...tokens1].filter(x => tokens2.has(x)));
-  const union = new Set([...tokens1, ...tokens2]);
-  
-  return intersection.size / union.size;
-};
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,6 +19,7 @@ export const useChatbot = () => {
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
 
   // Load knowledge base from localStorage
   useEffect(() => {
@@ -52,6 +36,16 @@ export const useChatbot = () => {
       }
     } else {
       initializeDefaultKnowledge();
+    }
+    
+    // Load conversation history
+    const historyStored = localStorage.getItem(HISTORY_KEY);
+    if (historyStored) {
+      try {
+        setConversationHistory(JSON.parse(historyStored));
+      } catch {
+        setConversationHistory([]);
+      }
     }
   }, []);
 
@@ -70,29 +64,14 @@ export const useChatbot = () => {
     }
   }, [knowledgeBase]);
 
-  const findBestResponse = useCallback((question: string): { answer: string; confidence: number } => {
-    if (knowledgeBase.length === 0) {
-      return { answer: 'Henüz bir şey öğrenmedim. Bana bir şeyler öğretin!', confidence: 0 };
+  // Save conversation history
+  useEffect(() => {
+    if (conversationHistory.length > 0) {
+      // Keep only last 20 messages for context
+      const trimmed = conversationHistory.slice(-20);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
     }
-
-    let bestMatch = { answer: '', confidence: 0 };
-
-    for (const item of knowledgeBase) {
-      const similarity = calculateSimilarity(question, item.question);
-      if (similarity > bestMatch.confidence) {
-        bestMatch = { answer: item.answer, confidence: similarity };
-      }
-    }
-
-    if (bestMatch.confidence < 0.3) {
-      return { 
-        answer: 'Bu soruyu anlamadım. Bana öğretmek ister misiniz? "/öğret [cevap]" yazarak öğretebilirsiniz.', 
-        confidence: 0 
-      };
-    }
-
-    return bestMatch;
-  }, [knowledgeBase]);
+  }, [conversationHistory]);
 
   const addMessage = useCallback((role: 'user' | 'bot', content: string) => {
     const newMessage: Message = {
@@ -103,6 +82,21 @@ export const useChatbot = () => {
     };
     setMessages(prev => [...prev, newMessage]);
     return newMessage;
+  }, []);
+
+  const updateLastBotMessage = useCallback((content: string) => {
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.role === 'bot') {
+        return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m));
+      }
+      return [...prev, {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'bot' as const,
+        content,
+        timestamp: new Date(),
+      }];
+    });
   }, []);
 
   const learnNewResponse = useCallback((question: string, answer: string) => {
@@ -117,6 +111,89 @@ export const useChatbot = () => {
     return newItem;
   }, []);
 
+  const streamChat = useCallback(async (userMessage: string) => {
+    const newHistory: ChatMessage[] = [...conversationHistory, { role: 'user', content: userMessage }];
+    
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: newHistory }),
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json().catch(() => ({ error: 'Bağlantı hatası' }));
+      throw new Error(errorData.error || `HTTP ${resp.status}`);
+    }
+
+    if (!resp.body) throw new Error("Stream desteklenmiyor");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let assistantContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) {
+            assistantContent += content;
+            updateLastBotMessage(assistantContent);
+          }
+        } catch {
+          // Partial JSON, put back and wait
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
+
+    // Final flush
+    if (textBuffer.trim()) {
+      for (let raw of textBuffer.split("\n")) {
+        if (!raw) continue;
+        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+        if (raw.startsWith(":") || raw.trim() === "") continue;
+        if (!raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) {
+            assistantContent += content;
+            updateLastBotMessage(assistantContent);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    // Update conversation history
+    setConversationHistory([...newHistory, { role: 'assistant', content: assistantContent }]);
+    
+    return assistantContent;
+  }, [conversationHistory, updateLastBotMessage]);
+
   const sendMessage = useCallback(async (input: string) => {
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
@@ -128,11 +205,6 @@ export const useChatbot = () => {
         addMessage('user', trimmedInput);
         learnNewResponse(pendingQuestion, answer);
         setPendingQuestion(null);
-        
-        setIsTyping(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setIsTyping(false);
-        
         addMessage('bot', `✅ Öğrendim! "${pendingQuestion}" sorusuna "${answer}" yanıtını vereceğim.`);
         return;
       } else {
@@ -144,25 +216,28 @@ export const useChatbot = () => {
 
     // Add user message
     addMessage('user', trimmedInput);
-    
-    // Simulate typing
     setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
-    setIsTyping(false);
 
-    // Find response
-    const { answer, confidence } = findBestResponse(trimmedInput);
-    
-    if (confidence < 0.3 && isLearningMode) {
-      setPendingQuestion(trimmedInput);
+    try {
+      // Stream AI response
+      await streamChat(trimmedInput);
+    } catch (error) {
+      console.error('Chat error:', error);
+      updateLastBotMessage(
+        error instanceof Error 
+          ? `❌ ${error.message}` 
+          : '❌ Bir hata oluştu. Lütfen tekrar deneyin.'
+      );
+    } finally {
+      setIsTyping(false);
     }
-
-    addMessage('bot', answer);
-  }, [addMessage, findBestResponse, isLearningMode, learnNewResponse, pendingQuestion]);
+  }, [addMessage, learnNewResponse, pendingQuestion, streamChat, updateLastBotMessage]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setPendingQuestion(null);
+    setConversationHistory([]);
+    localStorage.removeItem(HISTORY_KEY);
   }, []);
 
   const clearKnowledge = useCallback(() => {
