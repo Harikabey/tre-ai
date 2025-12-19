@@ -1,10 +1,10 @@
-import { Bot, MessageSquare, Sparkles, Brain } from 'lucide-react';
+import { Bot, MessageSquare, Sparkles, Brain, Cpu } from 'lucide-react';
 
 export const EmptyState = () => {
   const suggestions = [
     { icon: MessageSquare, text: 'Merhaba!' },
     { icon: Brain, text: 'Yapay zeka nedir?' },
-    { icon: Sparkles, text: 'Sen kimsin?' },
+    { icon: Cpu, text: 'Bana bir hikaye anlat' },
   ];
 
   return (
@@ -14,11 +14,11 @@ export const EmptyState = () => {
       </div>
       
       <h2 className="text-2xl font-semibold text-foreground mb-2 text-glow">
-        Merhaba! Ben Öğrenebilen AI
+        Gemini AI ile Sohbet
       </h2>
       <p className="text-muted-foreground max-w-md mb-8">
-        Benimle sohbet edebilir ve yeni şeyler öğretebilirsiniz. 
-        Öğrenme modu açıkken bilmediğim sorulara cevap öğretebilirsiniz.
+        Google Gemini 2.5 Flash tarafından desteklenen yapay zeka ile sohbet edin. 
+        Sorularınızı sorun, fikirlerinizi paylaşın.
       </p>
       
       <div className="flex flex-wrap gap-2 justify-center">
@@ -36,12 +36,11 @@ export const EmptyState = () => {
       <div className="mt-8 p-4 bg-accent/5 border border-accent/20 rounded-xl max-w-sm">
         <div className="flex items-center gap-2 text-accent mb-2">
           <Sparkles className="w-4 h-4" />
-          <span className="font-medium text-sm">Öğretme İpucu</span>
+          <span className="font-medium text-sm">Özellikler</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Bilmediğim bir soruya cevap vermemi isterseniz, 
-          <code className="mx-1 px-1.5 py-0.5 bg-accent/10 rounded text-accent">/öğret [cevap]</code>
-          yazarak öğretebilirsiniz.
+          Streaming yanıtlar, konuşma hafızası ve öğrenme modu ile donatılmış 
+          tam kapsamlı bir AI asistan deneyimi.
         </p>
       </div>
     </div>
