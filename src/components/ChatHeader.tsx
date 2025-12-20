@@ -25,8 +25,8 @@ export const ChatHeader = ({
           <Bot className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="font-semibold text-foreground text-glow">Gemini AI</h1>
-          <p className="text-xs text-muted-foreground">Google Gemini 2.5 Flash</p>
+          <h1 className="font-semibold text-foreground text-glow">TreFriend</h1>
+          <p className="text-xs text-muted-foreground">Akıllı AI Asistan</p>
         </div>
       </div>
       
