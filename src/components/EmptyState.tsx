@@ -14,10 +14,10 @@ export const EmptyState = () => {
       </div>
       
       <h2 className="text-2xl font-semibold text-foreground mb-2 text-glow">
-        Gemini AI ile Sohbet
+        TreFriend ile Sohbet
       </h2>
       <p className="text-muted-foreground max-w-md mb-8">
-        Google Gemini 2.5 Flash tarafından desteklenen yapay zeka ile sohbet edin. 
+        Akıllı yapay zeka asistanınız ile sohbet edin. 
         Sorularınızı sorun, fikirlerinizi paylaşın.
       </p>
       
