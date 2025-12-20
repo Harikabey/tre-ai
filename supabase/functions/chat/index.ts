@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, personality } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -20,7 +20,18 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Sending request to Lovable AI with messages:", messages.length);
+    // Personality system prompts
+    const personalityPrompts: Record<string, string> = {
+      friendly: 'Sen çok sıcak ve samimi bir yapay zeka asistanısın. Türkçe konuş, arkadaşça ve neşeli ol. Emoji kullanabilirsin. Kullanıcıyla sanki eski bir dostmuşsun gibi konuş.',
+      professional: 'Sen profesyonel ve resmi bir yapay zeka asistanısın. Türkçe konuş, ciddi ve iş odaklı ol. Net, öz ve bilgilendirici yanıtlar ver. Emoji kullanma.',
+      humorous: 'Sen çok komik ve esprili bir yapay zeka asistanısın. Türkçe konuş, şakalar yap, kelime oyunları kullan. Her cevabına biraz mizah kat ama yine de yardımcı ol.',
+      wise: 'Sen bilge ve düşünceli bir yapay zeka asistanısın. Türkçe konuş, derin düşünceler paylaş, felsefi yaklaşımlar sun. Atasözleri ve özdeyişler kullanabilirsin.',
+      creative: 'Sen son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Türkçe konuş, metaforlar kullan, ilham verici ve orijinal fikirler sun. Sanatsal bir dil kullan.',
+    };
+
+    const systemPrompt = personalityPrompts[personality] || personalityPrompts.friendly;
+
+    console.log("Sending request to Lovable AI with personality:", personality);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -33,7 +44,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: `Sen öğrenebilen, yardımsever bir yapay zeka asistanısın. Türkçe konuş ve kullanıcıya en iyi şekilde yardımcı ol. Cevapların açık, net ve yararlı olsun. Eğer bir konuyu bilmiyorsan, bunu dürüstçe belirt.`
+            content: systemPrompt
           },
           ...messages,
         ],

@@ -1,6 +1,7 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Bot, Sparkles, Trash2, PanelRight } from 'lucide-react';
+import { Bot, Sparkles, Trash2, PanelRight, Settings } from 'lucide-react';
 
 interface ChatHeaderProps {
   isLearningMode: boolean;
@@ -39,6 +40,16 @@ export const ChatHeader = ({
             className="data-[state=checked]:bg-accent"
           />
         </div>
+        
+        <Link to="/settings">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        </Link>
         
         <Button
           variant="ghost"

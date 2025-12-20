@@ -3,6 +3,7 @@ import { Message, KnowledgeItem } from '@/types/chatbot';
 
 const STORAGE_KEY = 'ai_chatbot_knowledge';
 const HISTORY_KEY = 'ai_chatbot_history';
+const PERSONALITY_KEY = 'ai_chatbot_personality';
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const defaultKnowledge: KnowledgeItem[] = [
@@ -105,6 +106,7 @@ export const useChatbot = () => {
 
   const streamChat = useCallback(async (userMessage: string): Promise<string> => {
     const newHistory: ChatMessage[] = [...conversationHistory, { role: 'user', content: userMessage }];
+    const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     
     const resp = await fetch(CHAT_URL, {
       method: "POST",
@@ -112,7 +114,7 @@ export const useChatbot = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: newHistory }),
+      body: JSON.stringify({ messages: newHistory, personality }),
     });
 
     if (!resp.ok) {
