@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Bot, Sparkles, Trash2, PanelRight, Settings, Menu, LogOut } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import aiLogo from '@/assets/ai-logo.jpg';
 
 interface ChatHeaderProps {
   isLearningMode: boolean;
@@ -56,8 +57,8 @@ export const ChatHeader = ({
             <Menu className="w-5 h-5" />
           </Button>
         )}
-        <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
-          <Bot className="w-5 h-5 text-primary" />
+        <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/30 shadow-glow">
+          <img src={aiLogo} alt="TreFriend AI" className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="font-semibold text-foreground text-glow">TreFriend</h1>
