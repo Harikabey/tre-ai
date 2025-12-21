@@ -12,13 +12,20 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality } = await req.json();
+    const { messages, personality, thinkingMode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Select model based on thinking mode
+    // fast: gemini-2.5-flash-lite (hızlı ve ucuz)
+    // deep: gemini-2.5-pro (derin düşünce, daha güçlü)
+    const model = thinkingMode === 'deep' 
+      ? 'google/gemini-2.5-pro' 
+      : 'google/gemini-2.5-flash-lite';
 
     // Personality system prompts
     const personalityPrompts: Record<string, string> = {
@@ -29,9 +36,14 @@ serve(async (req) => {
       creative: 'Sen son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Türkçe konuş, metaforlar kullan, ilham verici ve orijinal fikirler sun. Sanatsal bir dil kullan.',
     };
 
-    const systemPrompt = personalityPrompts[personality] || personalityPrompts.friendly;
+    // Add thinking mode instructions to prompt
+    const thinkingModeInstructions = thinkingMode === 'deep'
+      ? ' Soruları derinlemesine analiz et, farklı açılardan değerlendir, detaylı ve kapsamlı cevaplar ver. Gerekirse adım adım düşün.'
+      : ' Kısa, öz ve hızlı cevaplar ver. Gereksiz detaylara girme.';
 
-    console.log("Sending request to Lovable AI with personality:", personality);
+    const systemPrompt = (personalityPrompts[personality] || personalityPrompts.friendly) + thinkingModeInstructions;
+
+    console.log("Sending request to Lovable AI with personality:", personality, "mode:", thinkingMode, "model:", model);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -40,7 +52,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { 
             role: "system", 

@@ -5,8 +5,10 @@ import { useAuth } from './useAuth';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
+const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
+export type ThinkingMode = 'fast' | 'deep';
 
 interface Conversation {
   id: string;
@@ -25,6 +27,14 @@ export const useChatbot = () => {
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>(() => {
+    return (localStorage.getItem(THINKING_MODE_KEY) as ThinkingMode) || 'fast';
+  });
+
+  const updateThinkingMode = useCallback((mode: ThinkingMode) => {
+    setThinkingMode(mode);
+    localStorage.setItem(THINKING_MODE_KEY, mode);
+  }, []);
 
   // Load conversations when user changes
   useEffect(() => {
@@ -160,7 +170,7 @@ export const useChatbot = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: newHistory, personality }),
+      body: JSON.stringify({ messages: newHistory, personality, thinkingMode }),
     });
 
     if (!resp.ok) {
@@ -284,7 +294,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
@@ -339,7 +349,9 @@ export const useChatbot = () => {
     isLearningMode,
     isTyping,
     pendingQuestion,
+    thinkingMode,
     setIsLearningMode,
+    setThinkingMode: updateThinkingMode,
     sendMessage,
     clearMessages,
     clearKnowledge,
