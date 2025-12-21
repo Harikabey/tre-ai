@@ -1,81 +1,127 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
+import { useAuth } from './useAuth';
 
-const STORAGE_KEY = 'ai_chatbot_knowledge';
-const HISTORY_KEY = 'ai_chatbot_history';
-const PERSONALITY_KEY = 'ai_chatbot_personality';
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-const defaultKnowledge: KnowledgeItem[] = [
-  { id: 'default-0', question: 'merhaba', answer: 'Merhaba! Size nasıl yardımcı olabilirim?', timestamp: new Date(), confidence: 1.0 },
-  { id: 'default-1', question: 'nasılsın', answer: 'Teşekkür ederim, ben bir yapay zekayım. Size nasıl yardım edebilirim?', timestamp: new Date(), confidence: 1.0 },
-  { id: 'default-2', question: 'teşekkürler', answer: 'Rica ederim! Başka bir sorunuz var mı?', timestamp: new Date(), confidence: 1.0 },
-];
+const PERSONALITY_KEY = 'ai_chatbot_personality';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
+interface Conversation {
+  id: string;
+  title: string;
+  personality: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useChatbot = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>(defaultKnowledge);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>([]);
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
-  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
-  const initialized = useRef(false);
 
-  // Load from localStorage on mount
+  // Load conversations when user changes
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setKnowledgeBase(parsed.map((item: KnowledgeItem) => ({
-          ...item,
-          timestamp: new Date(item.timestamp),
-        })));
-      }
-    } catch (e) {
-      console.error('Error loading knowledge:', e);
+    if (user) {
+      loadConversations();
+    } else {
+      setConversations([]);
+      setCurrentConversationId(null);
+      setMessages([]);
     }
+  }, [user]);
+
+  const loadConversations = async () => {
+    if (!user) return;
     
-    try {
-      const historyStored = localStorage.getItem(HISTORY_KEY);
-      if (historyStored) {
-        setConversationHistory(JSON.parse(historyStored));
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    
+    if (!error && data) {
+      setConversations(data);
+      // Auto-select the most recent conversation
+      if (data.length > 0 && !currentConversationId) {
+        selectConversation(data[0].id);
       }
-    } catch (e) {
-      console.error('Error loading history:', e);
     }
-  }, []);
+  };
 
-  // Save knowledge base to localStorage
-  useEffect(() => {
-    if (knowledgeBase.length > 0 && initialized.current) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(knowledgeBase));
+  const loadMessages = async (conversationId: string) => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    
+    if (!error && data) {
+      setMessages(data.map(m => ({
+        id: m.id,
+        role: m.role === 'user' ? 'user' : 'bot',
+        content: m.content,
+        timestamp: new Date(m.created_at),
+      })));
     }
-  }, [knowledgeBase]);
+  };
 
-  // Save conversation history
-  useEffect(() => {
-    if (conversationHistory.length > 0 && initialized.current) {
-      const trimmed = conversationHistory.slice(-20);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  const selectConversation = async (conversationId: string) => {
+    setCurrentConversationId(conversationId);
+    await loadMessages(conversationId);
+  };
+
+  const createNewConversation = async (): Promise<string | null> => {
+    if (!user) return null;
+    
+    const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
+    
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert({
+        user_id: user.id,
+        title: 'Yeni Sohbet',
+        personality,
+      })
+      .select()
+      .single();
+    
+    if (!error && data) {
+      setConversations(prev => [data, ...prev]);
+      setCurrentConversationId(data.id);
+      setMessages([]);
+      return data.id;
     }
-  }, [conversationHistory]);
+    return null;
+  };
 
-  const addMessage = useCallback((role: 'user' | 'bot', content: string): Message => {
-    const newMessage: Message = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      role,
-      content,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
-    return newMessage;
-  }, []);
+  const updateConversationTitle = async (conversationId: string, firstMessage: string) => {
+    const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
+    
+    await supabase
+      .from('conversations')
+      .update({ title })
+      .eq('id', conversationId);
+    
+    setConversations(prev => 
+      prev.map(c => c.id === conversationId ? { ...c, title } : c)
+    );
+  };
+
+  const saveMessage = async (conversationId: string, role: 'user' | 'assistant', content: string) => {
+    await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        role,
+        content,
+      });
+  };
 
   const updateLastBotMessage = useCallback((content: string) => {
     setMessages(prev => {
@@ -92,20 +138,20 @@ export const useChatbot = () => {
     });
   }, []);
 
-  const learnNewResponse = useCallback((question: string, answer: string): KnowledgeItem => {
-    const newItem: KnowledgeItem = {
-      id: `learn-${Date.now()}`,
-      question: question.toLowerCase().trim(),
-      answer,
-      timestamp: new Date(),
-      confidence: 1.0,
-    };
-    setKnowledgeBase(prev => [...prev, newItem]);
-    return newItem;
-  }, []);
-
-  const streamChat = useCallback(async (userMessage: string): Promise<string> => {
-    const newHistory: ChatMessage[] = [...conversationHistory, { role: 'user', content: userMessage }];
+  const streamChat = useCallback(async (conversationId: string, userMessage: string): Promise<string> => {
+    // Get all messages for context
+    const { data: historyData } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    
+    const conversationHistory: ChatMessage[] = historyData?.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })) || [];
+    
+    const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     
     const resp = await fetch(CHAT_URL, {
@@ -180,36 +226,54 @@ export const useChatbot = () => {
         } catch { /* ignore */ }
       }
     }
-
-    setConversationHistory([...newHistory, { role: 'assistant', content: assistantContent }]);
     
     return assistantContent;
-  }, [conversationHistory, updateLastBotMessage]);
+  }, [updateLastBotMessage]);
 
   const sendMessage = useCallback(async (input: string) => {
     const trimmedInput = input.trim();
-    if (!trimmedInput) return;
+    if (!trimmedInput || !user) return;
 
-    if (trimmedInput.startsWith('/öğret ')) {
-      const answer = trimmedInput.slice(7).trim();
-      if (pendingQuestion && answer) {
-        addMessage('user', trimmedInput);
-        learnNewResponse(pendingQuestion, answer);
-        setPendingQuestion(null);
-        addMessage('bot', `✅ Öğrendim! "${pendingQuestion}" sorusuna "${answer}" yanıtını vereceğim.`);
-        return;
-      } else {
-        addMessage('user', trimmedInput);
-        addMessage('bot', '⚠️ Önce bana bir soru sorun, sonra cevabı öğretin.');
-        return;
-      }
+    let conversationId = currentConversationId;
+    
+    // Create new conversation if needed
+    if (!conversationId) {
+      conversationId = await createNewConversation();
+      if (!conversationId) return;
     }
 
-    addMessage('user', trimmedInput);
+    // Add user message to UI
+    const userMessage: Message = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'user',
+      content: trimmedInput,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Save user message to DB
+    await saveMessage(conversationId, 'user', trimmedInput);
+    
+    // Update conversation title if first message
+    const currentConv = conversations.find(c => c.id === conversationId);
+    if (currentConv?.title === 'Yeni Sohbet') {
+      await updateConversationTitle(conversationId, trimmedInput);
+    }
+
     setIsTyping(true);
 
     try {
-      await streamChat(trimmedInput);
+      const assistantContent = await streamChat(conversationId, trimmedInput);
+      
+      // Save assistant message to DB
+      await saveMessage(conversationId, 'assistant', assistantContent);
+      
+      // Update conversation updated_at
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+        
     } catch (error) {
       console.error('Chat error:', error);
       updateLastBotMessage(
@@ -220,26 +284,57 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [addMessage, learnNewResponse, pendingQuestion, streamChat, updateLastBotMessage]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage]);
 
-  const clearMessages = useCallback(() => {
+  const clearMessages = useCallback(async () => {
+    if (currentConversationId) {
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', currentConversationId);
+    }
     setMessages([]);
     setPendingQuestion(null);
-    setConversationHistory([]);
-    localStorage.removeItem(HISTORY_KEY);
-  }, []);
+  }, [currentConversationId]);
+
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
+    
+    setConversations(prev => prev.filter(c => c.id !== conversationId));
+    
+    if (currentConversationId === conversationId) {
+      setCurrentConversationId(null);
+      setMessages([]);
+    }
+  }, [currentConversationId]);
 
   const clearKnowledge = useCallback(() => {
-    setKnowledgeBase(defaultKnowledge);
-    localStorage.removeItem(STORAGE_KEY);
+    setKnowledgeBase([]);
   }, []);
 
   const deleteKnowledgeItem = useCallback((id: string) => {
     setKnowledgeBase(prev => prev.filter(item => item.id !== id));
   }, []);
 
+  const learnNewResponse = useCallback((question: string, answer: string): KnowledgeItem => {
+    const newItem: KnowledgeItem = {
+      id: `learn-${Date.now()}`,
+      question: question.toLowerCase().trim(),
+      answer,
+      timestamp: new Date(),
+      confidence: 1.0,
+    };
+    setKnowledgeBase(prev => [...prev, newItem]);
+    return newItem;
+  }, []);
+
   return {
     messages,
+    conversations,
+    currentConversationId,
     knowledgeBase,
     isLearningMode,
     isTyping,
@@ -250,5 +345,9 @@ export const useChatbot = () => {
     clearKnowledge,
     learnNewResponse,
     deleteKnowledgeItem,
+    selectConversation,
+    createNewConversation,
+    deleteConversation,
+    loadConversations,
   };
 };
