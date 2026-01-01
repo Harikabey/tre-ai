@@ -95,9 +95,6 @@ const Index = () => {
             onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
             isPanelOpen={isPanelOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-            thinkingMode={thinkingMode}
-            onThinkingModeChange={setThinkingMode}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
@@ -119,6 +116,8 @@ const Index = () => {
             onSend={sendMessage}
             disabled={isTyping}
             pendingQuestion={pendingQuestion}
+            thinkingMode={thinkingMode}
+            onThinkingModeChange={setThinkingMode}
           />
         </div>
         
