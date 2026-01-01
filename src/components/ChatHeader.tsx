@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Zap, Brain } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import aiLogo from '@/assets/ai-logo.jpg';
-import { ThinkingMode } from '@/hooks/useChatbot';
 
 interface ChatHeaderProps {
   isLearningMode: boolean;
@@ -15,8 +14,6 @@ interface ChatHeaderProps {
   isPanelOpen: boolean;
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
-  thinkingMode: ThinkingMode;
-  onThinkingModeChange: (mode: ThinkingMode) => void;
 }
 
 export const ChatHeader = ({
@@ -26,9 +23,6 @@ export const ChatHeader = ({
   onTogglePanel,
   isPanelOpen,
   onToggleSidebar,
-  isSidebarOpen,
-  thinkingMode,
-  onThinkingModeChange,
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
@@ -72,28 +66,6 @@ export const ChatHeader = ({
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Thinking Mode Toggle */}
-        <div className="hidden sm:flex items-center gap-1 p-1 bg-secondary/50 rounded-lg border border-border/50">
-          <Button
-            variant={thinkingMode === 'fast' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onThinkingModeChange('fast')}
-            className={`h-7 px-2.5 gap-1.5 text-xs ${thinkingMode === 'fast' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
-          >
-            <Zap className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Hızlı</span>
-          </Button>
-          <Button
-            variant={thinkingMode === 'deep' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onThinkingModeChange('deep')}
-            className={`h-7 px-2.5 gap-1.5 text-xs ${thinkingMode === 'deep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
-          >
-            <Brain className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Derin</span>
-          </Button>
-        </div>
-        
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
           <span className="text-xs text-muted-foreground">Öğrenme</span>
