@@ -44,29 +44,30 @@ export const ChatHeader = ({
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm">
-      <div className="flex items-center gap-3">
+    <header className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm">
+      <div className="flex items-center gap-2 sm:gap-3">
         {onToggleSidebar && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}
-            className="text-muted-foreground"
+            className="text-muted-foreground h-8 w-8 sm:h-9 sm:w-9"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         )}
-        <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/30 shadow-glow">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-primary/30 shadow-glow">
           <img src={aiLogo} alt="TreFriend AI" className="w-full h-full object-cover" />
         </div>
-        <div>
-          <h1 className="font-semibold text-foreground text-glow">TreFriend</h1>
-          <p className="text-xs text-muted-foreground">Akıllı AI Asistan</p>
+        <div className="hidden xs:block">
+          <h1 className="font-semibold text-foreground text-glow text-sm sm:text-base">TreFriend</h1>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Akıllı AI Asistan</p>
         </div>
       </div>
       
-      <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
+      <div className="flex items-center gap-1 sm:gap-2">
+        {/* Learning mode - hidden on small screens */}
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
           <span className="text-xs text-muted-foreground">Öğrenme</span>
           <Switch
@@ -80,7 +81,7 @@ export const ChatHeader = ({
           <Button
             variant="ghost"
             size="icon"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
           >
             <Settings className="w-4 h-4" />
           </Button>
@@ -90,16 +91,17 @@ export const ChatHeader = ({
           variant="ghost"
           size="icon"
           onClick={onClearMessages}
-          className="text-muted-foreground hover:text-destructive"
+          className="text-muted-foreground hover:text-destructive h-8 w-8 sm:h-9 sm:w-9"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
         
+        {/* Panel toggle - hidden on mobile */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onTogglePanel}
-          className={isPanelOpen ? 'bg-primary/20 border-primary/30' : ''}
+          className={`hidden lg:flex h-8 w-8 sm:h-9 sm:w-9 ${isPanelOpen ? 'bg-primary/20 border-primary/30' : ''}`}
         >
           <PanelRight className="w-4 h-4" />
         </Button>
@@ -108,7 +110,7 @@ export const ChatHeader = ({
           variant="ghost"
           size="icon"
           onClick={handleSignOut}
-          className="text-muted-foreground hover:text-destructive"
+          className="text-muted-foreground hover:text-destructive h-8 w-8 sm:h-9 sm:w-9"
           title="Çıkış Yap"
         >
           <LogOut className="w-4 h-4" />

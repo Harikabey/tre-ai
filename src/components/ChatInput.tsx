@@ -70,21 +70,67 @@ export const ChatInput = ({
     }
   };
 
+  const readDocument = async (fileUrl: string, fileName: string, mimeType: string): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/read-document`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ fileUrl, fileName, mimeType }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Document read error');
+        return null;
+      }
+
+      const data = await response.json();
+      return data.content;
+    } catch (error) {
+      console.error('Document read error:', error);
+      return null;
+    }
+  };
+
   const handleSend = async () => {
     if ((!input.trim() && !selectedFile) || disabled || isUploading) return;
 
     let fileUrl: string | undefined;
+    let documentContent: string | null = null;
     
     if (selectedFile) {
       const url = await uploadFile(selectedFile);
       if (url) {
         fileUrl = url;
+        
+        // Read document content if it's a readable file type
+        const readableTypes = ['text/plain', 'application/json', 'text/csv', 'text/markdown'];
+        const isReadable = readableTypes.some(type => selectedFile.type.includes(type)) ||
+          selectedFile.name.match(/\.(txt|json|csv|md)$/i);
+        
+        if (isReadable || selectedFile.type.includes('application/pdf') || 
+            selectedFile.name.match(/\.(doc|docx)$/i)) {
+          documentContent = await readDocument(url, selectedFile.name, selectedFile.type);
+        }
       }
     }
 
-    const messageContent = fileUrl 
-      ? `${input.trim()}\n\n[Ek dosya: ${selectedFile?.name}](${fileUrl})`
-      : input.trim();
+    let messageContent = input.trim();
+    
+    if (fileUrl) {
+      messageContent = `${messageContent}\n\n[Ek dosya: ${selectedFile?.name}](${fileUrl})`;
+      
+      // Add document content for AI context
+      if (documentContent) {
+        messageContent = `${messageContent}\n\n--- Dosya İçeriği ---\n${documentContent}`;
+      }
+    }
 
     if (messageContent) {
       onSend(messageContent, fileUrl);
@@ -105,7 +151,7 @@ export const ChatInput = ({
 
   const handleFileSelect = (type: 'image' | 'document') => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.txt';
+      fileInputRef.current.accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.txt,.json,.csv,.md';
       fileInputRef.current.click();
     }
   };
@@ -125,7 +171,7 @@ export const ChatInput = ({
   };
 
   return (
-    <div className="p-4 pb-8 border-t border-border/50 bg-card/50 backdrop-blur-sm">
+    <div className="p-3 sm:p-4 pb-6 sm:pb-8 border-t border-border/50 bg-card/50 backdrop-blur-sm">
       {pendingQuestion && (
         <div className="mb-3 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg text-sm">
           <div className="flex items-center gap-2 text-accent">
@@ -144,20 +190,20 @@ export const ChatInput = ({
       {/* Selected File Preview */}
       {selectedFile && (
         <div className="mb-3 px-3 py-2 bg-secondary/50 border border-border/50 rounded-lg text-sm flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {selectedFile.type.startsWith('image/') ? (
-              <Image className="w-4 h-4 text-primary" />
+              <Image className="w-4 h-4 text-primary flex-shrink-0" />
             ) : (
-              <FileText className="w-4 h-4 text-primary" />
+              <FileText className="w-4 h-4 text-primary flex-shrink-0" />
             )}
-            <span className="text-muted-foreground truncate max-w-[200px]">
+            <span className="text-muted-foreground truncate text-xs sm:text-sm">
               {selectedFile.name}
             </span>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6"
+            className="h-6 w-6 flex-shrink-0"
             onClick={removeFile}
           >
             <X className="w-3 h-3" />
@@ -180,9 +226,9 @@ export const ChatInput = ({
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 text-muted-foreground hover:text-primary"
+              className="shrink-0 text-muted-foreground hover:text-primary h-9 w-9 sm:h-10 sm:w-10"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -205,12 +251,12 @@ export const ChatInput = ({
             onKeyDown={handleKeyDown}
             placeholder="Mesajınızı yazın..."
             disabled={disabled}
-            className="bg-input/50 border-border/50 focus-visible:ring-primary/30"
+            className="bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base h-9 sm:h-10"
           />
         </div>
 
         {/* Thinking Mode Toggle */}
-        <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
+        <div className="hidden sm:flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
           <Button
             variant={thinkingMode === 'fast' ? 'default' : 'ghost'}
             size="icon"
@@ -237,7 +283,7 @@ export const ChatInput = ({
           disabled={disabled || (!input.trim() && !selectedFile) || isUploading}
           variant="glow"
           size="icon"
-          className="shrink-0"
+          className="shrink-0 h-9 w-9 sm:h-10 sm:w-10"
         >
           {isUploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />

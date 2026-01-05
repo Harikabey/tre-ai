@@ -37,8 +37,20 @@ const Index = () => {
   } = useChatbot();
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Open sidebar on desktop by default
+  useEffect(() => {
+    const checkWidth = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      }
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -102,7 +114,7 @@ const Index = () => {
               <EmptyState />
             ) : (
               <ScrollArea className="h-full">
-                <div className="p-4 space-y-4">
+                <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {messages.map((message) => (
                     <ChatMessage key={message.id} message={message} />
                   ))}
@@ -121,9 +133,9 @@ const Index = () => {
           />
         </div>
         
-        {/* Knowledge Panel */}
+        {/* Knowledge Panel - Hidden on mobile */}
         <div
-          className={`transition-all duration-300 overflow-hidden ${
+          className={`hidden lg:block transition-all duration-300 overflow-hidden ${
             isPanelOpen ? 'w-80' : 'w-0'
           }`}
         >

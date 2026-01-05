@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Trash2, Menu, X } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -42,70 +42,97 @@ export const ConversationSidebar = ({
   };
 
   return (
-    <div
-      className={cn(
-        "transition-all duration-300 bg-card/50 backdrop-blur-sm border-r border-border/50 flex flex-col",
-        isOpen ? "w-64" : "w-0"
-      )}
-    >
+    <>
+      {/* Mobile overlay */}
       {isOpen && (
-        <>
-          <div className="p-3 border-b border-border/50">
-            <Button
-              onClick={onNewConversation}
-              className="w-full justify-start gap-2"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4" />
-              Yeni Sohbet
-            </Button>
-          </div>
-          
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {conversations.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                  Henüz sohbet yok
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    className={cn(
-                      "group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all",
-                      currentConversationId === conv.id
-                        ? "bg-primary/10 border border-primary/30"
-                        : "hover:bg-secondary/50 border border-transparent"
-                    )}
-                    onClick={() => onSelectConversation(conv.id)}
-                  >
-                    <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {conv.title}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(conv.updated_at)}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteConversation(conv.id);
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggle}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "transition-all duration-300 bg-card/95 backdrop-blur-sm border-r border-border/50 flex flex-col z-50",
+          // Mobile: fixed overlay
+          "fixed lg:relative inset-y-0 left-0",
+          isOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:translate-x-0"
+        )}
+      >
+        {isOpen && (
+          <>
+            <div className="p-3 border-b border-border/50 flex items-center gap-2">
+              <Button
+                onClick={onNewConversation}
+                className="flex-1 justify-start gap-2"
+                variant="outline"
+              >
+                <Plus className="h-4 w-4" />
+                Yeni Sohbet
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggle}
+                className="lg:hidden"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-1">
+                {conversations.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground text-sm">
+                    Henüz sohbet yok
+                  </div>
+                ) : (
+                  conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={cn(
+                        "group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all",
+                        currentConversationId === conv.id
+                          ? "bg-primary/10 border border-primary/30"
+                          : "hover:bg-secondary/50 border border-transparent"
+                      )}
+                      onClick={() => {
+                        onSelectConversation(conv.id);
+                        // Close sidebar on mobile after selection
+                        if (window.innerWidth < 1024) {
+                          onToggle();
+                        }
                       }}
                     >
-                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </>
-      )}
-    </div>
+                      <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {conv.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(conv.updated_at)}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteConversation(conv.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </>
+        )}
+      </div>
+    </>
   );
 };
