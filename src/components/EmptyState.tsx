@@ -1,47 +1,32 @@
-import { Bot, MessageSquare, Sparkles, Brain, Cpu } from 'lucide-react';
+import { Bot } from 'lucide-react';
+import aiLogo from '@/assets/ai-logo.jpg';
 
 export const EmptyState = () => {
-  const suggestions = [
-    { icon: MessageSquare, text: 'Merhaba!' },
-    { icon: Brain, text: 'Yapay zeka nedir?' },
-    { icon: Cpu, text: 'Bana bir hikaye anlat' },
-  ];
-
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-fade-in">
-      <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 shadow-glow-lg">
-        <Bot className="w-10 h-10 text-primary" />
+    <div className="flex flex-col items-center justify-center h-full p-4 sm:p-8 text-center">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-primary/30 shadow-glow mb-4 sm:mb-6">
+        <img src={aiLogo} alt="TreFriend AI" className="w-full h-full object-cover" />
       </div>
       
-      <h2 className="text-2xl font-semibold text-foreground mb-2 text-glow">
-        TreFriend ile Sohbet
+      <h2 className="text-xl sm:text-2xl font-bold text-foreground text-glow mb-2 sm:mb-3">
+        Merhaba! Ben TreFriend
       </h2>
-      <p className="text-muted-foreground max-w-md mb-8">
-        Akıllı yapay zeka asistanınız ile sohbet edin. 
-        Sorularınızı sorun, fikirlerinizi paylaşın.
+      
+      <p className="text-sm sm:text-base text-muted-foreground max-w-md mb-6 sm:mb-8">
+        Size yardımcı olmak için buradayım. 
+        Herhangi bir soru sorabilir, sohbet edebilir veya dosya paylaşabilirsiniz.
       </p>
       
-      <div className="flex flex-wrap gap-2 justify-center">
-        {suggestions.map((suggestion, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary/50 border border-border/50 rounded-full text-sm text-secondary-foreground hover:border-primary/30 transition-colors cursor-default"
-          >
-            <suggestion.icon className="w-4 h-4 text-primary" />
-            {suggestion.text}
+      <div className="grid gap-2 sm:gap-3 w-full max-w-sm">
+        <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-card/50 border border-border/50">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           </div>
-        ))}
-      </div>
-      
-      <div className="mt-8 p-4 bg-accent/5 border border-accent/20 rounded-xl max-w-sm">
-        <div className="flex items-center gap-2 text-accent mb-2">
-          <Sparkles className="w-4 h-4" />
-          <span className="font-medium text-sm">Özellikler</span>
+          <div className="text-left">
+            <div className="text-xs sm:text-sm font-medium text-foreground">Sohbete Başlayın</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Mesaj yazarak başlayın</div>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Streaming yanıtlar, konuşma hafızası ve öğrenme modu ile donatılmış 
-          tam kapsamlı bir AI asistan deneyimi.
-        </p>
       </div>
     </div>
   );

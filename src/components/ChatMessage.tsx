@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useVoice } from '@/hooks/useVoice';
 
 interface ChatMessageProps {
   message: Message;
@@ -8,42 +11,113 @@ interface ChatMessageProps {
 
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
+  const { playText, stopAudio, isPlaying, isLoading } = useVoice();
+  const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+
+  // Extract file attachment if present
+  const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
+  const fileName = fileMatch ? fileMatch[1] : null;
+  const fileUrl = fileMatch ? fileMatch[2] : null;
+  const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  
+  // Clean content for display (remove file link markdown)
+  const displayContent = message.content.replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '').trim();
+
+  const handlePlayAudio = async () => {
+    if (isCurrentlyPlaying) {
+      stopAudio();
+      setIsCurrentlyPlaying(false);
+    } else {
+      setIsCurrentlyPlaying(true);
+      await playText(displayContent || message.content);
+      setIsCurrentlyPlaying(false);
+    }
+  };
 
   return (
     <div
       className={cn(
-        'flex gap-3 animate-fade-in',
+        'flex gap-2 sm:gap-3 animate-fade-in',
         isBot ? 'justify-start' : 'justify-end'
       )}
     >
       {isBot && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
-          <Bot className="w-4 h-4 text-primary" />
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
+          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
         </div>
       )}
       
       <div
         className={cn(
-          'max-w-[80%] px-4 py-3 rounded-2xl',
+          'max-w-[85%] sm:max-w-[80%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl',
           isBot
             ? 'bg-card border border-border/50 rounded-tl-sm'
             : 'bg-primary/20 border border-primary/30 rounded-tr-sm'
         )}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {message.content}
-        </p>
-        <span className="text-[10px] text-muted-foreground mt-1 block">
-          {message.timestamp.toLocaleTimeString('tr-TR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </span>
+        {/* File attachment preview */}
+        {fileUrl && (
+          <div className="mb-2">
+            {isImage ? (
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                <img 
+                  src={fileUrl} 
+                  alt={fileName || 'Attached image'} 
+                  className="max-w-full max-h-48 rounded-lg object-cover"
+                />
+              </a>
+            ) : (
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors"
+              >
+                <FileText className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground truncate">{fileName}</span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {displayContent && (
+          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+            {displayContent}
+          </p>
+        )}
+        
+        <div className="flex items-center justify-between mt-1 gap-2">
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+            {message.timestamp.toLocaleTimeString('tr-TR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </span>
+          
+          {/* Audio playback button for bot messages */}
+          {isBot && displayContent && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 sm:h-6 sm:w-6"
+              onClick={handlePlayAudio}
+              disabled={isLoading && !isCurrentlyPlaying}
+            >
+              {isLoading && isCurrentlyPlaying ? (
+                <Loader2 className="w-3 h-3 animate-spin text-primary" />
+              ) : isCurrentlyPlaying && isPlaying ? (
+                <VolumeX className="w-3 h-3 text-primary" />
+              ) : (
+                <Volume2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
       
       {!isBot && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
-          <User className="w-4 h-4 text-accent" />
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
         </div>
       )}
     </div>
