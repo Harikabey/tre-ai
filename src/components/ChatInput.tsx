@@ -1,8 +1,11 @@
 import { useState, KeyboardEvent, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2 } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, fileUrl?: string) => void;
   disabled?: boolean;
   pendingQuestion?: string | null;
   thinkingMode: ThinkingMode;
@@ -25,15 +28,71 @@ export const ChatInput = ({
   thinkingMode,
   onThinkingModeChange,
 }: ChatInputProps) => {
+  const { user } = useAuth();
   const [input, setInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = () => {
-    if (input.trim() && !disabled) {
-      onSend(input);
+  const uploadFile = async (file: File): Promise<string | null> => {
+    if (!user) {
+      toast.error('Dosya yüklemek için giriş yapın');
+      return null;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('chat-attachments')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Upload error:', error);
+        toast.error('Dosya yüklenemedi');
+        return null;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(filePath);
+
+      return publicUrl.publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Dosya yüklenirken hata oluştu');
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if ((!input.trim() && !selectedFile) || disabled || isUploading) return;
+
+    let fileUrl: string | undefined;
+    
+    if (selectedFile) {
+      const url = await uploadFile(selectedFile);
+      if (url) {
+        fileUrl = url;
+      }
+    }
+
+    const messageContent = fileUrl 
+      ? `${input.trim()}\n\n[Ek dosya: ${selectedFile?.name}](${fileUrl})`
+      : input.trim();
+
+    if (messageContent) {
+      onSend(messageContent, fileUrl);
       setInput('');
       setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -175,12 +234,16 @@ export const ChatInput = ({
         {/* Send Button */}
         <Button
           onClick={handleSend}
-          disabled={disabled || !input.trim()}
+          disabled={disabled || (!input.trim() && !selectedFile) || isUploading}
           variant="glow"
           size="icon"
           className="shrink-0"
         >
-          <Send className="w-4 h-4" />
+          {isUploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </Button>
       </div>
     </div>
