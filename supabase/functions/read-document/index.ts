@@ -5,16 +5,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string): Promise<string> {
+async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string, mimeType: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
   if (!LOVABLE_API_KEY) {
     throw new Error("LOVABLE_API_KEY not configured");
   }
 
+  // For non-image files (like PDF), we need to convert to base64 data URL
+  let imageUrl = fileUrl;
+  
+  // Check if it's a PDF or non-image file - need to convert to base64
+  const isPdf = mimeType.includes('pdf') || fileName?.endsWith('.pdf');
+  const isImage = mimeType.includes('image/') || fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  
+  if (isPdf || !isImage) {
+    // Fetch the file and convert to base64
+    console.log("Converting file to base64 for AI analysis");
+    const fileResponse = await fetch(fileUrl);
+    const arrayBuffer = await fileResponse.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    
+    // Use application/pdf mime type for PDFs
+    const dataMimeType = isPdf ? 'application/pdf' : (mimeType || 'application/octet-stream');
+    imageUrl = `data:${dataMimeType};base64,${base64}`;
+  }
+
   const prompt = fileType === 'image' 
     ? `Bu görseli detaylı olarak analiz et. İçindeki tüm metinleri, grafikleri, tabloları ve görsel öğeleri açıkla. Türkçe yanıt ver.`
-    : `Bu ${fileName} dosyasını analiz et. İçindeki tüm metinleri oku ve özetle. Tablolar, grafikler veya önemli bilgiler varsa belirt. Türkçe yanıt ver.`;
+    : `Bu ${fileName} dosyasını analiz et. İçindeki tüm metinleri oku ve özetle. Tablolar, grafikler veya önemli bilgiler varsa detaylı belirt. Türkçe yanıt ver.`;
+
+  console.log("Sending to AI for analysis, file type:", fileType, "isPdf:", isPdf);
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -29,7 +57,7 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: fileUrl } },
+            { type: "image_url", image_url: { url: imageUrl } },
           ],
         },
       ],
@@ -39,7 +67,7 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
   if (!response.ok) {
     const errorText = await response.text();
     console.error("AI analysis error:", response.status, errorText);
-    throw new Error("AI analizi başarısız oldu");
+    throw new Error("AI analizi başarısız oldu: " + errorText);
   }
 
   const data = await response.json();
@@ -83,11 +111,11 @@ serve(async (req) => {
     } else if (type.includes("application/pdf") || fileName?.endsWith(".pdf")) {
       // Use AI to analyze PDF (via image/document analysis)
       console.log("Analyzing PDF with AI:", fileName);
-      textContent = await analyzeWithAI(fileUrl, fileName, 'document');
+      textContent = await analyzeWithAI(fileUrl, fileName, 'document', type);
     } else if (type.includes("image/") || fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
       // Use AI to analyze images
       console.log("Analyzing image with AI:", fileName);
-      textContent = await analyzeWithAI(fileUrl, fileName, 'image');
+      textContent = await analyzeWithAI(fileUrl, fileName, 'image', type);
     } else if (type.includes("application/msword") || type.includes("application/vnd.openxmlformats-officedocument") || 
                fileName?.endsWith(".doc") || fileName?.endsWith(".docx")) {
       textContent = `[Word Dosyası: ${fileName}]\n\nWord dosyaları şu anda desteklenmiyor. Lütfen PDF veya TXT formatında yükleyin.`;
