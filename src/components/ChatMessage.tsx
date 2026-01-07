@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
@@ -20,8 +20,18 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const fileUrl = fileMatch ? fileMatch[2] : null;
   const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
   
-  // Clean content for display (remove file link markdown)
-  const displayContent = message.content.replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '').trim();
+  // Extract generated image (markdown format)
+  const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
+  const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
+  const generatedImageAlt = generatedImageMatch ? generatedImageMatch[1] : 'Generated image';
+  
+  // Clean content for display (remove file link markdown and image markdown)
+  let displayContent = message.content
+    .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
+    .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
+    .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .trim();
 
   const handlePlayAudio = async () => {
     if (isCurrentlyPlaying) {
@@ -29,7 +39,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       setIsCurrentlyPlaying(false);
     } else {
       setIsCurrentlyPlaying(true);
-      await playText(displayContent || message.content);
+      // Clean content for audio (remove markdown formatting)
+      const audioContent = displayContent
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/[#*_~`]/g, '')
+        .trim();
+      await playText(audioContent || message.content);
       setIsCurrentlyPlaying(false);
     }
   };
@@ -80,6 +96,17 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </div>
         )}
 
+        {/* Generated image preview */}
+        {generatedImageUrl && (
+          <div className="mb-2">
+            <img 
+              src={generatedImageUrl} 
+              alt={generatedImageAlt} 
+              className="max-w-full max-h-64 rounded-lg object-contain"
+            />
+          </div>
+        )}
+
         {displayContent && (
           <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
             {displayContent}
@@ -95,7 +122,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </span>
           
           {/* Audio playback button for bot messages */}
-          {isBot && displayContent && (
+          {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
             <Button
               variant="ghost"
               size="icon"

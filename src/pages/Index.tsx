@@ -125,7 +125,7 @@ const Index = () => {
           </div>
           
           <ChatInput
-            onSend={sendMessage}
+            onSend={(msg, fileUrl, isImageGen) => sendMessage(msg, fileUrl, isImageGen)}
             disabled={isTyping}
             pendingQuestion={pendingQuestion}
             thinkingMode={thinkingMode}
