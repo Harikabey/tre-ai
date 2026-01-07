@@ -5,6 +5,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
+  }
+
+  const prompt = fileType === 'image' 
+    ? `Bu görseli detaylı olarak analiz et. İçindeki tüm metinleri, grafikleri, tabloları ve görsel öğeleri açıkla. Türkçe yanıt ver.`
+    : `Bu ${fileName} dosyasını analiz et. İçindeki tüm metinleri oku ve özetle. Tablolar, grafikler veya önemli bilgiler varsa belirt. Türkçe yanıt ver.`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: fileUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI analysis error:", response.status, errorText);
+    throw new Error("AI analizi başarısız oldu");
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "İçerik analiz edilemedi.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,39 +60,42 @@ serve(async (req) => {
 
     console.log("Reading document:", fileName, "from:", fileUrl);
 
-    // Fetch the file content
-    const response = await fetch(fileUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file: ${response.status}`);
-    }
+    // Fetch the file to check content type
+    const response = await fetch(fileUrl, { method: 'HEAD' });
+    const type = mimeType || response.headers.get("content-type") || "";
 
     let textContent = "";
-    const type = mimeType || response.headers.get("content-type") || "";
 
     // Handle different file types
     if (type.includes("text/plain") || fileName?.endsWith(".txt")) {
-      textContent = await response.text();
+      const textResponse = await fetch(fileUrl);
+      textContent = await textResponse.text();
     } else if (type.includes("application/json") || fileName?.endsWith(".json")) {
-      const json = await response.json();
+      const jsonResponse = await fetch(fileUrl);
+      const json = await jsonResponse.json();
       textContent = JSON.stringify(json, null, 2);
     } else if (type.includes("text/csv") || fileName?.endsWith(".csv")) {
-      textContent = await response.text();
+      const csvResponse = await fetch(fileUrl);
+      textContent = await csvResponse.text();
     } else if (type.includes("text/markdown") || fileName?.endsWith(".md")) {
-      textContent = await response.text();
+      const mdResponse = await fetch(fileUrl);
+      textContent = await mdResponse.text();
     } else if (type.includes("application/pdf") || fileName?.endsWith(".pdf")) {
-      // For PDF, we return a description since we can't parse it without external library
-      textContent = `[PDF Dosyası: ${fileName}]\n\nBu bir PDF dosyasıdır. PDF içeriği şu anda okunamıyor. Lütfen metin tabanlı bir dosya (TXT, JSON, CSV, MD) yükleyin.`;
-    } else if (type.includes("image/")) {
-      // For images, describe what was uploaded
-      textContent = `[Resim Dosyası: ${fileName}]\n\nBu bir resim dosyasıdır. Görüntü analizi için lütfen resmi açıklayın.`;
+      // Use AI to analyze PDF (via image/document analysis)
+      console.log("Analyzing PDF with AI:", fileName);
+      textContent = await analyzeWithAI(fileUrl, fileName, 'document');
+    } else if (type.includes("image/") || fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
+      // Use AI to analyze images
+      console.log("Analyzing image with AI:", fileName);
+      textContent = await analyzeWithAI(fileUrl, fileName, 'image');
     } else if (type.includes("application/msword") || type.includes("application/vnd.openxmlformats-officedocument") || 
                fileName?.endsWith(".doc") || fileName?.endsWith(".docx")) {
-      textContent = `[Word Dosyası: ${fileName}]\n\nBu bir Word belgesidir. Word dosyaları şu anda okunamıyor. Lütfen TXT formatında kaydedin.`;
+      textContent = `[Word Dosyası: ${fileName}]\n\nWord dosyaları şu anda desteklenmiyor. Lütfen PDF veya TXT formatında yükleyin.`;
     } else {
       // Try to read as text for unknown types
       try {
-        textContent = await response.text();
+        const unknownResponse = await fetch(fileUrl);
+        textContent = await unknownResponse.text();
         if (textContent.length === 0 || !textContent.trim()) {
           textContent = `[Dosya: ${fileName}]\n\nBu dosya türü desteklenmiyor veya içerik okunamadı.`;
         }
@@ -61,7 +105,7 @@ serve(async (req) => {
     }
 
     // Truncate if too long
-    const maxLength = 10000;
+    const maxLength = 15000;
     if (textContent.length > maxLength) {
       textContent = textContent.substring(0, maxLength) + "\n\n...[İçerik kesildi - çok uzun]";
     }
