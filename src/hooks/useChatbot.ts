@@ -6,6 +6,7 @@ import { useAuth } from './useAuth';
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
+const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -240,7 +241,30 @@ export const useChatbot = () => {
     return assistantContent;
   }, [updateLastBotMessage]);
 
-  const sendMessage = useCallback(async (input: string) => {
+  const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
+    try {
+      const response = await fetch(GENERATE_IMAGE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Görsel oluşturulamadı');
+      }
+
+      const data = await response.json();
+      return data.imageUrl || null;
+    } catch (error) {
+      console.error('Image generation error:', error);
+      return null;
+    }
+  }, []);
+
+  const sendMessage = useCallback(async (input: string, fileUrl?: string, isImageGeneration?: boolean) => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
 
@@ -273,10 +297,29 @@ export const useChatbot = () => {
     setIsTyping(true);
 
     try {
-      const assistantContent = await streamChat(conversationId, trimmedInput);
-      
-      // Save assistant message to DB
-      await saveMessage(conversationId, 'assistant', assistantContent);
+      // Handle image generation request
+      if (isImageGeneration) {
+        const imagePrompt = trimmedInput.replace(/^🎨 Görsel oluştur:\s*/i, '').trim();
+        updateLastBotMessage('🎨 Görsel oluşturuluyor...');
+        
+        const imageUrl = await generateImage(imagePrompt);
+        
+        if (imageUrl) {
+          const responseContent = `İşte oluşturduğum görsel:\n\n![Oluşturulan görsel](${imageUrl})\n\n*"${imagePrompt}"*`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ Görsel oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
+      } else {
+        // Normal chat flow
+        const assistantContent = await streamChat(conversationId, trimmedInput);
+        
+        // Save assistant message to DB
+        await saveMessage(conversationId, 'assistant', assistantContent);
+      }
       
       // Update conversation updated_at
       await supabase
@@ -294,7 +337,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
