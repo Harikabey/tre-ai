@@ -35,7 +35,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Generate a high-quality image based on this description: ${prompt}. Make it visually appealing and detailed.`,
+            content: `Generate a high-quality, detailed image based on this description: ${prompt}`,
           },
         ],
         modalities: ["image", "text"],
@@ -45,17 +45,38 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Görsel oluşturulamadı");
+      throw new Error("Görsel oluşturulamadı: " + errorText);
     }
 
     const data = await response.json();
-    console.log("Image generation response:", JSON.stringify(data).substring(0, 500));
+    console.log("Full response structure:", JSON.stringify(data, null, 2));
 
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Check for images in the response
+    const images = data.choices?.[0]?.message?.images;
     const textResponse = data.choices?.[0]?.message?.content || "";
 
+    console.log("Images array:", images);
+    console.log("Text response:", textResponse);
+
+    let imageUrl = null;
+
+    // Try to get image from images array
+    if (images && images.length > 0) {
+      imageUrl = images[0]?.image_url?.url;
+    }
+
+    // If no image in images array, check if there's a base64 in the content itself
+    if (!imageUrl && textResponse) {
+      // Sometimes the model returns base64 directly in content
+      const base64Match = textResponse.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
+      if (base64Match) {
+        imageUrl = base64Match[0];
+      }
+    }
+
     if (!imageUrl) {
-      throw new Error("Görsel oluşturulamadı - yanıt boş");
+      console.error("No image found in response. Full data:", JSON.stringify(data));
+      throw new Error("Görsel oluşturulamadı - model görsel üretemedi. Lütfen farklı bir açıklama deneyin.");
     }
 
     return new Response(
