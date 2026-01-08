@@ -212,8 +212,13 @@ export const ChatInput = ({
   const handleImageGeneration = () => {
     const prompt = input.trim();
     if (!prompt) {
-      toast.error('Lütfen oluşturmak istediğiniz görseli tanımlayın');
+      toast.info('Lütfen önce oluşturmak istediğiniz görseli tanımlayın, sonra "Görsel Oluştur" seçeneğine tıklayın');
       return;
+    }
+    
+    // Stop listening if active
+    if (isListening) {
+      stopListening();
     }
     
     onSend(`🎨 Görsel oluştur: ${prompt}`, undefined, true);
@@ -335,9 +340,9 @@ export const ChatInput = ({
               <FileText className="w-4 h-4 mr-2" />
               Dosya Ekle
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleImageGeneration} disabled={!input.trim()}>
+            <DropdownMenuItem onClick={handleImageGeneration}>
               <Palette className="w-4 h-4 mr-2" />
-              Görsel Oluştur
+              Görsel Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
