@@ -35,7 +35,11 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Generate a high-quality, detailed image based on this description: ${prompt}`,
+            content:
+              `Generate ONE high-quality image. ` +
+              `Visually depict this request: ${prompt}. ` +
+              `If the request is abstract (e.g., a topic), create a symbolic/illustrative scene representing it. ` +
+              `Do not refuse; always produce an image.`,
           },
         ],
         modalities: ["image", "text"],
