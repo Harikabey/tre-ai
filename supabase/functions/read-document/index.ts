@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,42 +8,42 @@ const corsHeaders = {
 
 async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string, mimeType: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  
+
   if (!LOVABLE_API_KEY) {
     throw new Error("LOVABLE_API_KEY not configured");
   }
 
-  // For non-image files (like PDF), we need to convert to base64 data URL
+  // For non-image files (like PDF), we need to convert to a base64 data URL
   let imageUrl = fileUrl;
-  
-  // Check if it's a PDF or non-image file - need to convert to base64
-  const isPdf = mimeType.includes('pdf') || fileName?.endsWith('.pdf');
-  const isImage = mimeType.includes('image/') || fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  
+
+  const isPdf = mimeType?.includes("pdf") || fileName?.toLowerCase().endsWith(".pdf");
+  const isImage = mimeType?.includes("image/") || !!fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
   if (isPdf || !isImage) {
-    // Fetch the file and convert to base64
-    console.log("Converting file to base64 for AI analysis");
-    const fileResponse = await fetch(fileUrl);
-    const arrayBuffer = await fileResponse.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    // Convert to base64
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    try {
+      console.log("Converting file to base64 for AI analysis", { fileName, mimeType });
+      const fileResponse = await fetch(fileUrl);
+      if (!fileResponse.ok) {
+        const t = await fileResponse.text().catch(() => "");
+        throw new Error(`Dosya indirilemedi (HTTP ${fileResponse.status}): ${t.slice(0, 500)}`);
+      }
+
+      const bytes = new Uint8Array(await fileResponse.arrayBuffer());
+      const base64 = encode(bytes.buffer);
+
+      const dataMimeType = isPdf ? "application/pdf" : (mimeType || "application/octet-stream");
+      imageUrl = `data:${dataMimeType};base64,${base64}`;
+    } catch (e) {
+      console.error("Base64 conversion failed", e);
+      throw e;
     }
-    const base64 = btoa(binary);
-    
-    // Use application/pdf mime type for PDFs
-    const dataMimeType = isPdf ? 'application/pdf' : (mimeType || 'application/octet-stream');
-    imageUrl = `data:${dataMimeType};base64,${base64}`;
   }
 
-  const prompt = fileType === 'image' 
-    ? `Bu görseli detaylı olarak analiz et. İçindeki tüm metinleri, grafikleri, tabloları ve görsel öğeleri açıkla. Türkçe yanıt ver.`
+  const prompt = fileType === "image"
+    ? "Bu görseli detaylı olarak analiz et. İçindeki tüm metinleri, grafikleri, tabloları ve görsel öğeleri açıkla. Türkçe yanıt ver."
     : `Bu ${fileName} dosyasını analiz et. İçindeki tüm metinleri oku ve özetle. Tablolar, grafikler veya önemli bilgiler varsa detaylı belirt. Türkçe yanıt ver.`;
 
-  console.log("Sending to AI for analysis, file type:", fileType, "isPdf:", isPdf);
+  console.log("Sending to AI for analysis", { fileType, isPdf, mimeType });
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -65,9 +66,9 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.text().catch(() => "");
     console.error("AI analysis error:", response.status, errorText);
-    throw new Error("AI analizi başarısız oldu: " + errorText);
+    throw new Error("AI analizi başarısız oldu: " + (errorText || `HTTP ${response.status}`));
   }
 
   const data = await response.json();
