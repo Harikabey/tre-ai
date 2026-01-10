@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
+import { useImageHistory } from '@/hooks/useImageHistory';
 import { ChatHeader } from '@/components/ChatHeader';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
@@ -9,6 +10,7 @@ import { TypingIndicator } from '@/components/TypingIndicator';
 import { KnowledgePanel } from '@/components/KnowledgePanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ConversationSidebar } from '@/components/ConversationSidebar';
+import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 
@@ -36,8 +38,11 @@ const Index = () => {
     deleteConversation,
   } = useChatbot();
 
+  const { images, addImage, deleteImage, clearImages } = useImageHistory();
+
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Open sidebar on desktop by default
@@ -68,6 +73,31 @@ const Index = () => {
       }
     }
   }, [messages, isTyping]);
+
+  // Track generated images from messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === 'bot') {
+      const imageMatch = lastMessage.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
+      const promptMatch = lastMessage.content.match(/\*"([^"]+)"\*/);
+      
+      if (imageMatch && promptMatch) {
+        const imageUrl = imageMatch[2];
+        const prompt = promptMatch[1];
+        
+        // Check if this image is already in history
+        const exists = images.some(img => img.url === imageUrl);
+        if (!exists) {
+          addImage(imageUrl, prompt);
+        }
+      }
+    }
+  }, [messages, addImage, images]);
+
+  const handleRegenerateImage = (prompt: string) => {
+    setIsImageHistoryOpen(false);
+    sendMessage(`🎨 Görsel oluştur: ${prompt}`, undefined, true);
+  };
 
   if (authLoading) {
     return (
@@ -107,6 +137,8 @@ const Index = () => {
             onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
             isPanelOpen={isPanelOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            onToggleImageHistory={() => setIsImageHistoryOpen(!isImageHistoryOpen)}
+            imageHistoryCount={images.length}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
@@ -146,6 +178,16 @@ const Index = () => {
           />
         </div>
       </div>
+
+      {/* Image History Panel */}
+      <ImageHistoryPanel
+        images={images}
+        onRegenerate={handleRegenerateImage}
+        onDelete={deleteImage}
+        onClear={clearImages}
+        isOpen={isImageHistoryOpen}
+        onClose={() => setIsImageHistoryOpen(false)}
+      />
     </div>
   );
 };
