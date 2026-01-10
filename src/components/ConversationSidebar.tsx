@@ -1,7 +1,18 @@
+import { useState } from 'react';
 import { MessageSquare, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Conversation {
   id: string;
@@ -30,6 +41,9 @@ export const ConversationSidebar = ({
   onNewConversation,
   onDeleteConversation,
 }: ConversationSidebarProps) => {
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const conversationToDelete = deleteId ? conversations.find(c => c.id === deleteId) : null;
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -39,6 +53,18 @@ export const ConversationSidebar = ({
     if (diffDays === 1) return 'Dün';
     if (diffDays < 7) return `${diffDays} gün önce`;
     return date.toLocaleDateString('tr-TR');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      onDeleteConversation(deleteId);
+      setDeleteId(null);
+    }
   };
 
   return (
@@ -118,10 +144,7 @@ export const ConversationSidebar = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteConversation(conv.id);
-                        }}
+                        onClick={(e) => handleDeleteClick(e, conv.id)}
                       >
                         <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                       </Button>
@@ -133,6 +156,28 @@ export const ConversationSidebar = ({
           </>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sohbeti sil?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{conversationToDelete?.title}" sohbetini silmek istediğinizden emin misiniz? 
+              Tüm mesajlar kalıcı olarak silinecektir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
