@@ -112,11 +112,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background bg-grid">
+    <div className="min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden">
       {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
       
-      <div className="relative z-10 flex h-screen max-w-7xl mx-auto">
+      <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-hidden">
         {/* Conversation Sidebar */}
         <ConversationSidebar
           conversations={conversations}

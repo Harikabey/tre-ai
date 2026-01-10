@@ -61,9 +61,9 @@ export const ImageHistoryPanel = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50 lg:hidden" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
       
-      <div className="fixed right-0 top-0 bottom-0 w-80 bg-card border-l border-border/50 z-50 flex flex-col animate-in slide-in-from-right">
+      <div className="fixed right-0 top-0 bottom-0 w-full sm:w-80 max-w-full bg-card border-l border-border/50 z-50 flex flex-col animate-in slide-in-from-right safe-area-inset-top">
         <div className="p-4 border-b border-border/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Image className="h-5 w-5 text-primary" />

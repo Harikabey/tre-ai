@@ -58,14 +58,14 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       )}
     >
       {isBot && (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
-          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
+          <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
         </div>
       )}
       
       <div
         className={cn(
-          'max-w-[85%] sm:max-w-[80%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl',
+          'max-w-[calc(100%-3rem)] sm:max-w-[80%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
             ? 'bg-card border border-border/50 rounded-tl-sm'
             : 'bg-primary/20 border border-primary/30 rounded-tr-sm'
@@ -79,7 +79,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                 <img 
                   src={fileUrl} 
                   alt={fileName || 'Attached image'} 
-                  className="max-w-full max-h-48 rounded-lg object-cover"
+                  className="max-w-full max-h-40 sm:max-h-48 rounded-lg object-cover"
                 />
               </a>
             ) : (
@@ -89,8 +89,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors"
               >
-                <FileText className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground truncate">{fileName}</span>
+                <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
               </a>
             )}
           </div>
@@ -102,13 +102,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
             <img 
               src={generatedImageUrl} 
               alt={generatedImageAlt} 
-              className="max-w-full max-h-64 rounded-lg object-contain"
+              className="max-w-full max-h-48 sm:max-h-64 rounded-lg object-contain"
             />
           </div>
         )}
 
         {displayContent && (
-          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
             {displayContent}
           </p>
         )}
@@ -143,8 +143,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       </div>
       
       {!isBot && (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
-          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
+        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+          <User className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
         </div>
       )}
     </div>

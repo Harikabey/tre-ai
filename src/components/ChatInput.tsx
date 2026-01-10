@@ -263,17 +263,17 @@ export const ChatInput = ({
   };
 
   return (
-    <div className="p-3 sm:p-4 pb-6 sm:pb-8 border-t border-border/50 bg-card/50 backdrop-blur-sm">
+    <div className="p-3 sm:p-4 pb-safe border-t border-border/50 bg-card/50 backdrop-blur-sm safe-area-inset-bottom">
       {pendingQuestion && (
         <div className="mb-3 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg text-sm">
-          <div className="flex items-center gap-2 text-accent">
-            <Sparkles className="w-4 h-4" />
-            <span>Öğretme modu: </span>
+          <div className="flex items-center gap-2 text-accent flex-wrap">
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs sm:text-sm">Öğretme modu: </span>
             <code className="px-1.5 py-0.5 bg-accent/20 rounded text-xs">
               /öğret [cevap]
             </code>
           </div>
-          <p className="text-muted-foreground mt-1 text-xs">
+          <p className="text-muted-foreground mt-1 text-xs line-clamp-2">
             "{pendingQuestion}" sorusunun cevabını öğretebilirsiniz
           </p>
         </div>
