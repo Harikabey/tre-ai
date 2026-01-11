@@ -376,24 +376,24 @@ export const ChatInput = ({
         </div>
 
         {/* Thinking Mode Toggle */}
-        <div className="hidden sm:flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
+        <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
           <Button
             variant={thinkingMode === 'fast' ? 'default' : 'ghost'}
             size="icon"
             onClick={() => onThinkingModeChange('fast')}
-            className={`h-8 w-8 ${thinkingMode === 'fast' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'fast' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
             title="Hızlı Yanıt"
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
           <Button
             variant={thinkingMode === 'deep' ? 'default' : 'ghost'}
             size="icon"
             onClick={() => onThinkingModeChange('deep')}
-            className={`h-8 w-8 ${thinkingMode === 'deep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'deep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
             title="Derin Düşünce"
           >
-            <Brain className="w-4 h-4" />
+            <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
         </div>
         
