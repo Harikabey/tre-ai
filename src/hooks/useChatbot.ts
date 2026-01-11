@@ -364,6 +364,17 @@ export const useChatbot = () => {
     }
   }, [currentConversationId]);
 
+  const deleteMessage = useCallback(async (messageId: string) => {
+    // Delete from database
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+    
+    // Remove from local state
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+  }, []);
+
   const clearKnowledge = useCallback(() => {
     setKnowledgeBase([]);
   }, []);
@@ -397,6 +408,7 @@ export const useChatbot = () => {
     setThinkingMode: updateThinkingMode,
     sendMessage,
     clearMessages,
+    deleteMessage,
     clearKnowledge,
     learnNewResponse,
     deleteKnowledgeItem,
