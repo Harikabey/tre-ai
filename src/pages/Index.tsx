@@ -11,6 +11,7 @@ import { KnowledgePanel } from '@/components/KnowledgePanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ConversationSidebar } from '@/components/ConversationSidebar';
 import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
+import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 
@@ -31,6 +32,7 @@ const Index = () => {
     setThinkingMode,
     sendMessage,
     clearMessages,
+    deleteMessage,
     clearKnowledge,
     deleteKnowledgeItem,
     selectConversation,
@@ -148,7 +150,13 @@ const Index = () => {
               <ScrollArea className="h-full">
                 <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {messages.map((message) => (
-                    <ChatMessage key={message.id} message={message} />
+                    <SwipeableMessage 
+                      key={message.id} 
+                      messageId={message.id}
+                      onDelete={() => deleteMessage(message.id)}
+                    >
+                      <ChatMessage message={message} />
+                    </SwipeableMessage>
                   ))}
                   {isTyping && <TypingIndicator />}
                 </div>
