@@ -351,6 +351,13 @@ export const useChatbot = () => {
   }, [currentConversationId]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
+    // First delete all messages in the conversation (due to foreign key constraint)
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('conversation_id', conversationId);
+    
+    // Then delete the conversation
     await supabase
       .from('conversations')
       .delete()
