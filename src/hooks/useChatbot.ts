@@ -371,6 +371,19 @@ export const useChatbot = () => {
     }
   }, [currentConversationId]);
 
+  const renameConversation = useCallback(async (conversationId: string, newTitle: string) => {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ title: newTitle })
+      .eq('id', conversationId);
+    
+    if (!error) {
+      setConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c)
+      );
+    }
+  }, []);
+
   const deleteMessage = useCallback(async (messageId: string) => {
     // Delete from database
     await supabase
@@ -422,6 +435,7 @@ export const useChatbot = () => {
     selectConversation,
     createNewConversation,
     deleteConversation,
+    renameConversation,
     loadConversations,
   };
 };
