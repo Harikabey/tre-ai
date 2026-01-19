@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { MessageSquare, Plus, Trash2, X } from 'lucide-react';
+import { useState, useRef, useCallback, TouchEvent } from 'react';
+import { MessageSquare, Plus, Trash2, X, Check, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -30,19 +31,82 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onRenameConversation?: (id: string, newTitle: string) => void;
 }
 
-export const ConversationSidebar = ({
-  conversations,
-  currentConversationId,
-  isOpen,
-  onToggle,
-  onSelectConversation,
-  onNewConversation,
-  onDeleteConversation,
-}: ConversationSidebarProps) => {
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const conversationToDelete = deleteId ? conversations.find(c => c.id === deleteId) : null;
+// Swipe to delete hook for conversation items
+const useSwipeToDelete = (onDelete: () => void, threshold = 80) => {
+  const [translateX, setTranslateX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const currentXRef = useRef(0);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    currentXRef.current = e.touches[0].clientX;
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging) return;
+    
+    currentXRef.current = e.touches[0].clientX;
+    const diff = startXRef.current - currentXRef.current;
+    
+    if (diff > 0) {
+      const maxSwipe = 120;
+      const dampened = Math.min(diff, maxSwipe);
+      setTranslateX(-dampened);
+    } else {
+      setTranslateX(0);
+    }
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    
+    const diff = startXRef.current - currentXRef.current;
+    
+    if (diff > threshold) {
+      setTranslateX(-300);
+      setTimeout(() => {
+        onDelete();
+        setTranslateX(0);
+      }, 200);
+    } else {
+      setTranslateX(0);
+    }
+  }, [threshold, onDelete]);
+
+  return {
+    translateX,
+    isDragging,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  };
+};
+
+// Individual conversation item with swipe and edit
+const ConversationItem = ({
+  conv,
+  isActive,
+  onSelect,
+  onDelete,
+  onRename,
+}: {
+  conv: Conversation;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onRename?: (newTitle: string) => void;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(conv.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  const { translateX, isDragging, handleTouchStart, handleTouchMove, handleTouchEnd } = 
+    useSwipeToDelete(onDelete, 80);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -55,8 +119,158 @@ export const ConversationSidebar = ({
     return date.toLocaleDateString('tr-TR');
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+  const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsEditing(true);
+    setEditTitle(conv.title);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleSaveEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (editTitle.trim() && editTitle !== conv.title && onRename) {
+      onRename(editTitle.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditTitle(conv.title);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  const showDeleteIndicator = translateX < -40;
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Delete indicator background */}
+      <div 
+        className={cn(
+          "absolute inset-y-0 right-0 flex items-center justify-end pr-4 bg-destructive transition-opacity",
+          showDeleteIndicator ? "opacity-100" : "opacity-0"
+        )}
+        style={{ width: Math.abs(translateX) + 20 }}
+      >
+        <Trash2 className="h-5 w-5 text-destructive-foreground" />
+      </div>
+      
+      {/* Swipeable content */}
+      <div
+        className={cn(
+          "group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all bg-card",
+          isActive
+            ? "bg-primary/10 border border-primary/30"
+            : "hover:bg-secondary/50 border border-transparent",
+          isDragging && "transition-none"
+        )}
+        style={{ 
+          transform: `translateX(${translateX}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => !isEditing && onSelect()}
+      >
+        <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <Input
+              ref={inputRef}
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => handleSaveEdit()}
+              onClick={(e) => e.stopPropagation()}
+              className="h-6 text-sm px-1 py-0"
+            />
+          ) : (
+            <>
+              <div className="text-sm font-medium text-foreground truncate">
+                {conv.title}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(conv.updated_at)}
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {isEditing ? (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={handleSaveEdit}
+              >
+                <Check className="h-3 w-3 text-primary" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={handleCancelEdit}
+              >
+                <X className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </>
+          ) : (
+            <>
+              {onRename && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={handleEditClick}
+                >
+                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+              >
+                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ConversationSidebar = ({
+  conversations,
+  currentConversationId,
+  isOpen,
+  onToggle,
+  onSelectConversation,
+  onNewConversation,
+  onDeleteConversation,
+  onRenameConversation,
+}: ConversationSidebarProps) => {
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const conversationToDelete = deleteId ? conversations.find(c => c.id === deleteId) : null;
+
+  const handleDeleteClick = (id: string) => {
     setDeleteId(id);
   };
 
@@ -81,7 +295,6 @@ export const ConversationSidebar = ({
       <div
         className={cn(
           "transition-all duration-300 bg-card/95 backdrop-blur-sm border-r border-border/50 flex flex-col z-50",
-          // Mobile: fixed overlay
           "fixed lg:relative inset-y-0 left-0",
           isOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:translate-x-0"
         )}
@@ -115,40 +328,19 @@ export const ConversationSidebar = ({
                   </div>
                 ) : (
                   conversations.map((conv) => (
-                    <div
+                    <ConversationItem
                       key={conv.id}
-                      className={cn(
-                        "group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all",
-                        currentConversationId === conv.id
-                          ? "bg-primary/10 border border-primary/30"
-                          : "hover:bg-secondary/50 border border-transparent"
-                      )}
-                      onClick={() => {
+                      conv={conv}
+                      isActive={currentConversationId === conv.id}
+                      onSelect={() => {
                         onSelectConversation(conv.id);
-                        // Close sidebar on mobile after selection
                         if (window.innerWidth < 1024) {
                           onToggle();
                         }
                       }}
-                    >
-                      <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">
-                          {conv.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDate(conv.updated_at)}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDeleteClick(e, conv.id)}
-                      >
-                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                      </Button>
-                    </div>
+                      onDelete={() => handleDeleteClick(conv.id)}
+                      onRename={onRenameConversation ? (newTitle) => onRenameConversation(conv.id, newTitle) : undefined}
+                    />
                   ))
                 )}
               </div>

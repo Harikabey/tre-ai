@@ -13,6 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ChatInputProps {
   onSend: (message: string, fileUrl?: string, isImageGeneration?: boolean) => void;
@@ -376,26 +382,42 @@ export const ChatInput = ({
         </div>
 
         {/* Thinking Mode Toggle */}
-        <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
-          <Button
-            variant={thinkingMode === 'fast' ? 'default' : 'ghost'}
-            size="icon"
-            onClick={() => onThinkingModeChange('fast')}
-            className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'fast' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
-            title="Hızlı Yanıt"
-          >
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </Button>
-          <Button
-            variant={thinkingMode === 'deep' ? 'default' : 'ghost'}
-            size="icon"
-            onClick={() => onThinkingModeChange('deep')}
-            className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'deep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
-            title="Derin Düşünce"
-          >
-            <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </Button>
-        </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-lg border border-border/50">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={thinkingMode === 'fast' ? 'default' : 'ghost'}
+                  size="icon"
+                  onClick={() => onThinkingModeChange('fast')}
+                  className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'fast' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                >
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="font-medium">Hızlı Yanıt</p>
+                <p className="text-xs text-muted-foreground">Kısa ve hızlı cevaplar için</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={thinkingMode === 'deep' ? 'default' : 'ghost'}
+                  size="icon"
+                  onClick={() => onThinkingModeChange('deep')}
+                  className={`h-7 w-7 sm:h-8 sm:w-8 ${thinkingMode === 'deep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                >
+                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="font-medium">Derin Düşünce</p>
+                <p className="text-xs text-muted-foreground">Kapsamlı ve detaylı analizler için</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
         
         {/* Send Button */}
         <Button

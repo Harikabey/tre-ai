@@ -38,6 +38,7 @@ const Index = () => {
     selectConversation,
     createNewConversation,
     deleteConversation,
+    renameConversation,
   } = useChatbot();
 
   const { images, addImage, deleteImage, clearImages } = useImageHistory();
@@ -128,6 +129,7 @@ const Index = () => {
           onSelectConversation={selectConversation}
           onNewConversation={createNewConversation}
           onDeleteConversation={deleteConversation}
+          onRenameConversation={renameConversation}
         />
         
         {/* Main Chat Area */}
