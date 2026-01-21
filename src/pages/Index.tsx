@@ -11,6 +11,7 @@ import { KnowledgePanel } from '@/components/KnowledgePanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ConversationSidebar } from '@/components/ConversationSidebar';
 import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
+import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
@@ -28,6 +29,10 @@ const Index = () => {
     isTyping,
     pendingQuestion,
     thinkingMode,
+    memories,
+    interests,
+    recentMoods,
+    currentMood,
     setIsLearningMode,
     setThinkingMode,
     sendMessage,
@@ -39,6 +44,8 @@ const Index = () => {
     createNewConversation,
     deleteConversation,
     renameConversation,
+    deleteMemory,
+    deleteInterest,
   } = useChatbot();
 
   const { images, addImage, deleteImage, clearImages } = useImageHistory();
@@ -46,6 +53,7 @@ const Index = () => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
+  const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Open sidebar on desktop by default
@@ -143,6 +151,8 @@ const Index = () => {
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             onToggleImageHistory={() => setIsImageHistoryOpen(!isImageHistoryOpen)}
             imageHistoryCount={images.length}
+            onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
+            memoryCount={memories.length + interests.length}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
@@ -197,6 +207,18 @@ const Index = () => {
         onClear={clearImages}
         isOpen={isImageHistoryOpen}
         onClose={() => setIsImageHistoryOpen(false)}
+      />
+
+      {/* User Memory Panel */}
+      <UserMemoryPanel
+        isOpen={isMemoryPanelOpen}
+        onClose={() => setIsMemoryPanelOpen(false)}
+        memories={memories}
+        interests={interests}
+        recentMoods={recentMoods}
+        currentMood={currentMood}
+        onDeleteMemory={deleteMemory}
+        onDeleteInterest={deleteInterest}
       />
     </div>
   );
