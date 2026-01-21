@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
+import { useUserMemory } from './useUserMemory';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
@@ -21,6 +22,18 @@ interface Conversation {
 
 export const useChatbot = () => {
   const { user } = useAuth();
+  const { 
+    analyzeAndStore, 
+    getMemoryContext, 
+    getMoodContext,
+    memories,
+    interests,
+    recentMoods,
+    currentMood,
+    deleteMemory,
+    deleteInterest
+  } = useUserMemory();
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -165,13 +178,23 @@ export const useChatbot = () => {
     const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     
+    // Get memory and mood context for personalized responses
+    const memoryContext = getMemoryContext();
+    const moodContext = getMoodContext();
+    
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: newHistory, personality, thinkingMode }),
+      body: JSON.stringify({ 
+        messages: newHistory, 
+        personality, 
+        thinkingMode,
+        memoryContext,
+        moodContext
+      }),
     });
 
     if (!resp.ok) {
@@ -277,16 +300,27 @@ export const useChatbot = () => {
     }
 
     // Add user message to UI
+    const userMessageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const userMessage: Message = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: userMessageId,
       role: 'user',
       content: trimmedInput,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
     
-    // Save user message to DB
-    await saveMessage(conversationId, 'user', trimmedInput);
+    // Save user message to DB and get the actual ID
+    const { data: savedMessage } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        role: 'user',
+        content: trimmedInput,
+      })
+      .select('id')
+      .single();
+    
+    const actualMessageId = savedMessage?.id || userMessageId;
     
     // Update conversation title if first message
     const currentConv = conversations.find(c => c.id === conversationId);
@@ -295,6 +329,23 @@ export const useChatbot = () => {
     }
 
     setIsTyping(true);
+
+    // Get conversation history for mood/memory analysis
+    const { data: historyData } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(10);
+
+    const conversationHistory = historyData?.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    // Analyze mood and extract memories in the background (don't await)
+    analyzeAndStore(trimmedInput, conversationId, actualMessageId, conversationHistory)
+      .catch(err => console.error('Analysis failed:', err));
 
     try {
       // Handle image generation request
@@ -337,7 +388,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, analyzeAndStore]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
@@ -424,6 +475,12 @@ export const useChatbot = () => {
     isTyping,
     pendingQuestion,
     thinkingMode,
+    // Memory & mood data
+    memories,
+    interests,
+    recentMoods,
+    currentMood,
+    // Functions
     setIsLearningMode,
     setThinkingMode: updateThinkingMode,
     sendMessage,
@@ -437,5 +494,7 @@ export const useChatbot = () => {
     deleteConversation,
     renameConversation,
     loadConversations,
+    deleteMemory,
+    deleteInterest,
   };
 };

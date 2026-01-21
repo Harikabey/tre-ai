@@ -73,6 +73,54 @@ export type Database = {
           },
         ]
       }
+      mood_history: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          emotions: Json | null
+          id: string
+          message_id: string | null
+          mood: string
+          mood_score: number | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          emotions?: Json | null
+          id?: string
+          message_id?: string | null
+          mood: string
+          mood_score?: number | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          emotions?: Json | null
+          id?: string
+          message_id?: string | null
+          mood?: string
+          mood_score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mood_history_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -96,6 +144,89 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      user_interests: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          interest: string
+          last_mentioned_at: string
+          mention_count: number | null
+          strength: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          interest: string
+          last_mentioned_at?: string
+          mention_count?: number | null
+          strength?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          interest?: string
+          last_mentioned_at?: string
+          mention_count?: number | null
+          strength?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_memories: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          importance: number | null
+          is_active: boolean | null
+          memory_type: string
+          source_conversation_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          id?: string
+          importance?: number | null
+          is_active?: boolean | null
+          memory_type: string
+          source_conversation_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          importance?: number | null
+          is_active?: boolean | null
+          memory_type?: string
+          source_conversation_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memories_source_conversation_id_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
