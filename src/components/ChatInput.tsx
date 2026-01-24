@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Video } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface ChatInputProps {
-  onSend: (message: string, fileUrl?: string, generationType?: 'image' | 'video') => void;
+  onSend: (message: string, fileUrl?: string, generationType?: 'image') => void;
   disabled?: boolean;
   pendingQuestion?: string | null;
   thinkingMode: ThinkingMode;
@@ -228,22 +228,8 @@ export const ChatInput = ({
     resetTranscript();
   };
 
-  const handleVideoGeneration = () => {
-    const prompt = input.trim();
-    if (!prompt) {
-      toast.info('Lütfen önce oluşturmak istediğiniz videoyu tanımlayın, sonra "Video Oluştur" seçeneğine tıklayın');
-      return;
-    }
-    
-    // Stop listening if active
-    if (isListening) {
-      stopListening();
-    }
-    
-    onSend(`🎬 Video oluştur: ${prompt}`, undefined, 'video');
-    setInput('');
-    resetTranscript();
-  };
+  // Video generation is not currently supported by the AI gateway
+  // const handleVideoGeneration = () => { ... };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -362,10 +348,6 @@ export const ChatInput = ({
             <DropdownMenuItem onClick={handleImageGeneration}>
               <Palette className="w-4 h-4 mr-2" />
               Görsel Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleVideoGeneration}>
-              <Video className="w-4 h-4 mr-2" />
-              Video Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">Düşünme Modu</DropdownMenuLabel>
