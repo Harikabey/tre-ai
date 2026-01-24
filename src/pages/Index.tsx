@@ -107,7 +107,7 @@ const Index = () => {
 
   const handleRegenerateImage = (prompt: string) => {
     setIsImageHistoryOpen(false);
-    sendMessage(`🎨 Görsel oluştur: ${prompt}`, undefined, true);
+    sendMessage(`🎨 Görsel oluştur: ${prompt}`, undefined, 'image');
   };
 
   if (authLoading) {
@@ -177,7 +177,7 @@ const Index = () => {
           </div>
           
           <ChatInput
-            onSend={(msg, fileUrl, isImageGen) => sendMessage(msg, fileUrl, isImageGen)}
+            onSend={(msg, fileUrl, genType) => sendMessage(msg, fileUrl, genType)}
             disabled={isTyping}
             pendingQuestion={pendingQuestion}
             thinkingMode={thinkingMode}
