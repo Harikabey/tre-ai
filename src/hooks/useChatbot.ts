@@ -8,7 +8,6 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
-const GENERATE_VIDEO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-video`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -288,30 +287,8 @@ export const useChatbot = () => {
     }
   }, []);
 
-  const generateVideo = useCallback(async (prompt: string): Promise<string | null> => {
-    try {
-      const response = await fetch(GENERATE_VIDEO_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ prompt }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Video oluşturulamadı');
-      }
-
-      const data = await response.json();
-      return data.videoUrl || null;
-    } catch (error) {
-      console.error('Video generation error:', error);
-      return null;
-    }
-  }, []);
-
-  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'video') => {
+  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image') => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
 
@@ -388,22 +365,6 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
-      } else if (generationType === 'video') {
-        // Handle video generation request
-        const videoPrompt = trimmedInput.replace(/^🎬 Video oluştur:\s*/i, '').trim();
-        updateLastBotMessage('🎬 Video oluşturuluyor... Bu işlem biraz zaman alabilir.');
-        
-        const videoUrl = await generateVideo(videoPrompt);
-        
-        if (videoUrl) {
-          const responseContent = `İşte oluşturduğum video:\n\n[🎬 Videoyu İzle](${videoUrl})\n\n*"${videoPrompt}"*`;
-          updateLastBotMessage(responseContent);
-          await saveMessage(conversationId, 'assistant', responseContent);
-        } else {
-          const errorContent = '❌ Video oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
-          updateLastBotMessage(errorContent);
-          await saveMessage(conversationId, 'assistant', errorContent);
-        }
       } else {
         // Normal chat flow
         const assistantContent = await streamChat(conversationId, trimmedInput);
@@ -428,7 +389,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateVideo, analyzeAndStore]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, analyzeAndStore]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
