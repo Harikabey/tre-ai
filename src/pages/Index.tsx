@@ -13,6 +13,7 @@ import { ConversationSidebar } from '@/components/ConversationSidebar';
 import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
 import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
+import { LiveCameraView } from '@/components/LiveCameraView';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 
@@ -54,6 +55,7 @@ const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Open sidebar on desktop by default
@@ -108,6 +110,12 @@ const Index = () => {
   const handleRegenerateImage = (prompt: string) => {
     setIsImageHistoryOpen(false);
     sendMessage(`🎨 Görsel oluştur: ${prompt}`, undefined, 'image');
+  };
+
+  const handleCameraAnalysis = (analysis: string, imageDataUrl: string) => {
+    // Send the analysis as a message with the image
+    const messageContent = `📷 Canlı görüntü analizi:\n\n![Kamera görüntüsü](${imageDataUrl})\n\n**AI Analizi:**\n${analysis}`;
+    sendMessage(messageContent);
   };
 
   if (authLoading) {
@@ -182,6 +190,7 @@ const Index = () => {
             pendingQuestion={pendingQuestion}
             thinkingMode={thinkingMode}
             onThinkingModeChange={setThinkingMode}
+            onOpenCamera={() => setIsCameraOpen(true)}
           />
         </div>
         
@@ -219,6 +228,13 @@ const Index = () => {
         currentMood={currentMood}
         onDeleteMemory={deleteMemory}
         onDeleteInterest={deleteInterest}
+      />
+
+      {/* Live Camera View */}
+      <LiveCameraView
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onAnalysisComplete={handleCameraAnalysis}
       />
     </div>
   );
