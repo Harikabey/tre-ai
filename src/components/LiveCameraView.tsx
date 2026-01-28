@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCamera } from '@/hooks/useCamera';
-import { Camera, X, Send, RotateCcw, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useVoice } from '@/hooks/useVoice';
+import { Camera, X, RotateCcw, Loader2, AlertCircle, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +14,11 @@ interface LiveCameraViewProps {
 
 export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCameraViewProps) => {
   const { videoRef, isActive, isCapturing, error, startCamera, stopCamera, captureFrame, switchCamera } = useCamera();
+  const { playText, stopAudio, isPlaying, isLoading: isVoiceLoading } = useVoice();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userQuestion, setUserQuestion] = useState('');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [currentAnalysis, setCurrentAnalysis] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Start camera when opened
@@ -24,12 +27,14 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
       startCamera();
     } else {
       stopCamera();
+      stopAudio();
     }
     
     return () => {
       stopCamera();
+      stopAudio();
     };
-  }, [isOpen, startCamera, stopCamera]);
+  }, [isOpen, startCamera, stopCamera, stopAudio]);
 
   const handleCapture = async () => {
     const dataUrl = await captureFrame();
@@ -39,6 +44,8 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
     }
 
     setIsAnalyzing(true);
+    setCurrentAnalysis('');
+    
     try {
       const prompt = userQuestion.trim() || 'Bu görüntüyü analiz et ve gördüklerini detaylı açıkla. Eğer yardım istenen bir durum varsa (örneğin bir nesne tanımlama, metin okuma, yön tarifi vb.) buna göre cevap ver. Türkçe yanıt ver.';
       
@@ -64,8 +71,15 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
         throw new Error(data.error);
       }
 
-      onAnalysisComplete(data.analysis, dataUrl);
-      onClose();
+      const analysis = data.analysis;
+      setCurrentAnalysis(analysis);
+
+      // Play voice response if enabled
+      if (voiceEnabled && analysis) {
+        playText(analysis);
+      }
+
+      onAnalysisComplete(analysis, dataUrl);
       toast.success('Görüntü analiz edildi');
     } catch (err) {
       console.error('Analysis error:', err);
@@ -131,6 +145,18 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
                   </div>
                 </div>
               )}
+
+              {/* Analysis result with voice */}
+              {currentAnalysis && !isAnalyzing && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 max-h-[40%] overflow-y-auto">
+                  <div className="flex items-start gap-2">
+                    {isPlaying || isVoiceLoading ? (
+                      <Volume2 className="w-5 h-5 text-primary animate-pulse flex-shrink-0 mt-1" />
+                    ) : null}
+                    <p className="text-white text-sm leading-relaxed">{currentAnalysis}</p>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -173,9 +199,26 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
           </Button>
 
           <Button 
+            variant={voiceEnabled ? "outline" : "ghost"} 
+            size="icon"
+            onClick={() => {
+              if (isPlaying) {
+                stopAudio();
+              }
+              setVoiceEnabled(!voiceEnabled);
+            }}
+            className={cn("h-12 w-12", !voiceEnabled && "opacity-50")}
+          >
+            {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </Button>
+
+          <Button 
             variant="outline" 
             size="icon"
-            onClick={onClose}
+            onClick={() => {
+              stopAudio();
+              onClose();
+            }}
             className="h-12 w-12"
           >
             <X className="w-5 h-5" />
