@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,7 @@ interface ChatInputProps {
   pendingQuestion?: string | null;
   thinkingMode: ThinkingMode;
   onThinkingModeChange: (mode: ThinkingMode) => void;
+  onOpenCamera?: () => void;
 }
 
 export const ChatInput = ({ 
@@ -30,6 +31,7 @@ export const ChatInput = ({
   pendingQuestion,
   thinkingMode,
   onThinkingModeChange,
+  onOpenCamera,
 }: ChatInputProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
@@ -344,6 +346,10 @@ export const ChatInput = ({
             <DropdownMenuItem onClick={() => handleFileSelect('document')}>
               <FileText className="w-4 h-4 mr-2" />
               Dosya Ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenCamera}>
+              <Camera className="w-4 h-4 mr-2" />
+              Canlı Görüntü
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleImageGeneration}>
               <Palette className="w-4 h-4 mr-2" />
