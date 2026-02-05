@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCamera } from '@/hooks/useCamera';
 import { useVoice } from '@/hooks/useVoice';
-import { Camera, X, RotateCcw, Loader2, AlertCircle, Volume2, VolumeX } from 'lucide-react';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { Camera, X, RotateCcw, Loader2, AlertCircle, Volume2, VolumeX, Mic, MicOff, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -15,11 +16,15 @@ interface LiveCameraViewProps {
 export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCameraViewProps) => {
   const { videoRef, isActive, isCapturing, error, startCamera, stopCamera, captureFrame, switchCamera } = useCamera();
   const { playText, stopAudio, isPlaying, isLoading: isVoiceLoading } = useVoice();
+  const { isListening, transcript, isSupported: isSpeechSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [userQuestion, setUserQuestion] = useState('');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [currentAnalysis, setCurrentAnalysis] = useState('');
+  const [continuousMode, setContinuousMode] = useState(false);
+  const [pendingQuestion, setPendingQuestion] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const continuousIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Start camera when opened
   useEffect(() => {
@@ -28,26 +33,86 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
     } else {
       stopCamera();
       stopAudio();
+      stopContinuousMode();
     }
     
     return () => {
       stopCamera();
       stopAudio();
+      stopContinuousMode();
     };
   }, [isOpen, startCamera, stopCamera, stopAudio]);
 
-  const handleCapture = async () => {
+  // Handle speech recognition transcript
+  useEffect(() => {
+    if (transcript && !isListening) {
+      setPendingQuestion(transcript);
+      // Auto-capture when speech ends
+      handleCaptureWithQuestion(transcript);
+      resetTranscript();
+    }
+  }, [transcript, isListening]);
+
+  const stopContinuousMode = useCallback(() => {
+    if (continuousIntervalRef.current) {
+      clearInterval(continuousIntervalRef.current);
+      continuousIntervalRef.current = null;
+    }
+    setContinuousMode(false);
+  }, []);
+
+  const analyzeFrame = useCallback(async (question?: string): Promise<string | null> => {
     const dataUrl = await captureFrame();
     if (!dataUrl) {
-      toast.error('Görüntü yakalanamadı');
-      return;
+      return null;
     }
 
+    try {
+      const prompt = question?.trim() || 'Bu görüntüyü analiz et ve gördüklerini kısaca açıkla. Önemli değişiklikleri veya dikkat çekici şeyleri belirt. Türkçe yanıt ver.';
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ imageUrl: dataUrl, prompt }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Analiz başarısız');
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.analysis;
+    } catch (err) {
+      console.error('Analysis error:', err);
+      return null;
+    }
+  }, [captureFrame]);
+
+  const handleCaptureWithQuestion = async (question?: string) => {
+    if (isAnalyzing) return;
+    
     setIsAnalyzing(true);
-    setCurrentAnalysis('');
+    setPendingQuestion('');
     
     try {
-      const prompt = userQuestion.trim() || 'Bu görüntüyü analiz et ve gördüklerini detaylı açıkla. Eğer yardım istenen bir durum varsa (örneğin bir nesne tanımlama, metin okuma, yön tarifi vb.) buna göre cevap ver. Türkçe yanıt ver.';
+      const dataUrl = await captureFrame();
+      if (!dataUrl) {
+        toast.error('Görüntü yakalanamadı');
+        return;
+      }
+
+      const prompt = question?.trim() || 'Bu görüntüyü analiz et ve gördüklerini detaylı açıkla. Eğer yardım istenen bir durum varsa buna göre cevap ver. Türkçe yanıt ver.';
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`,
@@ -80,7 +145,6 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
       }
 
       onAnalysisComplete(analysis, dataUrl);
-      toast.success('Görüntü analiz edildi');
     } catch (err) {
       console.error('Analysis error:', err);
       toast.error('Görüntü analizi başarısız');
@@ -88,6 +152,41 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
       setIsAnalyzing(false);
     }
   };
+
+  const toggleContinuousMode = useCallback(() => {
+    if (continuousMode) {
+      stopContinuousMode();
+      toast.info('Sürekli analiz durduruldu');
+    } else {
+      setContinuousMode(true);
+      toast.success('Sürekli analiz başladı');
+      
+      // Start continuous analysis every 5 seconds
+      continuousIntervalRef.current = setInterval(async () => {
+        if (!isAnalyzing && isActive) {
+          const analysis = await analyzeFrame();
+          if (analysis) {
+            setCurrentAnalysis(analysis);
+            if (voiceEnabled) {
+              stopAudio(); // Stop previous audio
+              playText(analysis);
+            }
+          }
+        }
+      }, 5000);
+    }
+  }, [continuousMode, stopContinuousMode, isAnalyzing, isActive, analyzeFrame, voiceEnabled, stopAudio, playText]);
+
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      stopAudio(); // Stop any playing audio
+      resetTranscript();
+      startListening();
+      toast.info('Dinliyorum... Sorunuzu söyleyin');
+    }
+  }, [isListening, stopListening, startListening, stopAudio, resetTranscript]);
 
   if (!isOpen) return null;
 
@@ -101,7 +200,12 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Canlı Görüntü</h2>
+            <h2 className="text-lg font-semibold">Canlı Görüşme</h2>
+            {continuousMode && (
+              <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full animate-pulse">
+                Canlı
+              </span>
+            )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -136,6 +240,16 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
                 </div>
               )}
               
+              {/* Voice input indicator */}
+              {isListening && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary/90 text-primary-foreground px-4 py-2 rounded-full flex items-center gap-2 animate-pulse">
+                  <Mic className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                    {transcript || 'Dinleniyor...'}
+                  </span>
+                </div>
+              )}
+              
               {/* Overlay for capturing/analyzing states */}
               {(isCapturing || isAnalyzing) && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -161,68 +275,79 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
           )}
         </div>
 
-        {/* Question Input */}
-        <div className="p-4 border-t border-border/50">
-          <input
-            type="text"
-            value={userQuestion}
-            onChange={(e) => setUserQuestion(e.target.value)}
-            placeholder="Soru sorun (isteğe bağlı): Örn. 'Bu nedir?', 'Bunu nasıl kullanırım?'"
-            className="w-full px-4 py-3 bg-input/50 border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
-        </div>
-
         {/* Controls */}
-        <div className="p-4 pb-safe flex items-center justify-center gap-4 border-t border-border/50">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={switchCamera}
-            disabled={!isActive || isCapturing || isAnalyzing}
-            className="h-12 w-12"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </Button>
-          
-          <Button
-            variant="glow"
-            size="lg"
-            onClick={handleCapture}
-            disabled={!isActive || isCapturing || isAnalyzing}
-            className="h-16 w-16 rounded-full"
-          >
-            {isCapturing || isAnalyzing ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <Camera className="w-6 h-6" />
+        <div className="p-4 pb-safe border-t border-border/50">
+          <div className="flex items-center justify-center gap-3">
+            {/* Switch Camera */}
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={switchCamera}
+              disabled={!isActive || isCapturing || isAnalyzing}
+              className="h-12 w-12"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </Button>
+
+            {/* Voice Input */}
+            {isSpeechSupported && (
+              <Button 
+                variant={isListening ? "default" : "outline"} 
+                size="icon"
+                onClick={toggleVoiceInput}
+                disabled={!isActive || isAnalyzing}
+                className={cn("h-12 w-12", isListening && "bg-primary animate-pulse")}
+              >
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </Button>
             )}
-          </Button>
+            
+            {/* Capture Button */}
+            <Button
+              variant="glow"
+              size="lg"
+              onClick={() => handleCaptureWithQuestion()}
+              disabled={!isActive || isCapturing || isAnalyzing}
+              className="h-16 w-16 rounded-full"
+            >
+              {isCapturing || isAnalyzing ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <Camera className="w-6 h-6" />
+              )}
+            </Button>
 
-          <Button 
-            variant={voiceEnabled ? "outline" : "ghost"} 
-            size="icon"
-            onClick={() => {
-              if (isPlaying) {
-                stopAudio();
-              }
-              setVoiceEnabled(!voiceEnabled);
-            }}
-            className={cn("h-12 w-12", !voiceEnabled && "opacity-50")}
-          >
-            {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          </Button>
+            {/* Continuous Mode Toggle */}
+            <Button 
+              variant={continuousMode ? "default" : "outline"} 
+              size="icon"
+              onClick={toggleContinuousMode}
+              disabled={!isActive}
+              className={cn("h-12 w-12", continuousMode && "bg-primary hover:bg-primary/90")}
+            >
+              {continuousMode ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            </Button>
 
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => {
-              stopAudio();
-              onClose();
-            }}
-            className="h-12 w-12"
-          >
-            <X className="w-5 h-5" />
-          </Button>
+            {/* Voice Output Toggle */}
+            <Button 
+              variant={voiceEnabled ? "outline" : "ghost"} 
+              size="icon"
+              onClick={() => {
+                if (isPlaying) {
+                  stopAudio();
+                }
+                setVoiceEnabled(!voiceEnabled);
+              }}
+              className={cn("h-12 w-12", !voiceEnabled && "opacity-50")}
+            >
+              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </Button>
+          </div>
+          
+          {/* Help text */}
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            🎤 Sesli soru sorun • 📷 Tek kare • ▶️ Sürekli analiz
+          </p>
         </div>
       </div>
     </div>
