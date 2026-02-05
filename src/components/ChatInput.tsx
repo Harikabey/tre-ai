@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -168,10 +168,24 @@ export const ChatInput = ({
         const isImage = selectedFile.type.startsWith('image/') || 
           selectedFile.name.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
         
+        // Check if it's a video file
+        const isVideo = selectedFile.type.startsWith('video/') ||
+          selectedFile.name.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+        
         if (isImage) {
           // Analyze image with optional user prompt
           const userPrompt = input.trim() || undefined;
           imageAnalysis = await analyzeImage(url, userPrompt);
+        } else if (isVideo) {
+          // Extract frame from video and analyze
+          toast.info('Video karesi çıkarılıyor...');
+          const frameDataUrl = await extractVideoFrame(selectedFile);
+          if (frameDataUrl) {
+            const userPrompt = input.trim() || 'Bu video karesini analiz et ve gördüklerini detaylı açıkla. Türkçe yanıt ver.';
+            imageAnalysis = await analyzeImage(frameDataUrl, userPrompt);
+          } else {
+            toast.error('Video karesi çıkarılamadı');
+          }
         } else {
           // Read document content if it's a readable file type
           const readableTypes = ['text/plain', 'application/json', 'text/csv', 'text/markdown'];
@@ -240,11 +254,51 @@ export const ChatInput = ({
     }
   };
 
-  const handleFileSelect = (type: 'image' | 'document') => {
+  const handleFileSelect = (type: 'image' | 'document' | 'video') => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.txt,.json,.csv,.md';
+      if (type === 'image') {
+        fileInputRef.current.accept = 'image/*';
+      } else if (type === 'video') {
+        fileInputRef.current.accept = 'video/*';
+      } else {
+        fileInputRef.current.accept = '.pdf,.doc,.docx,.txt,.json,.csv,.md';
+      }
       fileInputRef.current.click();
     }
+  };
+
+  const extractVideoFrame = async (file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      
+      video.onloadedmetadata = () => {
+        // Seek to 1 second or middle of video
+        video.currentTime = Math.min(1, video.duration / 2);
+      };
+      
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        URL.revokeObjectURL(video.src);
+        resolve(dataUrl);
+      };
+      
+      video.onerror = () => {
+        URL.revokeObjectURL(video.src);
+        resolve(null);
+      };
+      
+      video.src = URL.createObjectURL(file);
+      video.load();
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,6 +346,8 @@ export const ChatInput = ({
           <div className="flex items-center gap-2 min-w-0">
             {selectedFile.type.startsWith('image/') ? (
               <Image className="w-4 h-4 text-primary flex-shrink-0" />
+            ) : selectedFile.type.startsWith('video/') ? (
+              <Video className="w-4 h-4 text-primary flex-shrink-0" />
             ) : (
               <FileText className="w-4 h-4 text-primary flex-shrink-0" />
             )}
@@ -342,6 +398,10 @@ export const ChatInput = ({
             <DropdownMenuItem onClick={() => handleFileSelect('image')}>
               <Image className="w-4 h-4 mr-2" />
               Resim Ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFileSelect('video')}>
+              <Video className="w-4 h-4 mr-2" />
+              Video Ekle
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleFileSelect('document')}>
               <FileText className="w-4 h-4 mr-2" />
