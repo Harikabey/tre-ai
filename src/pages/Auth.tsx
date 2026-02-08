@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Bot, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { TermsOfServiceDialog } from '@/components/TermsOfServiceDialog';
 
 const emailSchema = z.string().email('Geçerli bir e-posta adresi girin');
 const passwordSchema = z.string().min(6, 'Şifre en az 6 karakter olmalı');
@@ -18,6 +20,8 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,6 +76,14 @@ const Auth = () => {
     e.preventDefault();
     if (!validateInputs()) return;
 
+    if (!termsAccepted) {
+      toast({
+        title: 'Sözleşme Onayı Gerekli',
+        description: 'Kayıt olmak için Kullanım Sözleşmesini kabul etmeniz gerekmektedir.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setIsLoading(true);
     const { error } = await signUp(email, password, username);
     setIsLoading(false);
@@ -209,7 +221,26 @@ const Auth = () => {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <div className="flex items-start space-x-2 mt-2">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={() => setShowTerms(true)}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Kullanım Sözleşmesi
+                    </button>
+                    'ni okudum ve kabul ediyorum.
+                  </Label>
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={isLoading || !termsAccepted}>
                   {isLoading ? 'Kayıt olunuyor...' : 'Kayıt Ol'}
                 </Button>
               </form>
@@ -217,6 +248,8 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <TermsOfServiceDialog open={showTerms} onOpenChange={setShowTerms} />
     </div>
   );
 };
