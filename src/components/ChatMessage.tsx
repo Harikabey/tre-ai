@@ -1,13 +1,29 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Message } from '@/types/chatbot';
 import { Bot, User, Volume2, VolumeX, Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
+import { CitationPanel, Citation } from '@/components/CitationPanel';
 
 interface ChatMessageProps {
   message: Message;
 }
+
+// Parse [SOURCES]...[/SOURCES] blocks from message content
+const parseSources = (content: string): { cleanContent: string; sources: Citation[] } => {
+  const sourceMatch = content.match(/\[SOURCES\]([\s\S]*?)\[\/SOURCES\]/);
+  if (!sourceMatch) return { cleanContent: content, sources: [] };
+
+  const cleanContent = content.replace(/\[SOURCES\][\s\S]*?\[\/SOURCES\]/g, '').trim();
+  
+  try {
+    const parsed = JSON.parse(sourceMatch[1].trim());
+    return { cleanContent, sources: parsed.sources || [] };
+  } catch {
+    return { cleanContent, sources: [] };
+  }
+};
 
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
@@ -25,8 +41,14 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
   const generatedImageAlt = generatedImageMatch ? generatedImageMatch[1] : 'Generated image';
   
+  // Parse sources from bot messages
+  const { cleanContent: contentWithoutSources, sources } = useMemo(() => {
+    if (isBot) return parseSources(message.content);
+    return { cleanContent: message.content, sources: [] };
+  }, [message.content, isBot]);
+
   // Clean content for display (remove file link markdown and image markdown)
-  let displayContent = message.content
+  let displayContent = contentWithoutSources
     .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
@@ -39,7 +61,6 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       setIsCurrentlyPlaying(false);
     } else {
       setIsCurrentlyPlaying(true);
-      // Clean content for audio (remove markdown formatting)
       const audioContent = displayContent
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/\*([^*]+)\*/g, '$1')
@@ -111,6 +132,11 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
             {displayContent}
           </p>
+        )}
+
+        {/* Citation panel for bot messages */}
+        {isBot && sources.length > 0 && (
+          <CitationPanel sources={sources} />
         )}
         
         <div className="flex items-center justify-between mt-1 gap-2">

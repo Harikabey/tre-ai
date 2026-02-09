@@ -248,8 +248,28 @@ export const useUserMemory = () => {
       'bilgilendirici': 'Net ve bilgilendirici ol.'
     };
 
-    return `\n[DUYGU DURUMU: ${currentMood.mood}]\n[ÖNERİLEN TON: ${moodTones[currentMood.suggested_tone] || currentMood.suggested_tone}]\n`;
-  }, [currentMood]);
+    // Check for emotional decline - emotional healing mechanism
+    let healingContext = '';
+    if (recentMoods.length >= 3) {
+      const recentScores = recentMoods.slice(0, 5).map(m => m.mood_score || 0);
+      const avgScore = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+      const isDecline = recentScores.length >= 3 && recentScores[0] < recentScores[recentScores.length - 1] - 0.3;
+      
+      if (avgScore < -0.3 || isDecline) {
+        healingContext = `
+
+[DUYGUSAL İYİLEŞTİRME MODU AKTİF]
+Kullanıcının ruh hali kötüye gidiyor. Şunları yap:
+- Tonunu yumuşat ve ekstra empatik ol
+- Moral verici kişiselleştirilmiş içerikler öner (video, müzik, aktivite)
+- "Seni anlıyorum" gibi ifadeler kullan
+- Kullanıcının ilgi alanlarından pozitif konulara yönlendir
+- Geçmişteki mutlu anılarını hatırlat (hafızada varsa)`;
+      }
+    }
+
+    return `\n[DUYGU DURUMU: ${currentMood.mood}]\n[ÖNERİLEN TON: ${moodTones[currentMood.suggested_tone] || currentMood.suggested_tone}]${healingContext}\n`;
+  }, [currentMood, recentMoods]);
 
   const deleteMemory = useCallback(async (memoryId: string) => {
     await supabase.from('user_memories').delete().eq('id', memoryId);
