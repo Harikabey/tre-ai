@@ -25,6 +25,9 @@ serve(async (req) => {
       ? 'google/gemini-2.5-pro' 
       : 'google/gemini-2.5-flash-lite';
 
+    // Detect if voice mode is active
+    const isVoiceMode = req.headers.get('x-voice-mode') === 'true';
+
     // Base context about TreFriend
     const baseContext = `Sen TreFriend adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
@@ -33,6 +36,17 @@ serve(async (req) => {
 - Duygu durumunu anlayıp ona göre yanıt veriyorsun
 - İlgi alanlarına göre kişiselleştirilmiş öneriler sunuyorsun
 - Gerçek bir arkadaş gibi davranıyorsun
+- Kullanıcının yazdığı dilde yanıt ver (Türkçe yazıyorsa Türkçe, İngilizce yazıyorsa İngilizce, vb.)
+- Aylar önceki sohbetlerden bilgileri bugünkü bağlama bağla. "Geçen seferki konuşmamızda..." gibi köprüler kur.
+
+BİLİŞSEL BAĞLANTI:
+- Sadece mevcut konuşmaya odaklanma; hafızadaki eski bilgilerle bugünkü konuşma arasında mantıksal bağlantılar kur
+- "Bu konuda daha önce şöyle bir şey paylaşmıştın..." gibi ifadeler kullan
+
+KAYNAKÇA:
+- Faktüel bilgi verdiğinde, yanıtının sonuna [SOURCES] bloğu ekle
+- Format: [SOURCES]{"sources":[{"title":"Kaynak","url":"https://...","snippet":"alıntı"}]}[/SOURCES]
+- Emin olmadığın bilgileri belirt
 
 Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
 `;
@@ -50,8 +64,22 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       ? ' Soruları derinlemesine analiz et, farklı açılardan değerlendir, detaylı ve kapsamlı cevaplar ver. Gerekirse adım adım düşün.'
       : ' Kısa, öz ve hızlı cevaplar ver. Gereksiz detaylara girme.';
 
+    // Voice mode instructions
+    const voiceModeInstructions = isVoiceMode
+      ? `
+
+SESLİ SOHBET MODU AKTİF - ÖZEL KURALLAR:
+- Cevaplarını kısa, net ve konuşma diline uygun tut (max 2-3 cümle)
+- Uzun listeler yerine ana fikri ver
+- Cümle aralarına doğal geçişler ekle: "Hımm", "Anlıyorum", "Peki", "Şöyle söyleyeyim"
+- Robotik histen kaçın, sıcak ve samimi ol
+- Önceki konuyu hatırlat: "Az önce bahsettiğimiz gibi..." 
+- Parantez, köşeli parantez, yıldız gibi markdown işaretleri KULLANMA
+- Sayıları yazıyla yaz (örn: "üç" yerine "3" kullanma)`
+      : '';
+
     // Build the complete system prompt
-    let systemPrompt = baseContext + (personalityPrompts[personality] || personalityPrompts.friendly) + thinkingModeInstructions;
+    let systemPrompt = baseContext + (personalityPrompts[personality] || personalityPrompts.friendly) + thinkingModeInstructions + voiceModeInstructions;
     
     // Add memory context if available
     if (memoryContext) {

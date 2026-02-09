@@ -191,6 +191,7 @@ const Index = () => {
             thinkingMode={thinkingMode}
             onThinkingModeChange={setThinkingMode}
             onOpenCamera={() => setIsCameraOpen(true)}
+            currentMood={currentMood?.mood}
           />
         </div>
         

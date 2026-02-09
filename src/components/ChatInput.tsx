@@ -1,12 +1,15 @@
-import { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
+import { setVoiceMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { VoicePulseAnimation } from '@/components/VoicePulseAnimation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +26,9 @@ interface ChatInputProps {
   thinkingMode: ThinkingMode;
   onThinkingModeChange: (mode: ThinkingMode) => void;
   onOpenCamera?: () => void;
+  currentMood?: string;
 }
+
 
 export const ChatInput = ({ 
   onSend, 
@@ -32,12 +37,16 @@ export const ChatInput = ({
   thinkingMode,
   onThinkingModeChange,
   onOpenCamera,
+  currentMood,
 }: ChatInputProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showVoiceAnimation, setShowVoiceAnimation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const haptic = useHapticFeedback();
   
   const { 
     isListening, 
@@ -315,13 +324,37 @@ export const ChatInput = ({
     }
   };
 
-  const toggleListening = () => {
+  const toggleListening = useCallback(() => {
     if (isListening) {
       stopListening();
+      setShowVoiceAnimation(false);
+      setVoiceMode(false);
     } else {
+      haptic.voiceActivate();
       startListening();
+      setShowVoiceAnimation(true);
+      setVoiceMode(true);
     }
-  };
+  }, [isListening, startListening, stopListening, haptic]);
+
+  // Long press handler for mic button
+  const handleMicPointerDown = useCallback(() => {
+    longPressTimerRef.current = setTimeout(() => {
+      if (!isListening) {
+        haptic.voiceActivate();
+        startListening();
+        setShowVoiceAnimation(true);
+        setVoiceMode(true);
+      }
+    }, 1500);
+  }, [isListening, startListening, haptic]);
+
+  const handleMicPointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
 
   return (
     <div className="p-3 sm:p-4 pb-safe border-t border-border/50 bg-card/50 backdrop-blur-sm safe-area-inset-bottom">
@@ -367,10 +400,10 @@ export const ChatInput = ({
       )}
 
       {/* Voice Recording Indicator */}
-      {isListening && (
-        <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-sm flex items-center gap-2 animate-pulse">
-          <div className="w-2 h-2 rounded-full bg-red-500" />
-          <span className="text-red-400 text-xs">Dinleniyor...</span>
+      {isListening && !showVoiceAnimation && (
+        <div className="mb-3 px-3 py-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm flex items-center gap-2 animate-pulse">
+          <div className="w-2 h-2 rounded-full bg-destructive" />
+          <span className="text-destructive text-xs">Dinleniyor...</span>
         </div>
       )}
       
@@ -448,7 +481,10 @@ export const ChatInput = ({
             variant="ghost"
             size="icon"
             onClick={toggleListening}
-            className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 ${isListening ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground hover:text-primary'}`}
+            onPointerDown={handleMicPointerDown}
+            onPointerUp={handleMicPointerUp}
+            onPointerLeave={handleMicPointerUp}
+            className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 ${isListening ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-primary'}`}
           >
             {isListening ? (
               <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -486,6 +522,9 @@ export const ChatInput = ({
           )}
         </Button>
       </div>
+
+      {/* Voice Pulse Animation Overlay */}
+      <VoicePulseAnimation isActive={showVoiceAnimation} mood={currentMood} />
     </div>
   );
 };

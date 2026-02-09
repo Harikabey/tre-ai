@@ -4,6 +4,11 @@ import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
 
+// Voice mode state shared across components
+let isVoiceModeActive = false;
+export const setVoiceMode = (active: boolean) => { isVoiceModeActive = active; };
+export const getVoiceMode = () => isVoiceModeActive;
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
@@ -187,6 +192,7 @@ export const useChatbot = () => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
       body: JSON.stringify({ 
         messages: newHistory, 
