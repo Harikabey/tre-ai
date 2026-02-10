@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
 import { Bot, User, Volume2, VolumeX, Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,8 @@ import { CitationPanel, Citation } from '@/components/CitationPanel';
 interface ChatMessageProps {
   message: Message;
 }
+
+const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
 
 // Parse [SOURCES]...[/SOURCES] blocks from message content
 const parseSources = (content: string): { cleanContent: string; sources: Citation[] } => {
@@ -22,6 +24,31 @@ const parseSources = (content: string): { cleanContent: string; sources: Citatio
     return { cleanContent, sources: parsed.sources || [] };
   } catch {
     return { cleanContent, sources: [] };
+  }
+};
+
+// Search for sources using web-search edge function
+const searchSources = async (query: string): Promise<Citation[]> => {
+  try {
+    const response = await fetch(WEB_SEARCH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ query: query.slice(0, 200) }),
+    });
+
+    if (!response.ok) return [];
+    
+    const data = await response.json();
+    return (data.sources || []).map((s: any) => ({
+      title: s.title || 'Kaynak',
+      url: s.url || '#',
+      snippet: s.snippet || '',
+    }));
+  } catch {
+    return [];
   }
 };
 
@@ -47,13 +74,22 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     return { cleanContent: message.content, sources: [] };
   }, [message.content, isBot]);
 
-  // Clean content for display (remove file link markdown and image markdown)
+  // Clean content for display
   let displayContent = contentWithoutSources
     .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .trim();
+
+  // Check if this is a factual/informational message (not a greeting or image)
+  const isFactualMessage = isBot && displayContent.length > 60 && 
+    !displayContent.includes('🎨 Görsel oluşturuluyor') &&
+    !displayContent.startsWith('❌');
+
+  const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
+    return searchSources(query);
+  }, []);
 
   const handlePlayAudio = async () => {
     if (isCurrentlyPlaying) {
@@ -134,9 +170,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </p>
         )}
 
-        {/* Citation panel for bot messages */}
-        {isBot && sources.length > 0 && (
-          <CitationPanel sources={sources} />
+        {/* Citation panel - shows for factual bot messages */}
+        {isFactualMessage && (
+          <CitationPanel 
+            sources={sources} 
+            messageContent={displayContent}
+            onSearchSources={handleSearchSources}
+          />
         )}
         
         <div className="flex items-center justify-between mt-1 gap-2">
