@@ -186,6 +186,7 @@ export type Database = {
           category: string
           content: string
           created_at: string
+          embedding: string | null
           id: string
           importance: number | null
           is_active: boolean | null
@@ -198,6 +199,7 @@ export type Database = {
           category: string
           content: string
           created_at?: string
+          embedding?: string | null
           id?: string
           importance?: number | null
           is_active?: boolean | null
@@ -210,6 +212,7 @@ export type Database = {
           category?: string
           content?: string
           created_at?: string
+          embedding?: string | null
           id?: string
           importance?: number | null
           is_active?: boolean | null
@@ -233,7 +236,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_memories: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          match_user_id: string
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          content: string
+          id: string
+          importance: number
+          memory_type: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
