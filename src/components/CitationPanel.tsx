@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BookOpen, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { BookOpen, ExternalLink, ChevronDown, ChevronUp, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface Citation {
@@ -10,12 +10,66 @@ export interface Citation {
 
 interface CitationPanelProps {
   sources: Citation[];
+  messageContent?: string;
+  onSearchSources?: (query: string) => Promise<Citation[]>;
 }
 
-export const CitationPanel = ({ sources }: CitationPanelProps) => {
+export const CitationPanel = ({ sources: initialSources, messageContent, onSearchSources }: CitationPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [sources, setSources] = useState<Citation[]>(initialSources);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(initialSources.length > 0);
 
-  if (!sources || sources.length === 0) return null;
+  const handleSearchSources = useCallback(async () => {
+    if (!onSearchSources || !messageContent || isSearching) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await onSearchSources(messageContent);
+      setSources(results);
+      setHasSearched(true);
+      setIsExpanded(true);
+    } catch (error) {
+      console.error('Source search failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [onSearchSources, messageContent, isSearching]);
+
+  // If no sources and hasn't searched yet, show search button
+  if (!hasSearched && sources.length === 0) {
+    return (
+      <div className="mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSearchSources}
+          disabled={isSearching}
+          className="h-6 px-2 text-[10px] sm:text-xs text-muted-foreground hover:text-primary gap-1"
+        >
+          {isSearching ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Kaynaklar aranıyor...
+            </>
+          ) : (
+            <>
+              <Search className="w-3 h-3" />
+              Kaynakça Göster
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  if (sources.length === 0 && hasSearched) {
+    return (
+      <div className="mt-2">
+        <span className="text-[10px] text-muted-foreground italic">Kaynak bulunamadı</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-2">
@@ -26,7 +80,7 @@ export const CitationPanel = ({ sources }: CitationPanelProps) => {
         className="h-6 px-2 text-[10px] sm:text-xs text-muted-foreground hover:text-primary gap-1"
       >
         <BookOpen className="w-3 h-3" />
-        Kaynakça Göster ({sources.length})
+        Kaynakça ({sources.length})
         {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </Button>
 
