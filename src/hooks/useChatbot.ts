@@ -13,6 +13,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
+const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -293,8 +294,34 @@ export const useChatbot = () => {
     }
   }, []);
 
+  const generateGif = useCallback(async (prompt: string): Promise<{ frames: string[]; delay: number } | null> => {
+    try {
+      const response = await fetch(GENERATE_GIF_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ prompt, frameCount: 4 }),
+      });
 
-  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image') => {
+      if (!response.ok) {
+        throw new Error('GIF oluşturulamadı');
+      }
+
+      const data = await response.json();
+      if (data.frames && data.frames.length >= 2) {
+        return { frames: data.frames, delay: data.delay || 500 };
+      }
+      return null;
+    } catch (error) {
+      console.error('GIF generation error:', error);
+      return null;
+    }
+  }, []);
+
+
+  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
 
@@ -371,6 +398,22 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
+      } else if (generationType === 'gif') {
+        const gifPrompt = trimmedInput.replace(/^🎬 GIF oluştur:\s*/i, '').trim();
+        updateLastBotMessage('🎬 GIF oluşturuluyor... (birden fazla kare üretiliyor)');
+        
+        const gifResult = await generateGif(gifPrompt);
+        
+        if (gifResult) {
+          const framesJson = JSON.stringify(gifResult.frames);
+          const responseContent = `İşte oluşturduğum animasyon:\n\n[ANIMATED_FRAMES]${framesJson}[/ANIMATED_FRAMES]\n\n*"${gifPrompt}"* (${gifResult.frames.length} kare)`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ GIF oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
       } else {
         // Normal chat flow
         const assistantContent = await streamChat(conversationId, trimmedInput);
@@ -395,7 +438,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, analyzeAndStore]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, analyzeAndStore]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
