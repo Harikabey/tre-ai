@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video, Film } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { setVoiceMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface ChatInputProps {
-  onSend: (message: string, fileUrl?: string, generationType?: 'image') => void;
+  onSend: (message: string, fileUrl?: string, generationType?: 'image' | 'gif') => void;
   disabled?: boolean;
   pendingQuestion?: string | null;
   thinkingMode: ThinkingMode;
@@ -242,13 +242,20 @@ export const ChatInput = ({
       toast.info('Lütfen önce oluşturmak istediğiniz görseli tanımlayın, sonra "Görsel Oluştur" seçeneğine tıklayın');
       return;
     }
-    
-    // Stop listening if active
-    if (isListening) {
-      stopListening();
-    }
-    
+    if (isListening) stopListening();
     onSend(`🎨 Görsel oluştur: ${prompt}`, undefined, 'image');
+    setInput('');
+    resetTranscript();
+  };
+
+  const handleGifGeneration = () => {
+    const prompt = input.trim();
+    if (!prompt) {
+      toast.info('Lütfen önce oluşturmak istediğiniz animasyonu tanımlayın, sonra "GIF Oluştur" seçeneğine tıklayın');
+      return;
+    }
+    if (isListening) stopListening();
+    onSend(`🎬 GIF oluştur: ${prompt}`, undefined, 'gif');
     setInput('');
     resetTranscript();
   };
@@ -447,6 +454,10 @@ export const ChatInput = ({
             <DropdownMenuItem onClick={handleImageGeneration}>
               <Palette className="w-4 h-4 mr-2" />
               Görsel Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleGifGeneration}>
+              <Film className="w-4 h-4 mr-2" />
+              GIF Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">Düşünme Modu</DropdownMenuLabel>

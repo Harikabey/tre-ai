@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
+import { AnimatedFrames } from '@/components/AnimatedFrames';
 
 interface ChatMessageProps {
   message: Message;
@@ -67,6 +68,16 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
   const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
   const generatedImageAlt = generatedImageMatch ? generatedImageMatch[1] : 'Generated image';
+
+  // Extract animated frames
+  const animatedFrames = useMemo(() => {
+    const match = message.content.match(/\[ANIMATED_FRAMES\]([\s\S]*?)\[\/ANIMATED_FRAMES\]/);
+    if (!match) return null;
+    try {
+      const frames = JSON.parse(match[1].trim());
+      return Array.isArray(frames) && frames.length >= 2 ? frames : null;
+    } catch { return null; }
+  }, [message.content]);
   
   // Parse sources from bot messages
   const { cleanContent: contentWithoutSources, sources } = useMemo(() => {
@@ -80,6 +91,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
     .trim();
 
   // Check if this is a factual/informational message (not a greeting or image)
@@ -150,6 +162,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                 <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
               </a>
             )}
+          </div>
+        )}
+
+        {/* Animated frames (GIF) preview */}
+        {animatedFrames && (
+          <div className="mb-2">
+            <AnimatedFrames frames={animatedFrames} delay={500} />
           </div>
         )}
 
