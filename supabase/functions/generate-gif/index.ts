@@ -25,17 +25,28 @@ serve(async (req) => {
     const numFrames = Math.min(Math.max(frameCount, 2), 6);
     console.log(`Generating ${numFrames} frames for GIF with prompt:`, prompt);
 
+    // Build a detailed scene description for consistency
+    const sceneDescription = `Scene: "${prompt}". Style: flat illustration, bold colors, clean lines, 256x256 pixels. Same character/object design in every frame. Same background, same color palette, same art style.`;
+    
     // Generate multiple frames with progression prompts
     const framePrompts: string[] = [];
+    const stages = [
+      "beginning/starting position of the action",
+      "early phase, slight movement from starting position",
+      "middle of the action, halfway through the motion",
+      "near the end, action almost complete",
+      "final position, action completed",
+      "returning to start or follow-through position"
+    ];
+    
     for (let i = 0; i < numFrames; i++) {
-      const progress = i / (numFrames - 1);
-      const progressPercent = Math.round(progress * 100);
+      const stage = stages[i] || stages[stages.length - 1];
       framePrompts.push(
-        `Generate ONE image, 256x256 pixels, simple style. This is frame ${i + 1} of ${numFrames} in an animation sequence. ` +
-        `The scene: ${prompt}. ` +
-        `Show the scene at ${progressPercent}% progress of the motion/animation. ` +
-        `${i === 0 ? 'Starting position.' : i === numFrames - 1 ? 'Final position.' : `Intermediate position at ${progressPercent}%.`} ` +
-        `Keep art style, colors, and composition consistent. No text. Always produce an image.`
+        `Generate exactly ONE image. ${sceneDescription} ` +
+        `This is frame ${i + 1} of ${numFrames} in a smooth animation loop. ` +
+        `Current stage: ${stage}. ` +
+        `IMPORTANT: The subject, proportions, colors, background, and art style must be IDENTICAL across all frames. ` +
+        `Only the pose/position changes slightly to create smooth animation. No text overlays. Always produce an image.`
       );
     }
 
