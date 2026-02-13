@@ -32,16 +32,20 @@ serve(async (req) => {
 
   try {
     const { message, conversationHistory } = await req.json();
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+    const apiUrl = OPENROUTER_API_KEY 
+      ? "https://openrouter.ai/api/v1/chat/completions"
+      : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!apiKey) {
+      throw new Error("API key is not configured");
     }
 
-    // Analyze mood and extract memories in parallel
     const [moodResult, memoryResult] = await Promise.all([
-      analyzeMood(message, LOVABLE_API_KEY),
-      extractMemories(message, conversationHistory, LOVABLE_API_KEY)
+      analyzeMood(message, apiKey, apiUrl),
+      extractMemories(message, conversationHistory, apiKey, apiUrl)
     ]);
 
     return new Response(JSON.stringify({
@@ -61,8 +65,8 @@ serve(async (req) => {
   }
 });
 
-async function analyzeMood(message: string, apiKey: string): Promise<MoodAnalysis> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+async function analyzeMood(message: string, apiKey: string, apiUrl: string): Promise<MoodAnalysis> {
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -121,13 +125,14 @@ SADECE JSON döndür, başka açıklama ekleme.`
 async function extractMemories(
   message: string, 
   conversationHistory: Array<{role: string; content: string}> | undefined,
-  apiKey: string
+  apiKey: string,
+  apiUrl: string
 ): Promise<MemoryExtraction> {
   const recentContext = conversationHistory?.slice(-6).map(m => 
     `${m.role === 'user' ? 'Kullanıcı' : 'AI'}: ${m.content}`
   ).join('\n') || '';
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
