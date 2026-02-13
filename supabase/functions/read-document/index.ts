@@ -7,10 +7,15 @@ const corsHeaders = {
 };
 
 async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string, mimeType: string): Promise<string> {
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+  const apiUrl = OPENROUTER_API_KEY 
+    ? "https://openrouter.ai/api/v1/chat/completions"
+    : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-  if (!LOVABLE_API_KEY) {
-    throw new Error("LOVABLE_API_KEY not configured");
+  if (!apiKey) {
+    throw new Error("API key not configured");
   }
 
   // For non-image files (like PDF), we need to convert to a base64 data URL
@@ -45,10 +50,10 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
 
   console.log("Sending to AI for analysis", { fileType, isPdf, mimeType });
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

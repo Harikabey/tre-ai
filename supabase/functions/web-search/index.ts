@@ -12,17 +12,21 @@ serve(async (req) => {
 
   try {
     const { query, userInterests } = await req.json();
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+    const apiUrl = OPENROUTER_API_KEY 
+      ? "https://openrouter.ai/api/v1/chat/completions"
+      : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!apiKey) {
+      throw new Error("API key is not configured");
     }
 
-    // Use Gemini with grounding to search the web
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
