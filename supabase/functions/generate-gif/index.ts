@@ -31,7 +31,6 @@ serve(async (req) => {
         const messages: any[] = [];
         
         if (referenceImageUrl) {
-          // Include the previous frame as visual reference for continuity
           messages.push({
             role: "user",
             content: [
@@ -63,7 +62,12 @@ serve(async (req) => {
         });
 
         if (!response.ok) {
-          console.error("Frame generation error:", await response.text());
+          const errorText = await response.text();
+          console.error("Frame generation error:", errorText);
+          // Propagate credit/auth errors immediately instead of silently returning null
+          if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
+            throw new Error("API kredi limiti aşıldı. Lütfen daha sonra tekrar deneyin.");
+          }
           return null;
         }
 
