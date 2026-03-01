@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2 } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { personalities, Personality } from '@/types/personality';
 import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
+import { languages, Language, LANGUAGE_KEY } from '@/types/language';
 import { useTheme } from '@/hooks/useTheme';
 import { useVoice } from '@/hooks/useVoice';
 
@@ -40,20 +42,33 @@ const themeOptions: ThemeOption[] = [
 
 const Settings = () => {
   const [selectedPersonality, setSelectedPersonality] = useState<string>('friendly');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('tr');
+  const [languageSearch, setLanguageSearch] = useState('');
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
 
   useEffect(() => {
     const stored = localStorage.getItem(PERSONALITY_KEY);
-    if (stored) {
-      setSelectedPersonality(stored);
-    }
+    if (stored) setSelectedPersonality(stored);
+    const storedLang = localStorage.getItem(LANGUAGE_KEY);
+    if (storedLang) setSelectedLanguage(storedLang);
   }, []);
 
   const handleSelectPersonality = (id: string) => {
     setSelectedPersonality(id);
     localStorage.setItem(PERSONALITY_KEY, id);
   };
+
+  const handleSelectLanguage = (code: string) => {
+    setSelectedLanguage(code);
+    localStorage.setItem(LANGUAGE_KEY, code);
+  };
+
+  const filteredLanguages = languages.filter(l =>
+    l.name.toLowerCase().includes(languageSearch.toLowerCase()) ||
+    l.nativeName.toLowerCase().includes(languageSearch.toLowerCase()) ||
+    l.code.toLowerCase().includes(languageSearch.toLowerCase())
+  );
 
   const handleSelectVoice = (voiceId: string) => {
     updateVoice(voiceId);
@@ -126,6 +141,45 @@ const Settings = () => {
                   isLoading={isLoading}
                 />
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Language Selection */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                Yanıt Dili
+              </CardTitle>
+              <CardDescription>
+                Botun hangi dilde yanıt vereceğini seçin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Dil ara..."
+                    value={languageSearch}
+                    onChange={(e) => setLanguageSearch(e.target.value)}
+                    className="pl-9 bg-input/50 border-border/50"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 max-h-64 overflow-y-auto pr-1">
+                {filteredLanguages.map((lang) => (
+                  <LanguageCard
+                    key={lang.code}
+                    language={lang}
+                    isSelected={selectedLanguage === lang.code}
+                    onSelect={() => handleSelectLanguage(lang.code)}
+                  />
+                ))}
+                {filteredLanguages.length === 0 && (
+                  <p className="text-sm text-muted-foreground col-span-full text-center py-4">Sonuç bulunamadı</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -270,6 +324,36 @@ const PersonalityCard = ({ personality, isSelected, onSelect }: PersonalityCardP
       {isSelected && (
         <div className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-primary flex items-center justify-center">
           <Check className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
+        </div>
+      )}
+    </button>
+  );
+};
+
+
+interface LanguageCardProps {
+  language: Language;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+const LanguageCard = ({ language, isSelected, onSelect }: LanguageCardProps) => {
+  return (
+    <button
+      onClick={onSelect}
+      className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 text-left flex items-center gap-2 ${
+        isSelected
+          ? 'border-primary bg-primary/10 glow-primary'
+          : 'border-border/50 bg-secondary/30 hover:border-primary/50 hover:bg-secondary/50'
+      }`}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-foreground text-xs sm:text-sm">{language.name}</div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{language.nativeName}</div>
+      </div>
+      {isSelected && (
+        <div className="flex-shrink-0 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+          <Check className="h-2.5 w-2.5 text-primary-foreground" />
         </div>
       )}
     </button>

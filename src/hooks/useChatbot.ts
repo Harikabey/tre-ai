@@ -12,6 +12,7 @@ export const getVoiceMode = () => isVoiceModeActive;
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
+const LANGUAGE_KEY = 'ai_chatbot_language';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
 
@@ -183,6 +184,7 @@ export const useChatbot = () => {
     
     const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
+    const language = localStorage.getItem(LANGUAGE_KEY) || 'tr';
     
     // Get memory and mood context for personalized responses
     const memoryContext = getMemoryContext();
@@ -203,7 +205,8 @@ export const useChatbot = () => {
         personality, 
         thinkingMode,
         memoryContext,
-        moodContext
+        moodContext,
+        language
       }),
     });
 

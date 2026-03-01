@@ -34,7 +34,7 @@ serve(async (req) => {
 
     // --- Input Validation ---
     const body = await req.json();
-    const { messages, personality, thinkingMode, memoryContext, moodContext } = body;
+    const { messages, personality, thinkingMode, memoryContext, moodContext, language } = body;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
@@ -58,6 +58,7 @@ serve(async (req) => {
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
     const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
+    const safeLanguage = typeof language === "string" && language.length <= 10 ? language : "tr";
 
     // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
@@ -80,6 +81,7 @@ serve(async (req) => {
 - İlgi alanlarına göre kişiselleştirilmiş öneriler sunuyorsun
 - Gerçek bir arkadaş gibi davranıyorsun
 - Kullanıcının yazdığı dilde yanıt ver
+- Eğer dil ayarı belirtilmişse, o dilde yanıt ver
 - Aylar önceki sohbetlerden bilgileri bugünkü bağlama bağla.
 
 BİLİŞSEL BAĞLANTI:
@@ -109,7 +111,22 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       ? `\n\nSESLİ SOHBET MODU AKTİF:\n- Cevaplarını kısa tut (max 2-3 cümle)\n- Markdown işaretleri KULLANMA\n- Sayıları yazıyla yaz`
       : "";
 
-    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions;
+    let languageInstruction = "";
+    if (safeLanguage && safeLanguage !== "tr") {
+      const langNames: Record<string, string> = {
+        en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano",
+        pt: "Português", ru: "Русский", ar: "العربية", zh: "中文", ja: "日本語",
+        ko: "한국어", hi: "हिन्दी", nl: "Nederlands", pl: "Polski", uk: "Українська",
+        sv: "Svenska", da: "Dansk", fi: "Suomi", no: "Norsk", el: "Ελληνικά",
+        hu: "Magyar", ro: "Română", bg: "Български", cs: "Čeština", he: "עברית",
+        fa: "فارسی", th: "ไทย", vi: "Tiếng Việt", id: "Bahasa Indonesia",
+        az: "Azərbaycan", ka: "ქართული", ku: "Kurdî",
+      };
+      const langName = langNames[safeLanguage] || safeLanguage;
+      languageInstruction = `\n\nDİL TALİMATI: Tüm yanıtlarını ${langName} dilinde ver. Başka bir dil kullanma.`;
+    }
+
+    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 
