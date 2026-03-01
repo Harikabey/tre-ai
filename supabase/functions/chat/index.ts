@@ -99,7 +99,7 @@ SESLİ SOHBET MODU AKTİF - ÖZEL KURALLAR:
 
     console.log("Chat request - personality:", personality, "mode:", thinkingMode, "model:", model, "hasMemory:", !!memoryContext, "hasMood:", !!moodContext);
 
-    const response = await fetch(apiUrl, {
+    let response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -117,6 +117,26 @@ SESLİ SOHBET MODU AKTİF - ÖZEL KURALLAR:
         stream: true,
       }),
     });
+
+    // Fallback: if OpenRouter fails (401/403/500+), try Lovable gateway
+    if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
+      console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
