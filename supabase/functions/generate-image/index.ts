@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,87 +12,82 @@ serve(async (req) => {
   }
 
   try {
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
     const { prompt } = await req.json();
+    if (!prompt || typeof prompt !== "string" || prompt.length > 2000) {
+      return new Response(JSON.stringify({ error: "Valid prompt required (max 2000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY 
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) {
-      throw new Error("API key is not configured");
-    }
-
-    if (!prompt) {
-      throw new Error("Prompt is required");
-    }
-
-    console.log("Generating image with prompt:", prompt);
+    if (!apiKey) throw new Error("API key is not configured");
 
     const response = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        messages: [
-          {
-            role: "user",
-            content:
-              `Generate ONE high-quality image. ` +
-              `Visually depict this request: ${prompt}. ` +
-              `If the request is abstract (e.g., a topic), create a symbolic/illustrative scene representing it. ` +
-              `Do not refuse; always produce an image.`,
-          },
-        ],
+        messages: [{
+          role: "user",
+          content: `Generate ONE high-quality image. Visually depict this request: ${prompt}. If the request is abstract, create a symbolic/illustrative scene. Do not refuse; always produce an image.`,
+        }],
         modalities: ["image", "text"],
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Görsel oluşturulamadı: " + errorText);
+      console.error("AI gateway error:", response.status);
+      throw new Error("Görsel oluşturulamadı");
     }
 
     const data = await response.json();
-    console.log("Full response structure:", JSON.stringify(data, null, 2));
-
-    // Check for images in the response
     const images = data.choices?.[0]?.message?.images;
     const textResponse = data.choices?.[0]?.message?.content || "";
-
-    console.log("Images array:", images);
-    console.log("Text response:", textResponse);
-
     let imageUrl = null;
 
-    // Try to get image from images array
     if (images && images.length > 0) {
       imageUrl = images[0]?.image_url?.url;
     }
-
-    // If no image in images array, check if there's a base64 in the content itself
     if (!imageUrl && textResponse) {
-      // Sometimes the model returns base64 directly in content
       const base64Match = textResponse.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
-      if (base64Match) {
-        imageUrl = base64Match[0];
-      }
+      if (base64Match) imageUrl = base64Match[0];
     }
 
     if (!imageUrl) {
-      console.error("No image found in response. Full data:", JSON.stringify(data));
-      throw new Error("Görsel oluşturulamadı - model görsel üretemedi. Lütfen farklı bir açıklama deneyin.");
+      throw new Error("Görsel oluşturulamadı - model görsel üretemedi.");
     }
 
-    return new Response(
-      JSON.stringify({ imageUrl, description: textResponse }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ imageUrl, description: textResponse }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Generate image error:", error);
     return new Response(

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,67 +12,78 @@ serve(async (req) => {
   }
 
   try {
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
     const { imageUrl, prompt } = await req.json();
+
+    if (!imageUrl || typeof imageUrl !== "string" || imageUrl.length > 100000) {
+      return new Response(JSON.stringify({ error: "Valid imageUrl is required (max 100000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Only allow http(s) and data: URLs
+    if (!imageUrl.startsWith("https://") && !imageUrl.startsWith("http://") && !imageUrl.startsWith("data:")) {
+      return new Response(JSON.stringify({ error: "Invalid imageUrl scheme" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const safePrompt = typeof prompt === "string" ? prompt.slice(0, 2000) : "Bu görseli detaylı olarak analiz et ve açıkla. Türkçe yanıt ver.";
+
+    // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY 
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) {
-      throw new Error("API key is not configured");
-    }
-
-    if (!imageUrl) {
-      throw new Error("Image URL is required");
-    }
-
-    console.log("Analyzing image:", imageUrl);
-
-    const userPrompt = prompt || "Bu görseli detaylı olarak analiz et ve açıkla. Türkçe yanıt ver.";
+    if (!apiKey) throw new Error("API key is not configured");
 
     const response = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: userPrompt,
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageUrl,
-                },
-              },
-            ],
-          },
-        ],
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: safePrompt },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        }],
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("AI gateway error:", response.status);
       throw new Error("Görsel analizi başarısız oldu");
     }
 
     const data = await response.json();
     const analysis = data.choices?.[0]?.message?.content || "Görsel analiz edilemedi.";
 
-    return new Response(
-      JSON.stringify({ analysis }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ analysis }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Analyze image error:", error);
     return new Response(

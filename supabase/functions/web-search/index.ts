@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,24 +12,48 @@ serve(async (req) => {
   }
 
   try {
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
     const { query, userInterests } = await req.json();
+    if (!query || typeof query !== "string" || query.length > 2000) {
+      return new Response(JSON.stringify({ error: "Valid query required (max 2000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const safeInterests = typeof userInterests === "string" ? userInterests.slice(0, 1000) : "";
+
+    // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY 
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) {
-      throw new Error("API key is not configured");
-    }
+    if (!apiKey) throw new Error("API key is not configured");
 
     const response = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
@@ -41,55 +66,44 @@ serve(async (req) => {
 2. Yanıtını şu JSON formatında ver:
 {
   "answer": "Ana yanıt metni (markdown destekli)",
-  "sources": [
-    {"title": "Kaynak başlığı", "url": "https://...", "snippet": "İlgili alıntı"}
-  ],
+  "sources": [{"title": "Kaynak başlığı", "url": "https://...", "snippet": "İlgili alıntı"}],
   "confidence": 0-1 arası güven skoru,
   "trending_topics": ["ilgili güncel konular"]
 }
 
-${userInterests ? `Kullanıcının ilgi alanları: ${userInterests}. Bu bilgiyi yanıtını kişiselleştirmek için kullan.` : ''}
+${safeInterests ? `Kullanıcının ilgi alanları: ${safeInterests}.` : ""}
 
-SADECE JSON döndür.`
+SADECE JSON döndür.`,
           },
-          { role: "user", content: query }
+          { role: "user", content: query },
         ],
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Web search error:", response.status, errorText);
+      console.error("Web search error:", response.status);
       throw new Error("Search failed");
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
-    
+
     try {
-      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      const result = JSON.parse(cleanedContent);
+      const result = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch {
-      // If parsing fails, return the raw content as answer
-      return new Response(JSON.stringify({
-        answer: content,
-        sources: [],
-        confidence: 0.5,
-        trending_topics: []
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ answer: content, sources: [], confidence: 0.5, trending_topics: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
   } catch (error) {
     console.error("Web search error:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
