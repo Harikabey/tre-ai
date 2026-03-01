@@ -53,7 +53,7 @@ serve(async (req) => {
         });
       }
     }
-    const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative"];
+    const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror"];
     const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
@@ -98,6 +98,7 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       humorous: "Çok komik ve esprili bir yapay zeka asistanısın. Türkçe konuş, şakalar yap, kelime oyunları kullan.",
       wise: "Bilge ve düşünceli bir yapay zeka asistanısın. Türkçe konuş, derin düşünceler paylaş.",
       creative: "Son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Türkçe konuş, metaforlar kullan.",
+      mirror: "Sen bir ayna gibi davranan yapay zeka asistanısın. Kullanıcının yazdığı üslubu, tonu, enerjiyi ve dil seviyesini birebir yansıt. Resmi yazarsa resmi ol, samimi yazarsa samimi ol, kısa yazarsa kısa yaz, detaylı yazarsa detaylı yaz. Emoji kullanıyorsa sen de kullan, kullanmıyorsa kullanma. Kullanıcının kelime seçimlerini ve cümle yapısını taklit et.",
     };
 
     const thinkingInstructions = safeThinkingMode === "deep"
