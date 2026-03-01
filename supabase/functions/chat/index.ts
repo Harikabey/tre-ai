@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,35 +7,71 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, personality, thinkingMode, memoryContext, moodContext } = await req.json();
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
+    const body = await req.json();
+    const { messages, personality, thinkingMode, memoryContext, moodContext } = body;
+
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
+      return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const m of messages) {
+      if (!m.role || !m.content || typeof m.content !== "string") {
+        return new Response(JSON.stringify({ error: "Invalid message format" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (m.content.length > 50000) {
+        return new Response(JSON.stringify({ error: "Message content too long (max 50000)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative"];
+    const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
+    const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
+    const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
+    const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
+
+    // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    
-    if (!apiKey) {
-      console.error("No API key configured");
-      throw new Error("API key is not configured");
-    }
-    
-    const apiUrl = OPENROUTER_API_KEY 
+    if (!apiKey) throw new Error("API key is not configured");
+
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    // Select model based on thinking mode
-    const model = thinkingMode === 'deep' 
-      ? 'google/gemini-2.5-pro' 
-      : 'google/gemini-2.5-flash-lite';
+    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash-lite";
+    const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
-    // Detect if voice mode is active
-    const isVoiceMode = req.headers.get('x-voice-mode') === 'true';
-
-    // Base context about TreFriend
     const baseContext = `Sen TreFriend adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
 ÖNEMLİ ÖZELLİKLERİN:
@@ -42,97 +79,60 @@ serve(async (req) => {
 - Duygu durumunu anlayıp ona göre yanıt veriyorsun
 - İlgi alanlarına göre kişiselleştirilmiş öneriler sunuyorsun
 - Gerçek bir arkadaş gibi davranıyorsun
-- Kullanıcının yazdığı dilde yanıt ver (Türkçe yazıyorsa Türkçe, İngilizce yazıyorsa İngilizce, vb.)
-- Aylar önceki sohbetlerden bilgileri bugünkü bağlama bağla. "Geçen seferki konuşmamızda..." gibi köprüler kur.
+- Kullanıcının yazdığı dilde yanıt ver
+- Aylar önceki sohbetlerden bilgileri bugünkü bağlama bağla.
 
 BİLİŞSEL BAĞLANTI:
 - Sadece mevcut konuşmaya odaklanma; hafızadaki eski bilgilerle bugünkü konuşma arasında mantıksal bağlantılar kur
-- "Bu konuda daha önce şöyle bir şey paylaşmıştın..." gibi ifadeler kullan
 
 KAYNAKÇA:
 - Faktüel bilgi verdiğinde, yanıtının sonuna [SOURCES] bloğu ekle
 - Format: [SOURCES]{"sources":[{"title":"Kaynak","url":"https://...","snippet":"alıntı"}]}[/SOURCES]
-- Emin olmadığın bilgileri belirt
 
 Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
 `;
 
     const personalityPrompts: Record<string, string> = {
-      friendly: 'Çok sıcak ve samimi bir yapay zeka asistanısın. Türkçe konuş, arkadaşça ve neşeli ol. Emoji kullanabilirsin. Kullanıcıyla sanki eski bir dostmuşsun gibi konuş.',
-      professional: 'Profesyonel ve resmi bir yapay zeka asistanısın. Türkçe konuş, ciddi ve iş odaklı ol. Net, öz ve bilgilendirici yanıtlar ver. Emoji kullanma.',
-      humorous: 'Çok komik ve esprili bir yapay zeka asistanısın. Türkçe konuş, şakalar yap, kelime oyunları kullan. Her cevabına biraz mizah kat ama yine de yardımcı ol.',
-      wise: 'Bilge ve düşünceli bir yapay zeka asistanısın. Türkçe konuş, derin düşünceler paylaş, felsefi yaklaşımlar sun. Atasözleri ve özdeyişler kullanabilirsin.',
-      creative: 'Son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Türkçe konuş, metaforlar kullan, ilham verici ve orijinal fikirler sun. Sanatsal bir dil kullan.',
+      friendly: "Çok sıcak ve samimi bir yapay zeka asistanısın. Türkçe konuş, arkadaşça ve neşeli ol. Emoji kullanabilirsin.",
+      professional: "Profesyonel ve resmi bir yapay zeka asistanısın. Türkçe konuş, ciddi ve iş odaklı ol. Emoji kullanma.",
+      humorous: "Çok komik ve esprili bir yapay zeka asistanısın. Türkçe konuş, şakalar yap, kelime oyunları kullan.",
+      wise: "Bilge ve düşünceli bir yapay zeka asistanısın. Türkçe konuş, derin düşünceler paylaş.",
+      creative: "Son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Türkçe konuş, metaforlar kullan.",
     };
 
-    // Add thinking mode instructions
-    const thinkingModeInstructions = thinkingMode === 'deep'
-      ? ' Soruları derinlemesine analiz et, farklı açılardan değerlendir, detaylı ve kapsamlı cevaplar ver. Gerekirse adım adım düşün.'
-      : ' Kısa, öz ve hızlı cevaplar ver. Gereksiz detaylara girme.';
+    const thinkingInstructions = safeThinkingMode === "deep"
+      ? " Soruları derinlemesine analiz et, farklı açılardan değerlendir, detaylı ve kapsamlı cevaplar ver."
+      : " Kısa, öz ve hızlı cevaplar ver.";
 
-    // Voice mode instructions
-    const voiceModeInstructions = isVoiceMode
-      ? `
+    const voiceInstructions = isVoiceMode
+      ? `\n\nSESLİ SOHBET MODU AKTİF:\n- Cevaplarını kısa tut (max 2-3 cümle)\n- Markdown işaretleri KULLANMA\n- Sayıları yazıyla yaz`
+      : "";
 
-SESLİ SOHBET MODU AKTİF - ÖZEL KURALLAR:
-- Cevaplarını kısa, net ve konuşma diline uygun tut (max 2-3 cümle)
-- Uzun listeler yerine ana fikri ver
-- Cümle aralarına doğal geçişler ekle: "Hımm", "Anlıyorum", "Peki", "Şöyle söyleyeyim"
-- Robotik histen kaçın, sıcak ve samimi ol
-- Önceki konuyu hatırlat: "Az önce bahsettiğimiz gibi..." 
-- Parantez, köşeli parantez, yıldız gibi markdown işaretleri KULLANMA
-- Sayıları yazıyla yaz (örn: "üç" yerine "3" kullanma)`
-      : '';
+    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions;
+    if (safeMemoryContext) systemPrompt += safeMemoryContext;
+    if (safeMoodContext) systemPrompt += safeMoodContext;
 
-    // Build the complete system prompt
-    let systemPrompt = baseContext + (personalityPrompts[personality] || personalityPrompts.friendly) + thinkingModeInstructions + voiceModeInstructions;
-    
-    // Add memory context if available
-    if (memoryContext) {
-      systemPrompt += memoryContext;
-    }
-    
-    // Add mood context if available
-    if (moodContext) {
-      systemPrompt += moodContext;
-    }
-
-    console.log("Chat request - personality:", personality, "mode:", thinkingMode, "model:", model, "hasMemory:", !!memoryContext, "hasMood:", !!moodContext);
+    console.log("Chat request - personality:", safePersonality, "mode:", safeThinkingMode, "model:", model);
 
     let response = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        messages: [
-          { 
-            role: "system", 
-            content: systemPrompt
-          },
-          ...messages,
-        ],
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
         stream: true,
       }),
     });
 
-    // Fallback: if OpenRouter fails (401/403/500+), try Lovable gateway
+    // Fallback
     if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
       console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
+          messages: [{ role: "system", content: systemPrompt }, ...messages],
           stream: true,
         }),
       });
@@ -141,36 +141,23 @@ SESLİ SOHBET MODU AKTİF - ÖZEL KURALLAR:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit aşıldı. Lütfen biraz bekleyip tekrar deneyin." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "Rate limit aşıldı." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Kredi yetersiz. Lütfen hesabınıza kredi ekleyin." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
       return new Response(JSON.stringify({ error: "AI servisi şu anda kullanılamıyor." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Streaming response from AI gateway");
-    
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {
     console.error("Chat function error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Bilinmeyen hata" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: "Bilinmeyen hata" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

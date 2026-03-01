@@ -188,11 +188,14 @@ export const useChatbot = () => {
     const memoryContext = getMemoryContext();
     const moodContext = getMoodContext();
     
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${token}`,
         "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
       body: JSON.stringify({ 
@@ -273,11 +276,13 @@ export const useChatbot = () => {
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const response = await fetch(GENERATE_IMAGE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ prompt }),
       });
@@ -296,11 +301,13 @@ export const useChatbot = () => {
 
   const generateGif = useCallback(async (prompt: string): Promise<{ frames: string[]; delay: number } | null> => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const response = await fetch(GENERATE_GIF_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ prompt, frameCount: 4 }),
       });

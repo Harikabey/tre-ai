@@ -86,11 +86,17 @@ export const ChatInput = ({
         return null;
       }
 
-      const { data: publicUrl } = supabase.storage
+      const { data: signedUrlData, error: signedError } = await supabase.storage
         .from('chat-attachments')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-      return publicUrl.publicUrl;
+      if (signedError) {
+        console.error('Signed URL error:', signedError);
+        toast.error('Dosya URL oluşturulamadı');
+        return null;
+      }
+
+      return signedUrlData.signedUrl;
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Dosya yüklenirken hata oluştu');
@@ -109,7 +115,7 @@ export const ChatInput = ({
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ fileUrl, fileName, mimeType }),
         }
@@ -137,7 +143,7 @@ export const ChatInput = ({
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ imageUrl: fileUrl, prompt: userPrompt }),
         }

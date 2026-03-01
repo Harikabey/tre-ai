@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 
 interface MoodAnalysis {
   mood: string;
-  mood_score: number; // -1 (very negative) to 1 (very positive)
+  mood_score: number;
   emotions: string[];
   suggested_tone: string;
 }
@@ -19,10 +20,7 @@ interface MemoryExtraction {
     content: string;
     importance: number;
   }>;
-  interests: Array<{
-    interest: string;
-    category: string;
-  }>;
+  interests: Array<{ interest: string; category: string }>;
 }
 
 serve(async (req) => {
@@ -31,36 +29,59 @@ serve(async (req) => {
   }
 
   try {
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
     const { message, conversationHistory } = await req.json();
+    if (!message || typeof message !== "string" || message.length > 10000) {
+      return new Response(JSON.stringify({ error: "Valid message required (max 10000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Limit conversation history
+    const safeHistory = Array.isArray(conversationHistory)
+      ? conversationHistory.slice(-10).filter((m: any) => typeof m.role === "string" && typeof m.content === "string")
+      : [];
+
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY 
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) {
-      throw new Error("API key is not configured");
-    }
+    if (!apiKey) throw new Error("API key is not configured");
 
     const [moodResult, memoryResult] = await Promise.all([
       analyzeMood(message, apiKey, apiUrl),
-      extractMemories(message, conversationHistory, apiKey, apiUrl)
+      extractMemories(message, safeHistory, apiKey, apiUrl),
     ]);
 
-    return new Response(JSON.stringify({
-      mood: moodResult,
-      memories: memoryResult
-    }), {
+    return new Response(JSON.stringify({ mood: moodResult, memories: memoryResult }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Analyze mood error:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
@@ -68,10 +89,7 @@ serve(async (req) => {
 async function analyzeMood(message: string, apiKey: string, apiUrl: string): Promise<MoodAnalysis> {
   const response = await fetch(apiUrl, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash-lite",
       messages: [
@@ -82,119 +100,77 @@ async function analyzeMood(message: string, apiKey: string, apiUrl: string): Pro
 Yanıt formatı:
 {
   "mood": "mutlu|üzgün|kızgın|endişeli|heyecanlı|sakin|yorgun|stresli|nötr|meraklı|umutlu|hayal_kırıklığı",
-  "mood_score": -1 ile 1 arası sayı (negatif=olumsuz, pozitif=olumlu),
+  "mood_score": -1 ile 1 arası sayı,
   "emotions": ["tespit edilen duygular listesi"],
-  "suggested_tone": "AI'ın yanıt verirken kullanması gereken ton (destekleyici/neşeli/sakin/motive_edici/empatik/bilgilendirici)"
+  "suggested_tone": "destekleyici/neşeli/sakin/motive_edici/empatik/bilgilendirici"
 }
 
-SADECE JSON döndür, başka açıklama ekleme.`
+SADECE JSON döndür.`,
         },
-        { role: "user", content: message }
+        { role: "user", content: message },
       ],
     }),
   });
 
   if (!response.ok) {
-    console.error("Mood analysis failed:", await response.text());
-    return {
-      mood: "nötr",
-      mood_score: 0,
-      emotions: [],
-      suggested_tone: "bilgilendirici"
-    };
+    return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";
-  
   try {
-    // Clean the response - remove markdown code blocks if present
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanedContent);
+    return JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
   } catch {
-    console.error("Failed to parse mood response:", content);
-    return {
-      mood: "nötr",
-      mood_score: 0,
-      emotions: [],
-      suggested_tone: "bilgilendirici"
-    };
+    return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
   }
 }
 
 async function extractMemories(
-  message: string, 
-  conversationHistory: Array<{role: string; content: string}> | undefined,
+  message: string,
+  conversationHistory: Array<{ role: string; content: string }>,
   apiKey: string,
   apiUrl: string
 ): Promise<MemoryExtraction> {
-  const recentContext = conversationHistory?.slice(-6).map(m => 
-    `${m.role === 'user' ? 'Kullanıcı' : 'AI'}: ${m.content}`
-  ).join('\n') || '';
+  const recentContext = conversationHistory
+    .slice(-6)
+    .map((m) => `${m.role === "user" ? "Kullanıcı" : "AI"}: ${m.content.slice(0, 500)}`)
+    .join("\n");
 
   const response = await fetch(apiUrl, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash-lite",
       messages: [
         {
           role: "system",
-          content: `Sen bir bilgi çıkarma uzmanısın. Kullanıcının mesajından hatırlanması gereken önemli bilgileri çıkar.
+          content: `Sen bir bilgi çıkarma uzmanısın. Kullanıcının mesajından hatırlanması gereken bilgileri çıkar.
 
-Aşağıdaki türlerde bilgi ara:
-- fact: Kişisel gerçekler (isim, yaş, meslek, şehir vb.)
-- preference: Tercihler (sevdiği/sevmediği şeyler)
-- interest: İlgi alanları ve hobiler
-- habit: Alışkanlıklar ve rutinler
-- relationship: İlişkiler (aile, arkadaşlar, iş arkadaşları)
-- goal: Hedefler ve hayaller
+Türler: fact, preference, interest, habit, relationship, goal
 
 Yanıt formatı (SADECE JSON):
 {
-  "memories": [
-    {
-      "type": "fact|preference|interest|habit|relationship|goal",
-      "category": "kategori (iş, aile, hobi, sağlık, eğitim vb.)",
-      "content": "hatırlanacak bilgi",
-      "importance": 1-10 arası önem derecesi
-    }
-  ],
-  "interests": [
-    {
-      "interest": "ilgi alanı adı",
-      "category": "kategori"
-    }
-  ]
+  "memories": [{"type": "...", "category": "...", "content": "...", "importance": 1-10}],
+  "interests": [{"interest": "...", "category": "..."}]
 }
 
-Eğer hatırlanacak önemli bir bilgi yoksa boş array döndür.
-SADECE gerçekten önemli ve kalıcı bilgileri çıkar, geçici durumları değil.`
+Eğer önemli bilgi yoksa boş array döndür.`,
         },
-        { 
-          role: "user", 
-          content: recentContext ? `Önceki konuşma:\n${recentContext}\n\nSon mesaj: ${message}` : message 
-        }
+        {
+          role: "user",
+          content: recentContext ? `Önceki konuşma:\n${recentContext}\n\nSon mesaj: ${message}` : message,
+        },
       ],
     }),
   });
 
-  if (!response.ok) {
-    console.error("Memory extraction failed:", await response.text());
-    return { memories: [], interests: [] };
-  }
+  if (!response.ok) return { memories: [], interests: [] };
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";
-  
   try {
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanedContent);
+    return JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
   } catch {
-    console.error("Failed to parse memory response:", content);
     return { memories: [], interests: [] };
   }
 }

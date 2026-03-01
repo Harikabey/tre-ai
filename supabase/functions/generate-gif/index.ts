@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,43 +12,57 @@ serve(async (req) => {
   }
 
   try {
+    // --- Auth Check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Input Validation ---
     const { prompt, frameCount = 4 } = await req.json();
+    if (!prompt || typeof prompt !== "string" || prompt.length > 2000) {
+      return new Response(JSON.stringify({ error: "Valid prompt required (max 2000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const numFrames = Math.min(Math.max(Number(frameCount) || 4, 2), 6);
+
+    // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY 
+    const apiUrl = OPENROUTER_API_KEY
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) {
-      throw new Error("API key is not configured");
-    }
+    if (!apiKey) throw new Error("API key is not configured");
 
-    if (!prompt) {
-      throw new Error("Prompt is required");
-    }
-
-    const numFrames = Math.min(Math.max(frameCount, 2), 6);
     console.log(`Generating ${numFrames} frames for GIF with prompt:`, prompt);
 
-    // Helper to generate a single frame
     const generateFrame = async (framePrompt: string, referenceImageUrl?: string): Promise<string | null> => {
       try {
         const messages: any[] = [];
-        
         if (referenceImageUrl) {
           messages.push({
             role: "user",
             content: [
-              {
-                type: "image_url",
-                image_url: { url: referenceImageUrl }
-              },
-              {
-                type: "text",
-                text: framePrompt
-              }
-            ]
+              { type: "image_url", image_url: { url: referenceImageUrl } },
+              { type: "text", text: framePrompt },
+            ],
           });
         } else {
           messages.push({ role: "user", content: framePrompt });
@@ -55,33 +70,21 @@ serve(async (req) => {
 
         const response = await fetch(apiUrl, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages,
-            modalities: ["image", "text"],
-          }),
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-2.5-flash-image", messages, modalities: ["image", "text"] }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Frame generation error:", errorText);
-          // Propagate credit/auth errors immediately instead of silently returning null
           if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
-            throw new Error("API kredi limiti aşıldı. Lütfen daha sonra tekrar deneyin.");
+            throw new Error("API kredi limiti aşıldı.");
           }
           return null;
         }
 
         const data = await response.json();
         const images = data.choices?.[0]?.message?.images;
-        if (images && images.length > 0) {
-          return images[0]?.image_url?.url;
-        }
-        
+        if (images && images.length > 0) return images[0]?.image_url?.url;
         const textContent = data.choices?.[0]?.message?.content || "";
         const base64Match = textContent.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
         return base64Match ? base64Match[0] : null;
@@ -93,51 +96,27 @@ serve(async (req) => {
 
     const imageUrls: string[] = [];
 
-    // FRAME 1: Generate the starting frame independently
-    const frame1Prompt = 
-      `Generate exactly ONE image, 256x256 pixels. ` +
-      `You are creating frame 1 of ${numFrames} for a short animation/video clip. ` +
-      `The animation shows: "${prompt}". ` +
-      `This is the STARTING frame. Show the very beginning of the action. ` +
-      `Style: clean illustration, vivid colors, consistent proportions. No text. Always produce an image.`;
+    const frame1Prompt =
+      `Generate exactly ONE image, 256x256 pixels. Frame 1 of ${numFrames} for animation: "${prompt}". Starting frame. Style: clean illustration, vivid colors. No text. Always produce an image.`;
 
-    console.log("Generating frame 1 (starting frame)...");
     const firstFrame = await generateFrame(frame1Prompt);
     if (firstFrame) imageUrls.push(firstFrame);
 
-    // FRAMES 2+: Generate sequentially, each referencing the PREVIOUS frame
     for (let i = 1; i < numFrames; i++) {
       const progress = Math.round((i / (numFrames - 1)) * 100);
       const isLast = i === numFrames - 1;
-      
-      const framePrompt = 
-        `The attached image is the PREVIOUS frame of a ${numFrames}-frame animation showing: "${prompt}". ` +
-        `Generate the NEXT frame (frame ${i + 1} of ${numFrames}, ${progress}% through the action). ` +
-        `${isLast ? 'This is the FINAL frame — show the action completed.' : `Show the action progressed slightly further from the previous frame.`} ` +
-        `CRITICAL RULES: ` +
-        `1. Keep the EXACT same character/object design, colors, background, and art style as the previous frame. ` +
-        `2. Only change the position/pose to show the NEXT moment in time, like the next frame of a video. ` +
-        `3. The change should be SMALL and natural — smooth motion, not a jump cut. ` +
-        `4. Same 256x256 size. No text. Always produce an image.`;
+      const framePrompt =
+        `The attached image is the PREVIOUS frame of a ${numFrames}-frame animation: "${prompt}". Generate frame ${i + 1} (${progress}% through). ${isLast ? "FINAL frame." : "Show slight progression."} Keep EXACT same style. Same 256x256. No text. Always produce an image.`;
 
-      console.log(`Generating frame ${i + 1} (referencing previous frame)...`);
       const prevFrame = imageUrls[imageUrls.length - 1];
       const frame = await generateFrame(framePrompt, prevFrame);
       if (frame) imageUrls.push(frame);
     }
 
-    if (imageUrls.length < 2) {
-      throw new Error("Yeterli kare oluşturulamadı. Lütfen tekrar deneyin.");
-    }
-
-    console.log(`Generated ${imageUrls.length} frames successfully`);
+    if (imageUrls.length < 2) throw new Error("Yeterli kare oluşturulamadı.");
 
     return new Response(
-      JSON.stringify({ 
-        frames: imageUrls,
-        frameCount: imageUrls.length,
-        delay: 500,
-      }),
+      JSON.stringify({ frames: imageUrls, frameCount: imageUrls.length, delay: 500 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
