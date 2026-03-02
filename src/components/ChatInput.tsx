@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video, Film } from 'lucide-react';
+import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video, Film, ScreenShare } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { setVoiceMode } from '@/hooks/useChatbot';
 import { supabase } from '@/integrations/supabase/client';
@@ -266,6 +266,46 @@ export const ChatInput = ({
     resetTranscript();
   };
 
+  const isScreenShareEnabled = localStorage.getItem('ai_chatbot_screen_share') === 'true';
+
+  const handleScreenShare = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const track = stream.getVideoTracks()[0];
+      
+      // Wait a moment for the screen to be captured
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // @ts-ignore - ImageCapture is available in modern browsers
+      const imageCapture = new ImageCapture(track);
+      const bitmap = await imageCapture.grabFrame();
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(bitmap, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // Stop the stream
+      stream.getTracks().forEach(t => t.stop());
+      
+      // Analyze the screenshot
+      const userPrompt = input.trim() || 'Bu ekran görüntüsünü analiz et ve gördüklerini detaylı açıkla. Türkçe yanıt ver.';
+      const analysis = await analyzeImage(dataUrl, userPrompt);
+      
+      const messageContent = `🖥️ Ekran paylaşımı:\n\n![Ekran görüntüsü](${dataUrl})\n\n**AI Analizi:**\n${analysis || 'Analiz yapılamadı.'}`;
+      onSend(messageContent);
+      setInput('');
+      resetTranscript();
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Screen share error:', error);
+        toast.error('Ekran paylaşımı başarısız oldu');
+      }
+    }
+  };
+
   // Video generation is not currently supported by the AI gateway
   // const handleVideoGeneration = () => { ... };
 
@@ -465,6 +505,12 @@ export const ChatInput = ({
               <Film className="w-4 h-4 mr-2" />
               GIF Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
             </DropdownMenuItem>
+            {isScreenShareEnabled && (
+              <DropdownMenuItem onClick={handleScreenShare}>
+                <ScreenShare className="w-4 h-4 mr-2" />
+                Ekran Paylaş
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">Düşünme Modu</DropdownMenuLabel>
             <DropdownMenuItem 

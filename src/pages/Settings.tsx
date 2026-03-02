@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { personalities, Personality } from '@/types/personality';
 import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
@@ -11,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useVoice } from '@/hooks/useVoice';
 
 const PERSONALITY_KEY = 'ai_chatbot_personality';
+const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
 
 type ThemeOption = {
   id: 'light' | 'dark' | 'system';
@@ -43,6 +45,9 @@ const themeOptions: ThemeOption[] = [
 const Settings = () => {
   const [selectedPersonality, setSelectedPersonality] = useState<string>('friendly');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('tr');
+  const [screenShareEnabled, setScreenShareEnabled] = useState<boolean>(() => {
+    return localStorage.getItem(SCREEN_SHARE_KEY) === 'true';
+  });
   const [languageSearch, setLanguageSearch] = useState('');
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
@@ -62,6 +67,11 @@ const Settings = () => {
   const handleSelectLanguage = (code: string) => {
     setSelectedLanguage(code);
     localStorage.setItem(LANGUAGE_KEY, code);
+  };
+
+  const handleScreenShareToggle = (enabled: boolean) => {
+    setScreenShareEnabled(enabled);
+    localStorage.setItem(SCREEN_SHARE_KEY, String(enabled));
   };
 
   const filteredLanguages = languages.filter(l =>
@@ -119,7 +129,33 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Voice Selection */}
+          {/* Screen Share Toggle */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScreenShare className="h-5 w-5 text-primary" />
+                Ekran Paylaşma
+              </CardTitle>
+              <CardDescription>
+                Ekranınızı AI ile paylaşarak analiz ettirin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Ekran Paylaşmayı Etkinleştir</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Sohbet menüsünde ekran paylaşma seçeneğini göster
+                  </div>
+                </div>
+                <Switch
+                  checked={screenShareEnabled}
+                  onCheckedChange={handleScreenShareToggle}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
