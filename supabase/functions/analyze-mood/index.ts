@@ -87,15 +87,15 @@ serve(async (req) => {
 });
 
 async function analyzeMood(message: string, apiKey: string, apiUrl: string): Promise<MoodAnalysis> {
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        {
-          role: "system",
-          content: `Sen bir duygu analizi uzmanısın. Kullanıcının mesajını analiz et ve JSON formatında yanıt ver.
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  const requestBody = JSON.stringify({
+    model: "google/gemini-2.5-flash-lite",
+    messages: [
+      {
+        role: "system",
+        content: `Sen bir duygu analizi uzmanısın. Kullanıcının mesajını analiz et ve JSON formatında yanıt ver.
 
 Yanıt formatı:
 {
@@ -106,13 +106,34 @@ Yanıt formatı:
 }
 
 SADECE JSON döndür.`,
-        },
-        { role: "user", content: message },
-      ],
-    }),
+      },
+      { role: "user", content: message },
+    ],
   });
 
-  if (!response.ok) {
+  let response: Response | null = null;
+
+  if (OPENROUTER_API_KEY) {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+    if (!response.ok) {
+      console.error("OpenRouter mood error:", response.status, "- falling back");
+      response = null;
+    }
+  }
+
+  if (!response && LOVABLE_API_KEY) {
+    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+  }
+
+  if (!response || !response.ok) {
     return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
   }
 
@@ -131,20 +152,20 @@ async function extractMemories(
   apiKey: string,
   apiUrl: string
 ): Promise<MemoryExtraction> {
+  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
   const recentContext = conversationHistory
     .slice(-6)
     .map((m) => `${m.role === "user" ? "Kullanıcı" : "AI"}: ${m.content.slice(0, 500)}`)
     .join("\n");
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        {
-          role: "system",
-          content: `Sen bir bilgi çıkarma uzmanısın. Kullanıcının mesajından hatırlanması gereken bilgileri çıkar.
+  const requestBody = JSON.stringify({
+    model: "google/gemini-2.5-flash-lite",
+    messages: [
+      {
+        role: "system",
+        content: `Sen bir bilgi çıkarma uzmanısın. Kullanıcının mesajından hatırlanması gereken bilgileri çıkar.
 
 Türler: fact, preference, interest, habit, relationship, goal
 
@@ -155,16 +176,37 @@ Yanıt formatı (SADECE JSON):
 }
 
 Eğer önemli bilgi yoksa boş array döndür.`,
-        },
-        {
-          role: "user",
-          content: recentContext ? `Önceki konuşma:\n${recentContext}\n\nSon mesaj: ${message}` : message,
-        },
-      ],
-    }),
+      },
+      {
+        role: "user",
+        content: recentContext ? `Önceki konuşma:\n${recentContext}\n\nSon mesaj: ${message}` : message,
+      },
+    ],
   });
 
-  if (!response.ok) return { memories: [], interests: [] };
+  let response: Response | null = null;
+
+  if (OPENROUTER_API_KEY) {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+    if (!response.ok) {
+      console.error("OpenRouter memory error:", response.status, "- falling back");
+      response = null;
+    }
+  }
+
+  if (!response && LOVABLE_API_KEY) {
+    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+  }
+
+  if (!response || !response.ok) return { memories: [], interests: [] };
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";

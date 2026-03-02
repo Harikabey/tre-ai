@@ -10,12 +10,8 @@ const corsHeaders = {
 async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string, mimeType: string): Promise<string> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-  const apiUrl = OPENROUTER_API_KEY
-    ? "https://openrouter.ai/api/v1/chat/completions"
-    : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-  if (!apiKey) throw new Error("API key not configured");
+  if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key not configured");
 
   let imageUrl = fileUrl;
   const isPdf = mimeType?.includes("pdf") || fileName?.toLowerCase().endsWith(".pdf");
@@ -34,22 +30,40 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
     ? "Bu görseli detaylı olarak analiz et. Türkçe yanıt ver."
     : `Bu ${fileName} dosyasını analiz et. İçeriği oku ve özetle. Türkçe yanıt ver.`;
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: imageUrl } },
-        ],
-      }],
-    }),
+  const requestBody = JSON.stringify({
+    model: "google/gemini-2.5-flash",
+    messages: [{
+      role: "user",
+      content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: imageUrl } },
+      ],
+    }],
   });
 
-  if (!response.ok) throw new Error("AI analizi başarısız oldu");
+  let response: Response | null = null;
+
+  if (OPENROUTER_API_KEY) {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+    if (!response.ok) {
+      console.error("OpenRouter doc error:", response.status, "- falling back");
+      response = null;
+    }
+  }
+
+  if (!response && LOVABLE_API_KEY) {
+    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: requestBody,
+    });
+  }
+
+  if (!response || !response.ok) throw new Error("AI analizi başarısız oldu");
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "İçerik analiz edilemedi.";

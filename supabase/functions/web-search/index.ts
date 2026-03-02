@@ -51,15 +51,12 @@ serve(async (req) => {
 
     if (!apiKey) throw new Error("API key is not configured");
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Sen bir araştırma asistanısın. Kullanıcının sorusuna güncel ve doğru bilgilerle yanıt ver.
+    const requestBody = JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "system",
+          content: `Sen bir araştırma asistanısın. Kullanıcının sorusuna güncel ve doğru bilgilerle yanıt ver.
 
 ÖNEMLİ KURALLAR:
 1. Her bilgi için güvenilir kaynak belirt
@@ -74,14 +71,35 @@ serve(async (req) => {
 ${safeInterests ? `Kullanıcının ilgi alanları: ${safeInterests}.` : ""}
 
 SADECE JSON döndür.`,
-          },
-          { role: "user", content: query },
-        ],
-      }),
+        },
+        { role: "user", content: query },
+      ],
     });
 
-    if (!response.ok) {
-      console.error("Web search error:", response.status);
+    let response: Response | null = null;
+
+    if (OPENROUTER_API_KEY) {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+      if (!response.ok) {
+        console.error("OpenRouter error:", response.status, "- falling back");
+        response = null;
+      }
+    }
+
+    if (!response && LOVABLE_API_KEY) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+    }
+
+    if (!response || !response.ok) {
+      console.error("Web search error:", response?.status);
       throw new Error("Search failed");
     }
 

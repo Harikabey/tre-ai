@@ -68,19 +68,37 @@ serve(async (req) => {
           messages.push({ role: "user", content: framePrompt });
         }
 
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "google/gemini-2.5-flash-image", messages, modalities: ["image", "text"] }),
-        });
+        const requestBody = JSON.stringify({ model: "google/gemini-3-pro-image-preview", messages, modalities: ["image", "text"] });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
-            throw new Error("API kredi limiti aşıldı.");
+        let response: Response | null = null;
+
+        // Try OpenRouter first
+        if (OPENROUTER_API_KEY) {
+          response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+            body: requestBody,
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
+              throw new Error("API kredi limiti aşıldı.");
+            }
+            console.error("OpenRouter frame error:", response.status, "- falling back");
+            response = null;
           }
-          return null;
         }
+
+        // Fallback to Lovable gateway
+        if (!response && LOVABLE_API_KEY) {
+          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: requestBody,
+          });
+        }
+
+        if (!response || !response.ok) return null;
 
         const data = await response.json();
         const images = data.choices?.[0]?.message?.images;
