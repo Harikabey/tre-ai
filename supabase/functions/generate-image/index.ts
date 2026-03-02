@@ -40,31 +40,47 @@ serve(async (req) => {
       });
     }
 
-    // --- API Setup ---
+    // --- API Setup with fallback ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) throw new Error("API key is not configured");
+    if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{
-          role: "user",
-          content: `Generate ONE high-quality image. Visually depict this request: ${prompt}. If the request is abstract, create a symbolic/illustrative scene. Do not refuse; always produce an image.`,
-        }],
-        modalities: ["image", "text"],
-      }),
+    const requestBody = JSON.stringify({
+      model: "google/gemini-3-pro-image-preview",
+      messages: [{
+        role: "user",
+        content: `Generate ONE high-quality image. Visually depict this request: ${prompt}. If the request is abstract, create a symbolic/illustrative scene. Do not refuse; always produce an image.`,
+      }],
+      modalities: ["image", "text"],
     });
 
-    if (!response.ok) {
-      console.error("AI gateway error:", response.status);
+    let response: Response | null = null;
+
+    // Try OpenRouter first
+    if (OPENROUTER_API_KEY) {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+      if (!response.ok) {
+        console.error("OpenRouter error:", response.status, "- falling back to Lovable gateway");
+        response = null;
+      }
+    }
+
+    // Fallback to Lovable gateway
+    if (!response && LOVABLE_API_KEY) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+    }
+
+    if (!response || !response.ok) {
+      console.error("AI gateway error:", response?.status);
       throw new Error("Görsel oluşturulamadı");
     }
 
