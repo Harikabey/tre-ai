@@ -269,6 +269,11 @@ export const ChatInput = ({
   const isScreenShareEnabled = localStorage.getItem('ai_chatbot_screen_share') === 'true';
 
   const handleScreenShare = async () => {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+      toast.error('Ekran paylaşımı bu tarayıcıda veya ortamda desteklenmiyor. Lütfen uygulamayı doğrudan tarayıcıda (iframe dışında) açın.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const track = stream.getVideoTracks()[0];
@@ -276,16 +281,36 @@ export const ChatInput = ({
       // Wait a moment for the screen to be captured
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // @ts-ignore - ImageCapture is available in modern browsers
-      const imageCapture = new ImageCapture(track);
-      const bitmap = await imageCapture.grabFrame();
+      let dataUrl: string;
       
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(bitmap, 0, 0);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      // Try ImageCapture API first, fallback to canvas
+      try {
+        // @ts-ignore - ImageCapture is available in modern browsers
+        const imageCapture = new ImageCapture(track);
+        const bitmap = await imageCapture.grabFrame();
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(bitmap, 0, 0);
+        dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      } catch {
+        // Fallback: use video element + canvas
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+        await video.play();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(video, 0, 0);
+        dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        video.pause();
+        video.srcObject = null;
+      }
       
       // Stop the stream
       stream.getTracks().forEach(t => t.stop());
@@ -299,9 +324,11 @@ export const ChatInput = ({
       setInput('');
       resetTranscript();
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
         console.error('Screen share error:', error);
         toast.error('Ekran paylaşımı başarısız oldu');
+      } else if (error.name === 'NotAllowedError') {
+        toast.error('Ekran paylaşımı izni reddedildi');
       }
     }
   };
