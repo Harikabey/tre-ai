@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +44,7 @@ const themeOptions: ThemeOption[] = [
 ];
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [selectedPersonality, setSelectedPersonality] = useState<string>('friendly');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('tr');
   const [screenShareEnabled, setScreenShareEnabled] = useState<boolean>(() => {
@@ -156,6 +158,37 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Voice Chat Section */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                Sesli Sohbet
+              </CardTitle>
+              <CardDescription>
+                Sesli komutlarla AI ile sohbet edin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <button
+                onClick={() => navigate('/voice-chat')}
+                className="w-full p-4 rounded-lg border border-border/50 bg-secondary/30 hover:border-primary/50 hover:bg-secondary/50 transition-all duration-200 text-left flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Mic className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-foreground text-sm">Sesli Sohbeti Başlat</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Mikrofon ile konuşarak AI ile sesli sohbet edin
+                  </div>
+                </div>
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+              </button>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
