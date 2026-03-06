@@ -177,12 +177,16 @@ export const useChatbot = () => {
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
     
-    const conversationHistory: ChatMessage[] = historyData?.map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })) || [];
+    const MAX_MSG_LEN = 4000;
+    const MAX_HISTORY = 20;
+    const conversationHistory: ChatMessage[] = (historyData || [])
+      .slice(-MAX_HISTORY)
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content.length > MAX_MSG_LEN ? m.content.slice(0, MAX_MSG_LEN) + '...[kısaltıldı]' : m.content,
+      }));
     
-    const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
+    const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage.slice(0, MAX_MSG_LEN) }];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     const language = localStorage.getItem(LANGUAGE_KEY) || 'tr';
     
