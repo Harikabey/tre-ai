@@ -170,9 +170,12 @@
 
   .bg-grid {
     background-image: 
-      linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
+      linear-gradient(hsl(var(--border) / 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.15) 1px, transparent 1px);
     background-size: 40px 40px;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: auto;
   }
 }
 
