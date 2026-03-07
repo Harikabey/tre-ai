@@ -417,8 +417,8 @@ const LanguageCard = ({ language, isSelected, onSelect }: LanguageCardProps) => 
       }`}
     >
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-foreground text-xs sm:text-sm">{language.name}</div>
-        <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{language.nativeName}</div>
+        <div className="font-medium text-foreground text-xs sm:text-sm">{language.nativeName}</div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{language.name}</div>
       </div>
       {isSelected && (
         <div className="flex-shrink-0 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
