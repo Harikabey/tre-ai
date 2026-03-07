@@ -172,7 +172,6 @@
     /* Grid pattern removed to fix GPU rendering glitches on mobile */
   }
 }
-}
 
 @layer utilities {
   .animate-pulse-glow {
