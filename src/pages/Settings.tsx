@@ -472,7 +472,7 @@ const Settings = () => {
                 <PersonalityCard
                   key={personality.id}
                   personality={personality}
-                  isSelected={selectedPersonality === personality.id}
+                  isSelected={preferences.personality === personality.id}
                   onSelect={() => handleSelectPersonality(personality.id)}
                 />
               ))}
