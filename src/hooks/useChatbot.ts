@@ -15,6 +15,7 @@ const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
+const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-api`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -347,6 +348,97 @@ export const useChatbot = () => {
     }
   }, []);
 
+  // Detect if user message requires a Google API call
+  const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
+    const lower = message.toLowerCase();
+    
+    // Email patterns
+    const emailPatterns = [
+      /e-?posta/i, /mail/i, /gmail/i, /gelen kutu/i, /inbox/i,
+      /mesaj.*oku/i, /mesaj.*kontrol/i, /mesaj.*bak/i, /postalar/i,
+    ];
+    if (emailPatterns.some(p => p.test(lower))) {
+      const countMatch = lower.match(/son\s*(\d+)/);
+      const maxResults = countMatch ? parseInt(countMatch[1]) : 5;
+      return { action: 'gmail.list', params: { maxResults } };
+    }
+
+    // Calendar patterns
+    const calendarPatterns = [
+      /takvim/i, /randevu/i, /etkinlik/i, /toplantı/i, /calendar/i, /program/i,
+    ];
+    if (calendarPatterns.some(p => p.test(lower))) {
+      return { action: 'calendar.list', params: { maxResults: 10 } };
+    }
+
+    // Drive patterns
+    const drivePatterns = [
+      /drive/i, /dosya/i, /belge/i, /doküman/i, /document/i,
+    ];
+    if (drivePatterns.some(p => p.test(lower))) {
+      return { action: 'drive.list', params: { maxResults: 10 } };
+    }
+
+    return null;
+  }, []);
+
+  const callGoogleApi = useCallback(async (action: string, params: Record<string, unknown>): Promise<unknown> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const resp = await fetch(GOOGLE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, params }),
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({ error: 'API error' }));
+      throw new Error(errData.error || `Google API error ${resp.status}`);
+    }
+
+    return await resp.json();
+  }, []);
+
+  // Read individual email details for summary
+  const fetchEmailDetails = useCallback(async (messageIds: string[], maxCount: number = 5): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const details: string[] = [];
+    const idsToFetch = messageIds.slice(0, maxCount);
+
+    for (const msgId of idsToFetch) {
+      try {
+        const resp = await fetch(GOOGLE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: 'gmail.read', params: { messageId: msgId } }),
+        });
+
+        if (resp.ok) {
+          const result = await resp.json();
+          const msg = result.data;
+          const headers = msg?.payload?.headers || [];
+          const from = headers.find((h: { name: string }) => h.name === 'From')?.value || 'Bilinmeyen';
+          const subject = headers.find((h: { name: string }) => h.name === 'Subject')?.value || '(Konu yok)';
+          const date = headers.find((h: { name: string }) => h.name === 'Date')?.value || '';
+          const snippet = msg?.snippet || '';
+          details.push(`- Kimden: ${from}\n  Konu: ${subject}\n  Tarih: ${date}\n  Özet: ${snippet}`);
+        }
+      } catch (e) {
+        console.error('Email read error:', e);
+      }
+    }
+
+    return details.join('\n\n');
+  }, []);
 
   const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
@@ -442,11 +534,51 @@ export const useChatbot = () => {
           await saveMessage(conversationId, 'assistant', errorContent);
         }
       } else {
-        // Normal chat flow
-        const assistantContent = await streamChat(conversationId, trimmedInput);
-        
-        // Save assistant message to DB
-        await saveMessage(conversationId, 'assistant', assistantContent);
+        // Check if user is requesting a connected account action
+        const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
+
+        if (googleAction) {
+          // First, show a loading message
+          updateLastBotMessage('🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...');
+
+          try {
+            let apiData: string;
+
+            if (googleAction.action === 'gmail.list') {
+              const result = await callGoogleApi(googleAction.action, googleAction.params) as { data?: { messages?: { id: string }[] } };
+              const messageIds = result?.data?.messages?.map((m: { id: string }) => m.id) || [];
+              
+              if (messageIds.length === 0) {
+                apiData = 'Gelen kutusunda e-posta bulunamadı.';
+              } else {
+                apiData = await fetchEmailDetails(messageIds, googleAction.params.maxResults as number || 5);
+              }
+            } else {
+              const result = await callGoogleApi(googleAction.action, googleAction.params);
+              apiData = JSON.stringify(result, null, 2);
+            }
+
+            // Stream a follow-up with the real data injected
+            const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen gerçek veriler aşağıdadır. Bu verileri kullanarak kullanıcıya güzel, özetlenmiş bir yanıt ver. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
+            
+            // Delete the "loading" bot message and stream a proper response
+            setMessages(prev => prev.filter(m => m.content !== '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...'));
+            
+            const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
+            await saveMessage(conversationId!, 'assistant', assistantContent);
+          } catch (apiError) {
+            console.error('Google API call failed:', apiError);
+            // Fall back to normal chat
+            const assistantContent = await streamChat(conversationId!, trimmedInput);
+            await saveMessage(conversationId!, 'assistant', assistantContent);
+          }
+        } else {
+          // Normal chat flow
+          const assistantContent = await streamChat(conversationId!, trimmedInput);
+          
+          // Save assistant message to DB
+          await saveMessage(conversationId!, 'assistant', assistantContent);
+        }
       }
       
       // Update conversation updated_at
@@ -465,7 +597,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, analyzeAndStore]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
