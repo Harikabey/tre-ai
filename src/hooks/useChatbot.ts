@@ -540,45 +540,64 @@ export const useChatbot = () => {
         const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
 
         if (googleAction) {
-          // Show a loading message with unique ID for safe removal
-          const loadingId = `loading-${Date.now()}`;
-          setMessages(prev => [...prev, {
-            id: loadingId,
-            role: 'bot' as const,
-            content: '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...',
-            timestamp: new Date(),
-          }]);
+          // First check if we have a provider token
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          const providerToken = currentSession?.provider_token;
 
-          try {
-            let apiData: string;
+          if (!providerToken) {
+            // No provider token - tell user to re-authenticate with Google
+            const errorContent = '⚠️ Google hesabınıza erişmek için yeniden Google ile giriş yapmanız gerekiyor. Oturum tokenınız süresi dolmuş.\n\nLütfen çıkış yapıp Google ile tekrar giriş yapın.';
+            updateLastBotMessage(errorContent);
+            await saveMessage(conversationId!, 'assistant', errorContent);
+          } else {
+            // Show a loading message with unique ID for safe removal
+            const loadingId = `loading-${Date.now()}`;
+            setMessages(prev => [...prev, {
+              id: loadingId,
+              role: 'bot' as const,
+              content: '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...',
+              timestamp: new Date(),
+            }]);
 
-            if (googleAction.action === 'gmail.list') {
-              const result = await callGoogleApi(googleAction.action, googleAction.params) as { data?: { messages?: { id: string }[] } };
-              const messageIds = result?.data?.messages?.map((m: { id: string }) => m.id) || [];
-              
-              if (messageIds.length === 0) {
-                apiData = 'Gelen kutusunda e-posta bulunamadı.';
+            try {
+              let apiData: string;
+
+              if (googleAction.action === 'gmail.list') {
+                const result = await callGoogleApi(googleAction.action, googleAction.params) as { data?: { messages?: { id: string }[] } };
+                const messageIds = result?.data?.messages?.map((m: { id: string }) => m.id) || [];
+                
+                if (messageIds.length === 0) {
+                  apiData = 'Gelen kutusunda e-posta bulunamadı.';
+                } else {
+                  apiData = await fetchEmailDetails(messageIds, googleAction.params.maxResults as number || 5);
+                }
               } else {
-                apiData = await fetchEmailDetails(messageIds, googleAction.params.maxResults as number || 5);
+                const result = await callGoogleApi(googleAction.action, googleAction.params);
+                apiData = JSON.stringify(result, null, 2);
               }
-            } else {
-              const result = await callGoogleApi(googleAction.action, googleAction.params);
-              apiData = JSON.stringify(result, null, 2);
-            }
 
-            // Stream a follow-up with the real data injected
-            const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen gerçek veriler aşağıdadır. Bu verileri kullanarak kullanıcıya güzel, özetlenmiş bir yanıt ver. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
-            
-            // Remove the loading message by ID
-            setMessages(prev => prev.filter(m => m.id !== loadingId));
-            
-            const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
-            await saveMessage(conversationId!, 'assistant', assistantContent);
-          } catch (apiError) {
-            console.error('Google API call failed:', apiError);
-            // Fall back to normal chat
-            const assistantContent = await streamChat(conversationId!, trimmedInput);
-            await saveMessage(conversationId!, 'assistant', assistantContent);
+              if (!apiData || apiData.trim() === '') {
+                throw new Error('API boş veri döndürdü');
+              }
+
+              // Stream a follow-up with the real data injected
+              const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen GERÇEK veriler aşağıdadır. SADECE bu verileri kullan, KENDİN VERİ UYDURMA. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
+              
+              // Remove the loading message by ID
+              setMessages(prev => prev.filter(m => m.id !== loadingId));
+              
+              const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
+              await saveMessage(conversationId!, 'assistant', assistantContent);
+            } catch (apiError) {
+              console.error('Google API call failed:', apiError);
+              // Remove loading message
+              setMessages(prev => prev.filter(m => m.id !== loadingId));
+              // Show specific error instead of falling back to hallucination
+              const errorMsg = apiError instanceof Error ? apiError.message : 'Bilinmeyen hata';
+              const errorContent = `⚠️ Google hesabınızdan veri çekilirken hata oluştu: ${errorMsg}\n\nGoogle oturumunuz süresi dolmuş olabilir. Çıkış yapıp Google ile tekrar giriş yapmayı deneyin.`;
+              updateLastBotMessage(errorContent);
+              await saveMessage(conversationId!, 'assistant', errorContent);
+            }
           }
         } else {
           // Normal chat flow
