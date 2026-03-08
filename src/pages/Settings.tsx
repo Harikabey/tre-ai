@@ -18,6 +18,14 @@ import { toast } from 'sonner';
 
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
+const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
+
+const TEXT_SCALE_OPTIONS = [
+  { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
+  { value: 1, label: 'Normal', description: 'Varsayılan boyut' },
+  { value: 1.15, label: 'Büyük', description: 'Daha büyük yazı boyutu' },
+  { value: 1.3, label: 'Çok Büyük', description: 'En büyük yazı boyutu' },
+];
 
 type ThemeOption = {
   id: 'light' | 'dark' | 'system';
