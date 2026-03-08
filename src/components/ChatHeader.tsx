@@ -123,6 +123,19 @@ export const ChatHeader = ({
           </Button>
         )}
         
+        {/* Connected Accounts button */}
+        {onToggleConnectedAccounts && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleConnectedAccounts}
+            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
+            title="Bağlı Hesaplar"
+          >
+            <Link2 className="w-4 h-4" />
+          </Button>
+        )}
+
         <Link to="/settings">
           <Button
             variant="ghost"
