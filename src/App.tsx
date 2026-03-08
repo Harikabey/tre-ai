@@ -11,6 +11,12 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Apply saved text scale on app load
+const savedScale = localStorage.getItem('ai_chatbot_text_scale');
+if (savedScale) {
+  document.documentElement.style.fontSize = `${parseFloat(savedScale) * 16}px`;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
