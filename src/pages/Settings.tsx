@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
 const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
+const HIGH_CONTRAST_KEY = 'ai_chatbot_high_contrast';
+const REDUCE_MOTION_KEY = 'ai_chatbot_reduce_motion';
 
 const TEXT_SCALE_OPTIONS = [
   { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
