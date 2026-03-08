@@ -240,6 +240,12 @@ const Index = () => {
         onClose={() => setIsCameraOpen(false)}
         onAnalysisComplete={handleCameraAnalysis}
       />
+
+      {/* Connected Accounts Panel */}
+      <ConnectedAccountsPanel
+        isOpen={isAccountsPanelOpen}
+        onClose={() => setIsAccountsPanelOpen(false)}
+      />
     </div>
   );
 };
