@@ -153,7 +153,7 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
         sv: "Svenska", da: "Dansk", fi: "Suomi", no: "Norsk", el: "Ελληνικά",
         hu: "Magyar", ro: "Română", bg: "Български", cs: "Čeština", he: "עברית",
         fa: "فارسی", th: "ไทย", vi: "Tiếng Việt", id: "Bahasa Indonesia",
-        az: "Azərbaycan", ka: "ქართული", ku: "Kurdî",
+        az: "Azərbaycan", ka: "ქართული",
       };
       const langName = langNames[safeLanguage] || safeLanguage;
       languageInstruction = `\n\nDİL TALİMATI: Tüm yanıtlarını ${langName} dilinde ver. Başka bir dil kullanma.`;
