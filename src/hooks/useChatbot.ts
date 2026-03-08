@@ -292,7 +292,7 @@ export const useChatbot = () => {
     }
     
     return assistantContent;
-  }, [updateLastBotMessage]);
+  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext]);
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
