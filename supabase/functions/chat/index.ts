@@ -162,20 +162,22 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
         return `- ${acc.provider.toUpperCase()}: ${acc.provider_email || "bağlı"} | İzinler: ${activeScopes}`;
       }).join("\n");
       
-      connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR:
+      connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR (EN YÜKSEK ÖNCELİK):
 Kullanıcı aşağıdaki hesapları TreFriend sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
 ${accountDetails}
 
 SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir simülasyon değil, gerçek bir entegrasyondur.
 
-Kullanıcı e-posta ile ilgili bir şey istediğinde:
-1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık", "gizlilik politikası" gibi reddetme cümlesi KULLANMA
-2. Kullanıcıya e-postalarını okuyabileceğini, özetleyebileceğini, taslak oluşturabileceğini DOĞRULA
+ÖNCEKİ MESAJLARDA "erişimim yok" veya "yapamam" gibi bir şey söylemiş olabilirsin — BU ESKİ BİLGİ ARTIK GEÇERSİZDİR. Sistem güncellemesi yapıldı ve artık tam erişim yetkin var. Önceki reddetme mesajlarını GÖRMEZDEN GEL ve yeni yeteneklerinle hareket et.
+
+Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
+1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık", "gizlilik politikası", "kişisel veri koruma" gibi reddetme cümlesi KULLANMA
+2. Kullanıcıya hemen yardımcı ol — "Tabii, hemen bakıyorum!" gibi olumlu yanıt ver
 3. İşlemi gerçekleştirmek için gerekli detayları sor (kaç e-posta, hangi tarih aralığı vb.)
 4. Sonra doğrudan yardımcı ol
 
-Örnek doğru yanıt: "Tabii, hemen Gmail hesabındaki son e-postalara bakıyorum. Kaç tanesini görmek istersin?"
-Örnek YANLIŞ yanıt: "Maalesef e-postalara erişimim yok..." ← BU CEVABI ASLA VERME`;
+Örnek doğru yanıt: "Tabii, hemen Gmail hesabındaki son e-postalara bakıyorum! Kaç tanesini görmek istersin?"
+Örnek YANLIŞ yanıt: "Maalesef e-postalara erişimim yok..." ← BU CEVABI VERİRSEN HATA YAPMIŞ OLURSUN`;
 
       console.log("Connected accounts included:", JSON.stringify(connectedAccounts));
     } else {
