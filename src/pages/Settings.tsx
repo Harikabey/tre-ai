@@ -307,6 +307,52 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Accessibility */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                Erişilebilirlik
+              </CardTitle>
+              <CardDescription>
+                Görsel erişilebilirlik tercihlerinizi ayarlayın
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" />
+                    Yüksek Kontrast
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Metin ve arka plan arasındaki kontrastı artırır
+                  </div>
+                </div>
+                <Switch
+                  checked={highContrast}
+                  onCheckedChange={handleHighContrastChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    Animasyonları Azalt
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Geçiş efektlerini ve animasyonları en aza indirir
+                  </div>
+                </div>
+                <Switch
+                  checked={reduceMotion}
+                  onCheckedChange={handleReduceMotionChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
           {/* Screen Share Toggle */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
