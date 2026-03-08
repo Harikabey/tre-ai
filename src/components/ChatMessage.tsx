@@ -128,7 +128,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   return (
     <div
       className={cn(
-        'flex gap-2 sm:gap-3 animate-fade-in',
+        'flex gap-2 sm:gap-3 animate-fade-in w-full min-w-0',
         isBot ? 'justify-start' : 'justify-end'
       )}
     >
