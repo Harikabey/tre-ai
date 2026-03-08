@@ -203,7 +203,7 @@ const Settings = () => {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                Mevcut ölçek: {Math.round(textScale * 100)}%
+                Mevcut ölçek: {Math.round(preferences.text_scale * 100)}%
               </p>
             </CardContent>
           </Card>
