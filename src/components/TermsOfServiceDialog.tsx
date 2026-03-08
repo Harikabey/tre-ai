@@ -19,7 +19,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">TreFriend Kullanım Sözleşmesi</DialogTitle>
-          <DialogDescription>Son güncelleme: 8 Şubat 2026</DialogDescription>
+          <DialogDescription>Son güncelleme: 8 Mart 2026</DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
