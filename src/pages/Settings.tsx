@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,14 @@ import { toast } from 'sonner';
 
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
+const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
+
+const TEXT_SCALE_OPTIONS = [
+  { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
+  { value: 1, label: 'Normal', description: 'Varsayılan boyut' },
+  { value: 1.15, label: 'Büyük', description: 'Daha büyük yazı boyutu' },
+  { value: 1.3, label: 'Çok Büyük', description: 'En büyük yazı boyutu' },
+];
 
 type ThemeOption = {
   id: 'light' | 'dark' | 'system';
@@ -55,6 +63,10 @@ const Settings = () => {
     return localStorage.getItem(SCREEN_SHARE_KEY) === 'true';
   });
   const [languageSearch, setLanguageSearch] = useState('');
+  const [textScale, setTextScale] = useState<number>(() => {
+    const stored = localStorage.getItem(TEXT_SCALE_KEY);
+    return stored ? parseFloat(stored) : 1;
+  });
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
@@ -163,6 +175,20 @@ const Settings = () => {
     localStorage.setItem(SCREEN_SHARE_KEY, String(enabled));
   };
 
+  const handleTextScaleChange = (value: number) => {
+    setTextScale(value);
+    localStorage.setItem(TEXT_SCALE_KEY, String(value));
+    document.documentElement.style.fontSize = `${value * 16}px`;
+  };
+
+  // Apply text scale on mount
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${textScale * 16}px`;
+    return () => {
+      document.documentElement.style.fontSize = '';
+    };
+  }, []);
+
   const filteredLanguages = languages.filter(l =>
     l.name.toLowerCase().includes(languageSearch.toLowerCase()) ||
     l.nativeName.toLowerCase().includes(languageSearch.toLowerCase()) ||
@@ -215,6 +241,47 @@ const Settings = () => {
                   onSelect={() => setTheme(option.id)}
                 />
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Text Scale */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="h-5 w-5 text-primary" />
+                Yazı Ölçeği
+              </CardTitle>
+              <CardDescription>
+                Uygulama genelindeki yazı boyutunu ayarlayın
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2">
+                {TEXT_SCALE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleTextScaleChange(option.value)}
+                    className={`p-3 rounded-lg border text-center transition-all duration-200 ${
+                      textScale === option.value
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/50 bg-secondary/30 hover:border-primary/50'
+                    }`}
+                  >
+                    <span
+                      className="block font-medium text-foreground"
+                      style={{ fontSize: `${option.value * 0.875}rem` }}
+                    >
+                      Aa
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground mt-1">
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                Mevcut ölçek: {Math.round(textScale * 100)}%
+              </p>
             </CardContent>
           </Card>
 
