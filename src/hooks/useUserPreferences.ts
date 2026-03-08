@@ -149,9 +149,9 @@ export const useUserPreferences = () => {
     });
 
     if (user) {
-      await (supabase as any)
+      await supabase
         .from('user_preferences')
-        .update({ [key]: value })
+        .update({ [key]: value } as any)
         .eq('user_id', user.id);
     }
   }, [user, applyPreferences]);

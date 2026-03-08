@@ -540,8 +540,14 @@ export const useChatbot = () => {
         const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
 
         if (googleAction) {
-          // First, show a loading message
-          updateLastBotMessage('🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...');
+          // Show a loading message with unique ID for safe removal
+          const loadingId = `loading-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: loadingId,
+            role: 'bot' as const,
+            content: '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...',
+            timestamp: new Date(),
+          }]);
 
           try {
             let apiData: string;
@@ -563,8 +569,8 @@ export const useChatbot = () => {
             // Stream a follow-up with the real data injected
             const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen gerçek veriler aşağıdadır. Bu verileri kullanarak kullanıcıya güzel, özetlenmiş bir yanıt ver. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
             
-            // Delete the "loading" bot message and stream a proper response
-            setMessages(prev => prev.filter(m => m.content !== '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...'));
+            // Remove the loading message by ID
+            setMessages(prev => prev.filter(m => m.id !== loadingId));
             
             const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
             await saveMessage(conversationId!, 'assistant', assistantContent);
