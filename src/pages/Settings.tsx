@@ -63,6 +63,10 @@ const Settings = () => {
     return localStorage.getItem(SCREEN_SHARE_KEY) === 'true';
   });
   const [languageSearch, setLanguageSearch] = useState('');
+  const [textScale, setTextScale] = useState<number>(() => {
+    const stored = localStorage.getItem(TEXT_SCALE_KEY);
+    return stored ? parseFloat(stored) : 1;
+  });
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
