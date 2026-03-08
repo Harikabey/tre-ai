@@ -274,7 +274,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={screenShareEnabled}
+                  checked={preferences.screen_share_enabled}
                   onCheckedChange={handleScreenShareToggle}
                   className="data-[state=checked]:bg-primary"
                 />
