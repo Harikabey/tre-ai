@@ -163,6 +163,7 @@ const Index = () => {
             imageHistoryCount={images.length}
             onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
             memoryCount={memories.length + interests.length}
+            onToggleConnectedAccounts={() => setIsAccountsPanelOpen(!isAccountsPanelOpen)}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
