@@ -81,7 +81,7 @@ export const useUserPreferences = () => {
     }
 
     const load = async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', user.id)
@@ -89,11 +89,11 @@ export const useUserPreferences = () => {
 
       if (!error && data) {
         const dbPrefs: UserPreferences = {
-          theme: data.theme || DEFAULTS.theme,
+          theme: (data.theme as UserPreferences['theme']) || DEFAULTS.theme,
           personality: data.personality || DEFAULTS.personality,
           language: data.language || DEFAULTS.language,
           voice_id: data.voice_id || DEFAULTS.voice_id,
-          text_scale: data.text_scale ?? DEFAULTS.text_scale,
+          text_scale: Number(data.text_scale) || DEFAULTS.text_scale,
           high_contrast: data.high_contrast ?? DEFAULTS.high_contrast,
           reduce_motion: data.reduce_motion ?? DEFAULTS.reduce_motion,
           screen_share_enabled: data.screen_share_enabled ?? DEFAULTS.screen_share_enabled,
@@ -104,11 +104,12 @@ export const useUserPreferences = () => {
       } else if (!error && !data) {
         // No record yet — create one from localStorage values
         const localPrefs = { ...DEFAULTS, ...loadFromLocalStorage() };
-        await (supabase as any).from('user_preferences').insert({
+        await supabase.from('user_preferences').insert({
           user_id: user.id,
           ...localPrefs,
         });
         setPreferences(localPrefs);
+        applyPreferences(localPrefs);
       }
       setLoaded(true);
     };
@@ -148,9 +149,9 @@ export const useUserPreferences = () => {
     });
 
     if (user) {
-      await (supabase as any)
+      await supabase
         .from('user_preferences')
-        .update({ [key]: value })
+        .update({ [key]: value } as any)
         .eq('user_id', user.id);
     }
   }, [user, applyPreferences]);
