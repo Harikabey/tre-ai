@@ -534,11 +534,55 @@ export const useChatbot = () => {
           await saveMessage(conversationId, 'assistant', errorContent);
         }
       } else {
-        // Normal chat flow
-        const assistantContent = await streamChat(conversationId, trimmedInput);
-        
-        // Save assistant message to DB
-        await saveMessage(conversationId, 'assistant', assistantContent);
+        // Check if user is requesting a connected account action
+        const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
+
+        if (googleAction) {
+          // First, show a loading message
+          updateLastBotMessage('🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...');
+
+          try {
+            let apiData: string;
+
+            if (googleAction.action === 'gmail.list') {
+              const result = await callGoogleApi(googleAction.action, googleAction.params) as { data?: { messages?: { id: string }[] } };
+              const messageIds = result?.data?.messages?.map((m: { id: string }) => m.id) || [];
+              
+              if (messageIds.length === 0) {
+                apiData = 'Gelen kutusunda e-posta bulunamadı.';
+              } else {
+                apiData = await fetchEmailDetails(messageIds, googleAction.params.maxResults as number || 5);
+              }
+            } else {
+              const result = await callGoogleApi(googleAction.action, googleAction.params);
+              apiData = JSON.stringify(result, null, 2);
+            }
+
+            // Now stream a follow-up with the real data injected
+            // Save a system-like context message with the API data (not displayed)
+            const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen gerçek veriler aşağıdadır. Bu verileri kullanarak kullanıcıya güzel, özetlenmiş bir yanıt ver. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
+            
+            // Save the user message with context appended for the AI
+            await saveMessage(conversationId!, 'user', `${trimmedInput}\n\n${contextMessage}`);
+            
+            // Delete the "loading" bot message and stream a proper response
+            setMessages(prev => prev.filter(m => m.content !== '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...'));
+            
+            const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
+            await saveMessage(conversationId!, 'assistant', assistantContent);
+          } catch (apiError) {
+            console.error('Google API call failed:', apiError);
+            // Fall back to normal chat
+            const assistantContent = await streamChat(conversationId!, trimmedInput);
+            await saveMessage(conversationId!, 'assistant', assistantContent);
+          }
+        } else {
+          // Normal chat flow
+          const assistantContent = await streamChat(conversationId!, trimmedInput);
+          
+          // Save assistant message to DB
+          await saveMessage(conversationId!, 'assistant', assistantContent);
+        }
       }
       
       // Update conversation updated_at
