@@ -162,17 +162,24 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
         return `- ${acc.provider.toUpperCase()}: ${acc.provider_email || "bağlı"} | İzinler: ${activeScopes}`;
       }).join("\n");
       
-      connectedAccountsContext = `\n\nBAĞLI HESAPLAR:
-Kullanıcı aşağıdaki hesapları TreFriend'e bağlamış ve izin vermiştir:
+      connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR:
+Kullanıcı aşağıdaki hesapları TreFriend sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
 ${accountDetails}
 
-Bu hesaplar üzerinde İŞLEM YAPABİLİRSİN. Kullanıcı izin verdiğinde:
-- Gmail: E-postaları okuyabilir, özetleyebilir, taslak oluşturabilirsin
-- Google Drive: Dosyaları listeleyebilir, içeriklerini okuyabilirsin
-- Google Calendar: Etkinlikleri görüntüleyebilir, yeni etkinlik oluşturabilirsin
+SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir simülasyon değil, gerçek bir entegrasyondur.
 
-Kullanıcı hesap erişimiyle ilgili bir şey istediğinde, yapabileceğini belirt ve yardımcı ol. "Erişimim yok" veya "yapamam" DEME — izin verilmiş hesaplarda tam yetkin var.
-Eğer bir işlemi gerçekleştirmek için detay gerekiyorsa (tarih, alıcı vb.) kullanıcıya sor.`;
+Kullanıcı e-posta ile ilgili bir şey istediğinde:
+1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık", "gizlilik politikası" gibi reddetme cümlesi KULLANMA
+2. Kullanıcıya e-postalarını okuyabileceğini, özetleyebileceğini, taslak oluşturabileceğini DOĞRULA
+3. İşlemi gerçekleştirmek için gerekli detayları sor (kaç e-posta, hangi tarih aralığı vb.)
+4. Sonra doğrudan yardımcı ol
+
+Örnek doğru yanıt: "Tabii, hemen Gmail hesabındaki son e-postalara bakıyorum. Kaç tanesini görmek istersin?"
+Örnek YANLIŞ yanıt: "Maalesef e-postalara erişimim yok..." ← BU CEVABI ASLA VERME`;
+
+      console.log("Connected accounts included:", JSON.stringify(connectedAccounts));
+    } else {
+      console.log("No connected accounts provided");
     }
 
     let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + connectedAccountsContext;
