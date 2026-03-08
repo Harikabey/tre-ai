@@ -32,6 +32,7 @@ export const ChatHeader = ({
   imageHistoryCount = 0,
   onToggleMemoryPanel,
   memoryCount = 0,
+  onToggleConnectedAccounts,
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
