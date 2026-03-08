@@ -247,7 +247,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={reduceMotion}
+                  checked={preferences.reduce_motion}
                   onCheckedChange={handleReduceMotionChange}
                   className="data-[state=checked]:bg-primary"
                 />
