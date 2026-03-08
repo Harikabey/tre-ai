@@ -385,6 +385,7 @@ export const useChatbot = () => {
   const callGoogleApi = useCallback(async (action: string, params: Record<string, unknown>): Promise<unknown> => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const providerToken = session?.provider_token;
 
     const resp = await fetch(GOOGLE_API_URL, {
       method: 'POST',
@@ -392,7 +393,7 @@ export const useChatbot = () => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ action, params }),
+      body: JSON.stringify({ action, params, provider_token: providerToken }),
     });
 
     if (!resp.ok) {

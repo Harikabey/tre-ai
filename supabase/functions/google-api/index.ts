@@ -61,9 +61,8 @@ serve(async (req) => {
       });
     }
 
-    // Get provider token from session
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    const providerToken = session?.provider_token;
+    // Get provider token from request body or session
+    const providerToken = body.provider_token;
 
     if (!providerToken) {
       return new Response(JSON.stringify({ 
