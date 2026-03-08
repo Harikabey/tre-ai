@@ -19,7 +19,7 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
 
   if (inline) {
     return (
-      <code className="px-1.5 py-0.5 rounded text-xs sm:text-sm bg-primary/10 text-primary font-mono">
+      <code className="px-1.5 py-0.5 rounded text-xs sm:text-sm bg-primary/10 text-primary font-mono break-all">
         {children}
       </code>
     );
