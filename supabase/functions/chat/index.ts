@@ -148,6 +148,7 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
     }
 
     // Build connected accounts context
+    
     let connectedAccountsContext = "";
     if (Array.isArray(connectedAccounts) && connectedAccounts.length > 0) {
       const accountDetails = connectedAccounts.map((acc: { provider: string; scopes?: string[]; provider_email?: string }) => {
