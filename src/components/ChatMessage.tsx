@@ -140,7 +140,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       
       <div
         className={cn(
-          'max-w-[calc(100%-3rem)] sm:max-w-[80%] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
+          'max-w-[calc(100%-3rem)] sm:max-w-[80%] min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
             ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm'
             : 'bg-primary/15 border border-primary/20 rounded-tr-md'
