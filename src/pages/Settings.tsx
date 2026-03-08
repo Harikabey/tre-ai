@@ -7,20 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { personalities, Personality } from '@/types/personality';
-import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
-import { languages, Language, LANGUAGE_KEY } from '@/types/language';
-import { useTheme } from '@/hooks/useTheme';
+import { voiceOptions, VoiceOption } from '@/types/voice';
+import { languages, Language } from '@/types/language';
 import { useVoice } from '@/hooks/useVoice';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
-
-const PERSONALITY_KEY = 'ai_chatbot_personality';
-const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
-const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
-const HIGH_CONTRAST_KEY = 'ai_chatbot_high_contrast';
-const REDUCE_MOTION_KEY = 'ai_chatbot_reduce_motion';
 
 const TEXT_SCALE_OPTIONS = [
   { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
