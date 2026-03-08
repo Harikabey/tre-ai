@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,10 @@ import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
 import { languages, Language, LANGUAGE_KEY } from '@/types/language';
 import { useTheme } from '@/hooks/useTheme';
 import { useVoice } from '@/hooks/useVoice';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
+import { toast } from 'sonner';
 
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
@@ -53,6 +57,37 @@ const Settings = () => {
   const [languageSearch, setLanguageSearch] = useState('');
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
+  const { user } = useAuth();
+  const [emailConnected, setEmailConnected] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(true);
+  const [emailConnecting, setEmailConnecting] = useState(false);
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
+  const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+
+  const loadEmailStatus = useCallback(async () => {
+    if (!user) { setEmailLoading(false); return; }
+    const { data } = await supabase
+      .from('connected_accounts')
+      .select('*')
+      .eq('provider', 'google')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (data) {
+      const hasEmail = (data.scopes as string[] | null)?.includes('email');
+      setEmailConnected(!!hasEmail);
+      setConnectedEmail(data.provider_email);
+      setConnectedAccountId(data.id);
+    } else {
+      setEmailConnected(false);
+      setConnectedEmail(null);
+      setConnectedAccountId(null);
+    }
+    setEmailLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadEmailStatus();
+  }, [loadEmailStatus]);
 
   useEffect(() => {
     const stored = localStorage.getItem(PERSONALITY_KEY);
@@ -60,6 +95,58 @@ const Settings = () => {
     const storedLang = localStorage.getItem(LANGUAGE_KEY);
     if (storedLang) setSelectedLanguage(storedLang);
   }, []);
+
+  const handleConnectEmail = async () => {
+    if (!user) return;
+    setEmailConnecting(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const isGoogleUser = currentUser?.app_metadata?.provider === 'google' ||
+        currentUser?.identities?.some(i => i.provider === 'google');
+
+      if (isGoogleUser) {
+        const { error } = await supabase.from('connected_accounts').upsert({
+          user_id: user.id,
+          provider: 'google',
+          provider_email: currentUser?.email || null,
+          provider_display_name: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || null,
+          scopes: ['email', 'profile'],
+          is_active: true,
+        }, { onConflict: 'user_id,provider' });
+        if (error) {
+          toast.error('E-posta erişimi etkinleştirilemedi');
+        } else {
+          toast.success('E-posta erişimi etkinleştirildi!');
+          loadEmailStatus();
+        }
+      } else {
+        const { error } = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin + '/settings',
+        });
+        if (error) toast.error('Google ile bağlantı kurulamadı');
+      }
+    } catch {
+      toast.error('Bağlantı hatası');
+    } finally {
+      setEmailConnecting(false);
+    }
+  };
+
+  const handleDisconnectEmail = async () => {
+    if (!connectedAccountId) return;
+    const { error } = await supabase
+      .from('connected_accounts')
+      .delete()
+      .eq('id', connectedAccountId);
+    if (!error) {
+      setEmailConnected(false);
+      setConnectedEmail(null);
+      setConnectedAccountId(null);
+      toast.success('E-posta erişimi kaldırıldı');
+    } else {
+      toast.error('İşlem başarısız');
+    }
+  };
 
   const handleSelectPersonality = (id: string) => {
     setSelectedPersonality(id);
@@ -156,6 +243,87 @@ const Settings = () => {
                   className="data-[state=checked]:bg-primary"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Access Authorization */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-primary" />
+                E-posta Erişimi
+              </CardTitle>
+              <CardDescription>
+                TreFriend'in e-postalarınızı okumasına ve yönetmesine izin verin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {emailLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : emailConnected ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground text-sm">E-posta Erişimi Aktif</div>
+                        {connectedEmail && (
+                          <div className="text-xs text-muted-foreground mt-0.5">{connectedEmail}</div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
+                      onClick={handleDisconnectEmail}
+                    >
+                      <Unlink className="w-3.5 h-3.5 mr-1" />
+                      Kaldır
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
+                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <p>TreFriend e-postalarınızı okuyabilir, özetleyebilir ve taslak oluşturabilir. Erişimi istediğiniz zaman kaldırabilirsiniz.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg border border-border/50 bg-secondary/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-muted/50">
+                        <Mail className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground text-sm">Henüz bağlı değil</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Google hesabınızı bağlayarak AI'ın e-postalarınıza erişmesini sağlayın
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleConnectEmail}
+                      disabled={emailConnecting}
+                    >
+                      {emailConnecting ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Link2 className="w-4 h-4 mr-2" />
+                      )}
+                      Google Hesabını Bağla
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
+                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <p>Hesap erişimi sadece sizin izninizle kullanılır. Verileriniz güvende tutulur.</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
