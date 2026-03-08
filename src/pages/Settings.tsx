@@ -445,7 +445,7 @@ const Settings = () => {
                   <LanguageCard
                     key={lang.code}
                     language={lang}
-                    isSelected={selectedLanguage === lang.code}
+                    isSelected={preferences.language === lang.code}
                     onSelect={() => handleSelectLanguage(lang.code)}
                   />
                 ))}
