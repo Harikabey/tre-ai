@@ -53,6 +53,18 @@ serve(async (req) => {
         });
       }
     }
+
+    // Filter out old assistant refusal messages about email access when accounts are connected
+    const refusalPatterns = ["erişimim yok", "erişim sağlayamıyorum", "teknik sınırlılığım", "teknik kapasitemle mümkün değil", "doğrudan erişimim bulunmuyor", "e-postalarına erişim sağlayamıyorum"];
+    let filteredMessages = messages;
+    if (Array.isArray(connectedAccounts) && connectedAccounts.length > 0) {
+      filteredMessages = messages.filter((m: { role: string; content: string }) => {
+        if (m.role !== 'assistant') return true;
+        const lower = m.content.toLowerCase();
+        return !refusalPatterns.some(p => lower.includes(p));
+      });
+      if (filteredMessages.length === 0) filteredMessages = messages.slice(-1);
+    }
     const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror"];
     const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
