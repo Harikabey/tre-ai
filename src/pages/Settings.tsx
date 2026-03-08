@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
 const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
+const HIGH_CONTRAST_KEY = 'ai_chatbot_high_contrast';
+const REDUCE_MOTION_KEY = 'ai_chatbot_reduce_motion';
 
 const TEXT_SCALE_OPTIONS = [
   { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
@@ -66,6 +68,12 @@ const Settings = () => {
   const [textScale, setTextScale] = useState<number>(() => {
     const stored = localStorage.getItem(TEXT_SCALE_KEY);
     return stored ? parseFloat(stored) : 1;
+  });
+  const [highContrast, setHighContrast] = useState<boolean>(() => {
+    return localStorage.getItem(HIGH_CONTRAST_KEY) === 'true';
+  });
+  const [reduceMotion, setReduceMotion] = useState<boolean>(() => {
+    return localStorage.getItem(REDUCE_MOTION_KEY) === 'true';
   });
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
@@ -181,9 +189,23 @@ const Settings = () => {
     document.documentElement.style.fontSize = `${value * 16}px`;
   };
 
-  // Apply text scale on mount
+  const handleHighContrastChange = (enabled: boolean) => {
+    setHighContrast(enabled);
+    localStorage.setItem(HIGH_CONTRAST_KEY, String(enabled));
+    document.documentElement.classList.toggle('high-contrast', enabled);
+  };
+
+  const handleReduceMotionChange = (enabled: boolean) => {
+    setReduceMotion(enabled);
+    localStorage.setItem(REDUCE_MOTION_KEY, String(enabled));
+    document.documentElement.classList.toggle('reduce-motion', enabled);
+  };
+
+  // Apply text scale and accessibility on mount
   useEffect(() => {
     document.documentElement.style.fontSize = `${textScale * 16}px`;
+    if (highContrast) document.documentElement.classList.add('high-contrast');
+    if (reduceMotion) document.documentElement.classList.add('reduce-motion');
     return () => {
       document.documentElement.style.fontSize = '';
     };
@@ -285,6 +307,52 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Accessibility */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                Erişilebilirlik
+              </CardTitle>
+              <CardDescription>
+                Görsel erişilebilirlik tercihlerinizi ayarlayın
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" />
+                    Yüksek Kontrast
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Metin ve arka plan arasındaki kontrastı artırır
+                  </div>
+                </div>
+                <Switch
+                  checked={highContrast}
+                  onCheckedChange={handleHighContrastChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    Animasyonları Azalt
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Geçiş efektlerini ve animasyonları en aza indirir
+                  </div>
+                </div>
+                <Switch
+                  checked={reduceMotion}
+                  onCheckedChange={handleReduceMotionChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
           {/* Screen Share Toggle */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
