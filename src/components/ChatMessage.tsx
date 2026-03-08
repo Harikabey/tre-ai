@@ -227,7 +227,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                 onClick={handleCopy}
               >
                 {copied ? (
-                  <Check className="w-3 h-3 text-green-500" />
+                  <Check className="w-3 h-3 text-primary" />
                 ) : (
                   <Copy className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
                 )}
