@@ -177,8 +177,8 @@ export const useChatbot = () => {
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
     
-    const MAX_MSG_LEN = 4000;
-    const MAX_HISTORY = 20;
+    const MAX_MSG_LEN = 6000;
+    const MAX_HISTORY = 30;
     const conversationHistory: ChatMessage[] = (historyData || [])
       .slice(-MAX_HISTORY)
       .map(m => ({
