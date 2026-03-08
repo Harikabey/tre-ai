@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessageProps {
   message: Message;
@@ -13,7 +14,6 @@ interface ChatMessageProps {
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
 
-// Parse [SOURCES]...[/SOURCES] blocks from message content
 const parseSources = (content: string): { cleanContent: string; sources: Citation[] } => {
   const sourceMatch = content.match(/\[SOURCES\]([\s\S]*?)\[\/SOURCES\]/);
   if (!sourceMatch) return { cleanContent: content, sources: [] };
@@ -28,7 +28,6 @@ const parseSources = (content: string): { cleanContent: string; sources: Citatio
   }
 };
 
-// Search for sources using web-search edge function
 const searchSources = async (query: string): Promise<Citation[]> => {
   try {
     const response = await fetch(WEB_SEARCH_URL, {
@@ -57,19 +56,17 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Extract file attachment if present
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
   const fileUrl = fileMatch ? fileMatch[2] : null;
   const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
   
-  // Extract generated image (markdown format)
   const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
   const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
   const generatedImageAlt = generatedImageMatch ? generatedImageMatch[1] : 'Generated image';
 
-  // Extract animated frames
   const animatedFrames = useMemo(() => {
     const match = message.content.match(/\[ANIMATED_FRAMES\]([\s\S]*?)\[\/ANIMATED_FRAMES\]/);
     if (!match) return null;
@@ -79,13 +76,11 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     } catch { return null; }
   }, [message.content]);
   
-  // Parse sources from bot messages
   const { cleanContent: contentWithoutSources, sources } = useMemo(() => {
     if (isBot) return parseSources(message.content);
     return { cleanContent: message.content, sources: [] };
   }, [message.content, isBot]);
 
-  // Clean content for display
   let displayContent = contentWithoutSources
     .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
@@ -94,7 +89,6 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
     .trim();
 
-  // Check if this is a factual/informational message (not a greeting or image)
   const isFactualMessage = isBot && displayContent.length > 60 && 
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
     !displayContent.startsWith('❌');
@@ -102,6 +96,17 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
     return searchSources(query);
   }, []);
+
+  const handleCopy = useCallback(() => {
+    const plainText = displayContent
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/[#*_~`]/g, '')
+      .trim();
+    navigator.clipboard.writeText(plainText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [displayContent]);
 
   const handlePlayAudio = async () => {
     if (isCurrentlyPlaying) {
@@ -127,17 +132,17 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       )}
     >
       {isBot && (
-        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-glow">
-          <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center mt-1">
+          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
         </div>
       )}
       
       <div
         className={cn(
-          'max-w-[calc(100%-3rem)] sm:max-w-[80%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
+          'max-w-[calc(100%-3rem)] sm:max-w-[80%] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
-            ? 'bg-card border border-border/50 rounded-tl-sm'
-            : 'bg-primary/20 border border-primary/30 rounded-tr-sm'
+            ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm'
+            : 'bg-primary/15 border border-primary/20 rounded-tr-md'
         )}
       >
         {/* File attachment preview */}
@@ -184,12 +189,18 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         )}
 
         {displayContent && (
-          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
-            {displayContent}
-          </p>
+          isBot ? (
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary/80 prose-pre:border prose-pre:border-border/50 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden">
+              <ReactMarkdown>{displayContent}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
+              {displayContent}
+            </p>
+          )
         )}
 
-        {/* Citation panel - shows for factual bot messages */}
+        {/* Citation panel */}
         {isFactualMessage && (
           <CitationPanel 
             sources={sources} 
@@ -198,38 +209,56 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           />
         )}
         
-        <div className="flex items-center justify-between mt-1 gap-2">
-          <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between mt-1.5 gap-2">
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground/70">
             {message.timestamp.toLocaleTimeString('tr-TR', { 
               hour: '2-digit', 
               minute: '2-digit' 
             })}
           </span>
           
-          {/* Audio playback button for bot messages */}
-          {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 sm:h-6 sm:w-6"
-              onClick={handlePlayAudio}
-              disabled={isLoading && !isCurrentlyPlaying}
-            >
-              {isLoading && isCurrentlyPlaying ? (
-                <Loader2 className="w-3 h-3 animate-spin text-primary" />
-              ) : isCurrentlyPlaying && isPlaying ? (
-                <VolumeX className="w-3 h-3 text-primary" />
-              ) : (
-                <Volume2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
-              )}
-            </Button>
-          )}
+          <div className="flex items-center gap-0.5">
+            {/* Copy button for bot messages */}
+            {isBot && displayContent && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                onClick={handleCopy}
+              >
+                {copied ? (
+                  <Check className="w-3 h-3 text-green-500" />
+                ) : (
+                  <Copy className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
+                )}
+              </Button>
+            )}
+            
+            {/* Audio playback button */}
+            {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                onClick={handlePlayAudio}
+                disabled={isLoading && !isCurrentlyPlaying}
+              >
+                {isLoading && isCurrentlyPlaying ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                ) : isCurrentlyPlaying && isPlaying ? (
+                  <VolumeX className="w-3 h-3 text-primary" />
+                ) : (
+                  <Volume2 className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       
       {!isBot && (
-        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
-          <User className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center mt-1">
+          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
         </div>
       )}
     </div>

@@ -165,7 +165,7 @@ const Index = () => {
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
             {messages.length === 0 ? (
-              <EmptyState />
+              <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
             ) : (
               <ScrollArea className="h-full">
                 <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">

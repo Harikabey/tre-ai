@@ -38,7 +38,6 @@ export const useUserMemory = () => {
   const [recentMoods, setRecentMoods] = useState<MoodRecord[]>([]);
   const [currentMood, setCurrentMood] = useState<{ mood: string; suggested_tone: string } | null>(null);
 
-  // Load user data on mount
   useEffect(() => {
     if (user) {
       loadMemories();
@@ -121,7 +120,6 @@ export const useUserMemory = () => {
 
       const result = await response.json();
       
-      // Store mood
       if (result.mood) {
         setCurrentMood({
           mood: result.mood.mood,
@@ -138,10 +136,8 @@ export const useUserMemory = () => {
         });
       }
 
-      // Store memories
       if (result.memories?.memories?.length > 0) {
         for (const memory of result.memories.memories) {
-          // Check if similar memory exists
           const { data: existing } = await supabase
             .from('user_memories')
             .select('id, content')
@@ -164,7 +160,6 @@ export const useUserMemory = () => {
         loadMemories();
       }
 
-      // Store/update interests
       if (result.memories?.interests?.length > 0) {
         for (const interest of result.memories.interests) {
           const { data: existing } = await supabase
@@ -175,7 +170,6 @@ export const useUserMemory = () => {
             .limit(1);
 
           if (existing && existing.length > 0) {
-            // Update existing interest
             await supabase
               .from('user_interests')
               .update({
@@ -185,7 +179,6 @@ export const useUserMemory = () => {
               })
               .eq('id', existing[0].id);
           } else {
-            // Insert new interest
             await supabase.from('user_interests').insert({
               user_id: user.id,
               interest: interest.interest,
@@ -206,33 +199,48 @@ export const useUserMemory = () => {
   const getMemoryContext = useCallback((): string => {
     if (memories.length === 0 && interests.length === 0) return '';
 
-    let context = '\n\n[KULLANICI HAFIZASI - Bu bilgileri yanıtlarında doğal şekilde kullan]\n';
+    let context = '\n\n[KULLANICI HAFIZASI - Bu bilgileri yanıtlarında doğal şekilde kullan, direkt alıntılama]\n';
     
-    // Add important memories
-    const importantMemories = memories.filter(m => m.importance >= 6).slice(0, 10);
-    if (importantMemories.length > 0) {
-      context += '\nÖnemli Bilgiler:\n';
-      importantMemories.forEach(m => {
-        context += `- ${m.category}: ${m.content}\n`;
-      });
+    // Group memories by category for better organization
+    const memoryByCategory: Record<string, string[]> = {};
+    const importantMemories = memories.filter(m => m.importance >= 5).slice(0, 15);
+    importantMemories.forEach(m => {
+      if (!memoryByCategory[m.category]) memoryByCategory[m.category] = [];
+      memoryByCategory[m.category].push(m.content);
+    });
+
+    if (Object.keys(memoryByCategory).length > 0) {
+      context += '\nKullanıcı Hakkında Bilgiler:\n';
+      for (const [category, items] of Object.entries(memoryByCategory)) {
+        context += `[${category}]: ${items.join('; ')}\n`;
+      }
     }
 
-    // Add top interests
-    const topInterests = interests.slice(0, 5);
+    // Add interests with strength indicator
+    const topInterests = interests.slice(0, 8);
     if (topInterests.length > 0) {
-      context += '\nİlgi Alanları:\n';
+      context += '\nİlgi Alanları (güç sırasına göre):\n';
       topInterests.forEach(i => {
-        context += `- ${i.interest} (${i.category})\n`;
+        const stars = '★'.repeat(Math.min(5, Math.ceil(i.strength / 2)));
+        context += `- ${i.interest} (${i.category}) ${stars}\n`;
       });
     }
 
-    // Add recent mood trend
+    // Mood trend analysis
     if (recentMoods.length >= 3) {
-      const avgScore = recentMoods.slice(0, 5).reduce((sum, m) => sum + (m.mood_score || 0), 0) / Math.min(5, recentMoods.length);
+      const recentScores = recentMoods.slice(0, 5).map(m => m.mood_score || 0);
+      const avgScore = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+      const trend = recentScores.length >= 2 
+        ? (recentScores[0] > recentScores[recentScores.length - 1] ? 'yükseliyor' : 
+           recentScores[0] < recentScores[recentScores.length - 1] ? 'düşüyor' : 'stabil')
+        : 'stabil';
+      
+      context += `\n[Ruh hali trendi: ${trend}, ortalama: ${avgScore.toFixed(1)}]\n`;
+      
       if (avgScore < -0.3) {
-        context += '\n[Kullanıcı son zamanlarda olumsuz bir ruh halinde, ekstra destekleyici ol]\n';
-      } else if (avgScore > 0.3) {
-        context += '\n[Kullanıcı son zamanlarda olumlu bir ruh halinde]\n';
+        context += '[⚠ Kullanıcı zor bir dönemden geçiyor, ekstra destekleyici ol]\n';
+      } else if (avgScore > 0.5) {
+        context += '[Kullanıcı pozitif bir dönemde, bu enerjiyi destekle]\n';
       }
     }
 
@@ -251,7 +259,6 @@ export const useUserMemory = () => {
       'bilgilendirici': 'Net ve bilgilendirici ol.'
     };
 
-    // Check for emotional decline - emotional healing mechanism
     let healingContext = '';
     if (recentMoods.length >= 3) {
       const recentScores = recentMoods.slice(0, 5).map(m => m.mood_score || 0);
@@ -259,20 +266,22 @@ export const useUserMemory = () => {
       const isDecline = recentScores.length >= 3 && recentScores[0] < recentScores[recentScores.length - 1] - 0.3;
       
       if (avgScore < -0.3 || isDecline) {
+        // Include user's interests for personalized healing suggestions
+        const userInterestNames = interests.slice(0, 3).map(i => i.interest).join(', ');
         healingContext = `
 
 [DUYGUSAL İYİLEŞTİRME MODU AKTİF]
 Kullanıcının ruh hali kötüye gidiyor. Şunları yap:
 - Tonunu yumuşat ve ekstra empatik ol
-- Moral verici kişiselleştirilmiş içerikler öner (video, müzik, aktivite)
 - "Seni anlıyorum" gibi ifadeler kullan
-- Kullanıcının ilgi alanlarından pozitif konulara yönlendir
-- Geçmişteki mutlu anılarını hatırlat (hafızada varsa)`;
+${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames}) pozitif konulara yönlendir` : ''}
+- Geçmişteki mutlu anılarını hatırlat (hafızada varsa)
+- Pratik ve uygulanabilir öneriler sun`;
       }
     }
 
     return `\n[DUYGU DURUMU: ${currentMood.mood}]\n[ÖNERİLEN TON: ${moodTones[currentMood.suggested_tone] || currentMood.suggested_tone}]${healingContext}\n`;
-  }, [currentMood, recentMoods]);
+  }, [currentMood, recentMoods, interests]);
 
   const deleteMemory = useCallback(async (memoryId: string) => {
     await supabase.from('user_memories').delete().eq('id', memoryId);
