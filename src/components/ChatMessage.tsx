@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
+import { CodeBlock } from '@/components/CodeBlock';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessageProps {
