@@ -44,6 +44,7 @@ export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [connectedAccounts, setConnectedAccounts] = useState<{provider: string; scopes: string[]; provider_email: string | null}[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>([]);
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
