@@ -57,6 +57,37 @@ const Settings = () => {
   const [languageSearch, setLanguageSearch] = useState('');
   const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
+  const { user } = useAuth();
+  const [emailConnected, setEmailConnected] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(true);
+  const [emailConnecting, setEmailConnecting] = useState(false);
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
+  const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+
+  const loadEmailStatus = useCallback(async () => {
+    if (!user) { setEmailLoading(false); return; }
+    const { data } = await supabase
+      .from('connected_accounts')
+      .select('*')
+      .eq('provider', 'google')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (data) {
+      const hasEmail = (data.scopes as string[] | null)?.includes('email');
+      setEmailConnected(!!hasEmail);
+      setConnectedEmail(data.provider_email);
+      setConnectedAccountId(data.id);
+    } else {
+      setEmailConnected(false);
+      setConnectedEmail(null);
+      setConnectedAccountId(null);
+    }
+    setEmailLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadEmailStatus();
+  }, [loadEmailStatus]);
 
   useEffect(() => {
     const stored = localStorage.getItem(PERSONALITY_KEY);
@@ -64,6 +95,58 @@ const Settings = () => {
     const storedLang = localStorage.getItem(LANGUAGE_KEY);
     if (storedLang) setSelectedLanguage(storedLang);
   }, []);
+
+  const handleConnectEmail = async () => {
+    if (!user) return;
+    setEmailConnecting(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const isGoogleUser = currentUser?.app_metadata?.provider === 'google' ||
+        currentUser?.identities?.some(i => i.provider === 'google');
+
+      if (isGoogleUser) {
+        const { error } = await supabase.from('connected_accounts').upsert({
+          user_id: user.id,
+          provider: 'google',
+          provider_email: currentUser?.email || null,
+          provider_display_name: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || null,
+          scopes: ['email', 'profile'],
+          is_active: true,
+        }, { onConflict: 'user_id,provider' });
+        if (error) {
+          toast.error('E-posta erişimi etkinleştirilemedi');
+        } else {
+          toast.success('E-posta erişimi etkinleştirildi!');
+          loadEmailStatus();
+        }
+      } else {
+        const { error } = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin + '/settings',
+        });
+        if (error) toast.error('Google ile bağlantı kurulamadı');
+      }
+    } catch {
+      toast.error('Bağlantı hatası');
+    } finally {
+      setEmailConnecting(false);
+    }
+  };
+
+  const handleDisconnectEmail = async () => {
+    if (!connectedAccountId) return;
+    const { error } = await supabase
+      .from('connected_accounts')
+      .delete()
+      .eq('id', connectedAccountId);
+    if (!error) {
+      setEmailConnected(false);
+      setConnectedEmail(null);
+      setConnectedAccountId(null);
+      toast.success('E-posta erişimi kaldırıldı');
+    } else {
+      toast.error('İşlem başarısız');
+    }
+  };
 
   const handleSelectPersonality = (id: string) => {
     setSelectedPersonality(id);
