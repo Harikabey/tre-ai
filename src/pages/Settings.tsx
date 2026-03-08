@@ -189,9 +189,23 @@ const Settings = () => {
     document.documentElement.style.fontSize = `${value * 16}px`;
   };
 
-  // Apply text scale on mount
+  const handleHighContrastChange = (enabled: boolean) => {
+    setHighContrast(enabled);
+    localStorage.setItem(HIGH_CONTRAST_KEY, String(enabled));
+    document.documentElement.classList.toggle('high-contrast', enabled);
+  };
+
+  const handleReduceMotionChange = (enabled: boolean) => {
+    setReduceMotion(enabled);
+    localStorage.setItem(REDUCE_MOTION_KEY, String(enabled));
+    document.documentElement.classList.toggle('reduce-motion', enabled);
+  };
+
+  // Apply text scale and accessibility on mount
   useEffect(() => {
     document.documentElement.style.fontSize = `${textScale * 16}px`;
+    if (highContrast) document.documentElement.classList.add('high-contrast');
+    if (reduceMotion) document.documentElement.classList.add('reduce-motion');
     return () => {
       document.documentElement.style.fontSize = '';
     };
