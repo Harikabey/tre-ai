@@ -53,23 +53,8 @@ const themeOptions: ThemeOption[] = [
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [selectedPersonality, setSelectedPersonality] = useState<string>('friendly');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('tr');
-  const [screenShareEnabled, setScreenShareEnabled] = useState<boolean>(() => {
-    return localStorage.getItem(SCREEN_SHARE_KEY) === 'true';
-  });
+  const { preferences, updatePreference } = useUserPreferences();
   const [languageSearch, setLanguageSearch] = useState('');
-  const [textScale, setTextScale] = useState<number>(() => {
-    const stored = localStorage.getItem(TEXT_SCALE_KEY);
-    return stored ? parseFloat(stored) : 1;
-  });
-  const [highContrast, setHighContrast] = useState<boolean>(() => {
-    return localStorage.getItem(HIGH_CONTRAST_KEY) === 'true';
-  });
-  const [reduceMotion, setReduceMotion] = useState<boolean>(() => {
-    return localStorage.getItem(REDUCE_MOTION_KEY) === 'true';
-  });
-  const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const [emailConnected, setEmailConnected] = useState(false);
