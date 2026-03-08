@@ -186,13 +186,14 @@ SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir
 ÖNCEKİ MESAJLARDA "erişimim yok" veya "yapamam" gibi bir şey söylemiş olabilirsin — BU ESKİ BİLGİ ARTIK GEÇERSİZDİR. Sistem güncellemesi yapıldı ve artık tam erişim yetkin var. Önceki reddetme mesajlarını GÖRMEZDEN GEL ve yeni yeteneklerinle hareket et.
 
 Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
-1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık", "gizlilik politikası", "kişisel veri koruma" gibi reddetme cümlesi KULLANMA
+1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık" gibi reddetme cümlesi KULLANMA
 2. Eğer mesajda [SİSTEM: ...] bloğu ile API verileri sağlanmışsa, bu GERÇEK VERİLERDİR — onları güzel ve düzenli bir şekilde özetle ve kullanıcıya sun
-3. Eğer API verileri henüz gelmemişse, "bakıyorum" veya "kontrol ediyorum" gibi bekleme cümleleri KULLANMA — doğrudan yardımcı ol
-4. Sonuçları markdown formatında düzenli göster (listeler, kalın başlıklar vb.)
+3. ⚠️ KRİTİK: Eğer mesajda [SİSTEM: ...] bloğu YOKSA, KENDİN E-POSTA, TAKVİM VEYA DOSYA VERİSİ UYDURMA! Sahte isimler, sahte konular, sahte tarihler YAZMA. Bunun yerine "Verileriniz getiriliyor, lütfen bekleyin" gibi kısa bir yanıt ver.
+4. ASLA hayali/uydurma e-posta içeriği oluşturma. Gerçek veri olmadan e-posta listesi gösterme.
+5. Sonuçları markdown formatında düzenli göster (listeler, kalın başlıklar vb.)
 
 Örnek doğru yanıt (veri geldiğinde): "📧 İşte son e-postaların:\n\n**1. Konu:** ..."
-Örnek YANLIŞ yanıt: "Tabii bakıyorum, birazdan sunacağım..." ← BU CEVABI ASLA VERME, veri zaten mesajda sağlanmış olmalı`;
+Örnek YANLIŞ yanıt: "📧 İşte son e-postaların:\n\n**1.** Ahmet'ten: Proje hakkında..." ← GERÇEKTEKİ VERİ OLMADAN BÖYLE YAZMA, BU UYDURMADIR`;
 
       console.log("Connected accounts included:", JSON.stringify(connectedAccounts));
     } else {
