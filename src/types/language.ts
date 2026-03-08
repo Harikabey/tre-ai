@@ -91,7 +91,7 @@ export const languages: Language[] = [
   { code: 'ha', name: 'Hausaca', nativeName: 'Hausa' },
   { code: 'so', name: 'Somalice', nativeName: 'Soomaali' },
   { code: 'mg', name: 'Malgaşça', nativeName: 'Malagasy' },
-  { code: 'ku', name: 'Kürtçe', nativeName: 'Kurdî' },
+  
   { code: 'ps', name: 'Peştuca', nativeName: 'پښتو' },
   { code: 'sd', name: 'Sintçe', nativeName: 'سنڌي' },
   { code: 'ky', name: 'Kırgızca', nativeName: 'Кыргызча' },
