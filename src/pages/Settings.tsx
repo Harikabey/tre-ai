@@ -175,6 +175,20 @@ const Settings = () => {
     localStorage.setItem(SCREEN_SHARE_KEY, String(enabled));
   };
 
+  const handleTextScaleChange = (value: number) => {
+    setTextScale(value);
+    localStorage.setItem(TEXT_SCALE_KEY, String(value));
+    document.documentElement.style.fontSize = `${value * 16}px`;
+  };
+
+  // Apply text scale on mount
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${textScale * 16}px`;
+    return () => {
+      document.documentElement.style.fontSize = '';
+    };
+  }, []);
+
   const filteredLanguages = languages.filter(l =>
     l.name.toLowerCase().includes(languageSearch.toLowerCase()) ||
     l.nativeName.toLowerCase().includes(languageSearch.toLowerCase()) ||
