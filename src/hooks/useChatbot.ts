@@ -222,7 +222,8 @@ export const useChatbot = () => {
         thinkingMode,
         memoryContext,
         moodContext,
-        language
+        language,
+        connectedAccounts,
       }),
     });
 
