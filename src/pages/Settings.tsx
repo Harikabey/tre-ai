@@ -88,107 +88,29 @@ const Settings = () => {
     loadEmailStatus();
   }, [loadEmailStatus]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(PERSONALITY_KEY);
-    if (stored) setSelectedPersonality(stored);
-    const storedLang = localStorage.getItem(LANGUAGE_KEY);
-    if (storedLang) setSelectedLanguage(storedLang);
-  }, []);
-
-  const handleConnectEmail = async () => {
-    if (!user) return;
-    setEmailConnecting(true);
-    try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const isGoogleUser = currentUser?.app_metadata?.provider === 'google' ||
-        currentUser?.identities?.some(i => i.provider === 'google');
-
-      if (isGoogleUser) {
-        const { error } = await supabase.from('connected_accounts').upsert({
-          user_id: user.id,
-          provider: 'google',
-          provider_email: currentUser?.email || null,
-          provider_display_name: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || null,
-          scopes: ['email', 'profile'],
-          is_active: true,
-        }, { onConflict: 'user_id,provider' });
-        if (error) {
-          toast.error('E-posta erişimi etkinleştirilemedi');
-        } else {
-          toast.success('E-posta erişimi etkinleştirildi!');
-          loadEmailStatus();
-        }
-      } else {
-        const { error } = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin + '/settings',
-        });
-        if (error) toast.error('Google ile bağlantı kurulamadı');
-      }
-    } catch {
-      toast.error('Bağlantı hatası');
-    } finally {
-      setEmailConnecting(false);
-    }
-  };
-
-  const handleDisconnectEmail = async () => {
-    if (!connectedAccountId) return;
-    const { error } = await supabase
-      .from('connected_accounts')
-      .delete()
-      .eq('id', connectedAccountId);
-    if (!error) {
-      setEmailConnected(false);
-      setConnectedEmail(null);
-      setConnectedAccountId(null);
-      toast.success('E-posta erişimi kaldırıldı');
-    } else {
-      toast.error('İşlem başarısız');
-    }
-  };
-
   const handleSelectPersonality = (id: string) => {
-    setSelectedPersonality(id);
-    localStorage.setItem(PERSONALITY_KEY, id);
+    updatePreference('personality', id);
   };
 
   const handleSelectLanguage = (code: string) => {
-    setSelectedLanguage(code);
-    localStorage.setItem(LANGUAGE_KEY, code);
+    updatePreference('language', code);
   };
 
   const handleScreenShareToggle = (enabled: boolean) => {
-    setScreenShareEnabled(enabled);
-    localStorage.setItem(SCREEN_SHARE_KEY, String(enabled));
+    updatePreference('screen_share_enabled', enabled);
   };
 
   const handleTextScaleChange = (value: number) => {
-    setTextScale(value);
-    localStorage.setItem(TEXT_SCALE_KEY, String(value));
-    document.documentElement.style.fontSize = `${value * 16}px`;
+    updatePreference('text_scale', value);
   };
 
   const handleHighContrastChange = (enabled: boolean) => {
-    setHighContrast(enabled);
-    localStorage.setItem(HIGH_CONTRAST_KEY, String(enabled));
-    document.documentElement.classList.toggle('high-contrast', enabled);
+    updatePreference('high_contrast', enabled);
   };
 
   const handleReduceMotionChange = (enabled: boolean) => {
-    setReduceMotion(enabled);
-    localStorage.setItem(REDUCE_MOTION_KEY, String(enabled));
-    document.documentElement.classList.toggle('reduce-motion', enabled);
+    updatePreference('reduce_motion', enabled);
   };
-
-  // Apply text scale and accessibility on mount
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${textScale * 16}px`;
-    if (highContrast) document.documentElement.classList.add('high-contrast');
-    if (reduceMotion) document.documentElement.classList.add('reduce-motion');
-    return () => {
-      document.documentElement.style.fontSize = '';
-    };
-  }, []);
 
   const filteredLanguages = languages.filter(l =>
     l.name.toLowerCase().includes(languageSearch.toLowerCase()) ||
