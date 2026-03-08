@@ -19,14 +19,14 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
 
   if (inline) {
     return (
-      <code className="px-1.5 py-0.5 rounded text-xs sm:text-sm bg-primary/10 text-primary font-mono">
+      <code className="px-1.5 py-0.5 rounded text-xs sm:text-sm bg-primary/10 text-primary font-mono break-all">
         {children}
       </code>
     );
   }
 
   return (
-    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50">
+    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50 max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/80 border-b border-border/40">
         <span className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider">
@@ -55,8 +55,8 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
         </button>
       </div>
       {/* Code content */}
-      <pre className="p-3 overflow-x-auto bg-secondary/40 text-xs sm:text-sm max-w-full">
-        <code className="font-mono text-foreground/90 whitespace-pre break-words">
+      <pre className="p-3 overflow-x-auto bg-secondary/40 text-xs sm:text-sm max-w-full w-0 min-w-full">
+        <code className="font-mono text-foreground/90 whitespace-pre">
           {children}
         </code>
       </pre>
