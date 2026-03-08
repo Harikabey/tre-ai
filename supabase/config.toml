@@ -8,3 +8,21 @@ verify_jwt = false
 
 [functions.generate-gif]
 verify_jwt = false
+
+[functions.analyze-mood]
+verify_jwt = false
+
+[functions.analyze-image]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
+
+[functions.read-document]
+verify_jwt = false
+
+[functions.google-api]
+verify_jwt = false
