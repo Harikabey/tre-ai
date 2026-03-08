@@ -220,7 +220,7 @@ Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
-          messages: [{ role: "system", content: systemPrompt }, ...messages],
+          messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
           stream: true,
         }),
       });
