@@ -348,6 +348,97 @@ export const useChatbot = () => {
     }
   }, []);
 
+  // Detect if user message requires a Google API call
+  const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
+    const lower = message.toLowerCase();
+    
+    // Email patterns
+    const emailPatterns = [
+      /e-?posta/i, /mail/i, /gmail/i, /gelen kutu/i, /inbox/i,
+      /mesaj.*oku/i, /mesaj.*kontrol/i, /mesaj.*bak/i, /postalar/i,
+    ];
+    if (emailPatterns.some(p => p.test(lower))) {
+      const countMatch = lower.match(/son\s*(\d+)/);
+      const maxResults = countMatch ? parseInt(countMatch[1]) : 5;
+      return { action: 'gmail.list', params: { maxResults } };
+    }
+
+    // Calendar patterns
+    const calendarPatterns = [
+      /takvim/i, /randevu/i, /etkinlik/i, /toplantı/i, /calendar/i, /program/i,
+    ];
+    if (calendarPatterns.some(p => p.test(lower))) {
+      return { action: 'calendar.list', params: { maxResults: 10 } };
+    }
+
+    // Drive patterns
+    const drivePatterns = [
+      /drive/i, /dosya/i, /belge/i, /doküman/i, /document/i,
+    ];
+    if (drivePatterns.some(p => p.test(lower))) {
+      return { action: 'drive.list', params: { maxResults: 10 } };
+    }
+
+    return null;
+  }, []);
+
+  const callGoogleApi = useCallback(async (action: string, params: Record<string, unknown>): Promise<unknown> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const resp = await fetch(GOOGLE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, params }),
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({ error: 'API error' }));
+      throw new Error(errData.error || `Google API error ${resp.status}`);
+    }
+
+    return await resp.json();
+  }, []);
+
+  // Read individual email details for summary
+  const fetchEmailDetails = useCallback(async (messageIds: string[], maxCount: number = 5): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const details: string[] = [];
+    const idsToFetch = messageIds.slice(0, maxCount);
+
+    for (const msgId of idsToFetch) {
+      try {
+        const resp = await fetch(GOOGLE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: 'gmail.read', params: { messageId: msgId } }),
+        });
+
+        if (resp.ok) {
+          const result = await resp.json();
+          const msg = result.data;
+          const headers = msg?.payload?.headers || [];
+          const from = headers.find((h: { name: string }) => h.name === 'From')?.value || 'Bilinmeyen';
+          const subject = headers.find((h: { name: string }) => h.name === 'Subject')?.value || '(Konu yok)';
+          const date = headers.find((h: { name: string }) => h.name === 'Date')?.value || '';
+          const snippet = msg?.snippet || '';
+          details.push(`- Kimden: ${from}\n  Konu: ${subject}\n  Tarih: ${date}\n  Özet: ${snippet}`);
+        }
+      } catch (e) {
+        console.error('Email read error:', e);
+      }
+    }
+
+    return details.join('\n\n');
+  }, []);
 
   const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
