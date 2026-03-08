@@ -231,7 +231,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={highContrast}
+                  checked={preferences.high_contrast}
                   onCheckedChange={handleHighContrastChange}
                   className="data-[state=checked]:bg-primary"
                 />
