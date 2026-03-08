@@ -558,12 +558,8 @@ export const useChatbot = () => {
               apiData = JSON.stringify(result, null, 2);
             }
 
-            // Now stream a follow-up with the real data injected
-            // Save a system-like context message with the API data (not displayed)
+            // Stream a follow-up with the real data injected
             const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen gerçek veriler aşağıdadır. Bu verileri kullanarak kullanıcıya güzel, özetlenmiş bir yanıt ver. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
-            
-            // Save the user message with context appended for the AI
-            await saveMessage(conversationId!, 'user', `${trimmedInput}\n\n${contextMessage}`);
             
             // Delete the "loading" bot message and stream a proper response
             setMessages(prev => prev.filter(m => m.content !== '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...'));
