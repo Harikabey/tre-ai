@@ -191,8 +191,31 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
 
         {displayContent && (
           isBot ? (
-            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary/80 prose-pre:border prose-pre:border-border/50 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden">
-              <ReactMarkdown>{displayContent}</ReactMarkdown>
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden">
+              <ReactMarkdown
+                components={{
+                  code({ node, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const codeString = String(children).replace(/\n$/, '');
+                    const isInline = !className && !codeString.includes('\n');
+                    
+                    if (isInline) {
+                      return <CodeBlock inline>{codeString}</CodeBlock>;
+                    }
+                    
+                    return (
+                      <CodeBlock language={match?.[1]}>
+                        {codeString}
+                      </CodeBlock>
+                    );
+                  },
+                  pre({ children }) {
+                    return <>{children}</>;
+                  }
+                }}
+              >
+                {displayContent}
+              </ReactMarkdown>
             </div>
           ) : (
             <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
