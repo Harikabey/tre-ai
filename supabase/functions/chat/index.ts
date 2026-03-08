@@ -34,7 +34,7 @@ serve(async (req) => {
 
     // --- Input Validation ---
     const body = await req.json();
-    const { messages, personality, thinkingMode, memoryContext, moodContext, language } = body;
+    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts } = body;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
@@ -147,7 +147,34 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       languageInstruction = `\n\nDİL TALİMATI: Tüm yanıtlarını ${langName} dilinde ver. Başka bir dil kullanma.`;
     }
 
-    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction;
+    // Build connected accounts context
+    let connectedAccountsContext = "";
+    if (Array.isArray(connectedAccounts) && connectedAccounts.length > 0) {
+      const accountDetails = connectedAccounts.map((acc: { provider: string; scopes?: string[]; provider_email?: string }) => {
+        const scopeNames: Record<string, string> = {
+          email: "E-posta okuma/gönderme (Gmail)",
+          drive: "Dosya erişimi (Google Drive)",
+          calendar: "Takvim yönetimi (Google Calendar)",
+          profile: "Profil bilgileri",
+        };
+        const activeScopes = (acc.scopes || []).map((s: string) => scopeNames[s] || s).join(", ");
+        return `- ${acc.provider.toUpperCase()}: ${acc.provider_email || "bağlı"} | İzinler: ${activeScopes}`;
+      }).join("\n");
+      
+      connectedAccountsContext = `\n\nBAĞLI HESAPLAR:
+Kullanıcı aşağıdaki hesapları TreFriend'e bağlamış ve izin vermiştir:
+${accountDetails}
+
+Bu hesaplar üzerinde İŞLEM YAPABİLİRSİN. Kullanıcı izin verdiğinde:
+- Gmail: E-postaları okuyabilir, özetleyebilir, taslak oluşturabilirsin
+- Google Drive: Dosyaları listeleyebilir, içeriklerini okuyabilirsin
+- Google Calendar: Etkinlikleri görüntüleyebilir, yeni etkinlik oluşturabilirsin
+
+Kullanıcı hesap erişimiyle ilgili bir şey istediğinde, yapabileceğini belirt ve yardımcı ol. "Erişimim yok" veya "yapamam" DEME — izin verilmiş hesaplarda tam yetkin var.
+Eğer bir işlemi gerçekleştirmek için detay gerekiyorsa (tarih, alıcı vb.) kullanıcıya sor.`;
+    }
+
+    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + connectedAccountsContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 

@@ -44,6 +44,7 @@ export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [connectedAccounts, setConnectedAccounts] = useState<{provider: string; scopes: string[]; provider_email: string | null}[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>([]);
   const [isLearningMode, setIsLearningMode] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
@@ -57,16 +58,27 @@ export const useChatbot = () => {
     localStorage.setItem(THINKING_MODE_KEY, mode);
   }, []);
 
-  // Load conversations when user changes
+  // Load conversations and connected accounts when user changes
   useEffect(() => {
     if (user) {
       loadConversations();
+      loadConnectedAccounts();
     } else {
       setConversations([]);
       setCurrentConversationId(null);
       setMessages([]);
+      setConnectedAccounts([]);
     }
   }, [user]);
+
+  const loadConnectedAccounts = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('connected_accounts')
+      .select('provider, scopes, provider_email')
+      .eq('is_active', true);
+    if (data) setConnectedAccounts(data as {provider: string; scopes: string[]; provider_email: string | null}[]);
+  };
 
   const loadConversations = async () => {
     if (!user) return;
@@ -210,7 +222,8 @@ export const useChatbot = () => {
         thinkingMode,
         memoryContext,
         moodContext,
-        language
+        language,
+        connectedAccounts,
       }),
     });
 
