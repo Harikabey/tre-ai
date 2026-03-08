@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import aiLogo from '@/assets/ai-logo.jpg';
@@ -18,6 +18,7 @@ interface ChatHeaderProps {
   imageHistoryCount?: number;
   onToggleMemoryPanel?: () => void;
   memoryCount?: number;
+  onToggleConnectedAccounts?: () => void;
 }
 
 export const ChatHeader = ({
@@ -31,6 +32,7 @@ export const ChatHeader = ({
   imageHistoryCount = 0,
   onToggleMemoryPanel,
   memoryCount = 0,
+  onToggleConnectedAccounts,
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
@@ -121,6 +123,19 @@ export const ChatHeader = ({
           </Button>
         )}
         
+        {/* Connected Accounts button */}
+        {onToggleConnectedAccounts && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleConnectedAccounts}
+            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
+            title="Bağlı Hesaplar"
+          >
+            <Link2 className="w-4 h-4" />
+          </Button>
+        )}
+
         <Link to="/settings">
           <Button
             variant="ghost"

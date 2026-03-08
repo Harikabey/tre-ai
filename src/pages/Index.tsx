@@ -14,6 +14,7 @@ import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
 import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
+import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 
@@ -56,6 +57,7 @@ const Index = () => {
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Open sidebar on desktop by default
@@ -161,6 +163,7 @@ const Index = () => {
             imageHistoryCount={images.length}
             onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
             memoryCount={memories.length + interests.length}
+            onToggleConnectedAccounts={() => setIsAccountsPanelOpen(!isAccountsPanelOpen)}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
@@ -236,6 +239,12 @@ const Index = () => {
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onAnalysisComplete={handleCameraAnalysis}
+      />
+
+      {/* Connected Accounts Panel */}
+      <ConnectedAccountsPanel
+        isOpen={isAccountsPanelOpen}
+        onClose={() => setIsAccountsPanelOpen(false)}
       />
     </div>
   );
