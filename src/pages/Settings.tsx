@@ -185,7 +185,7 @@ const Settings = () => {
                     key={option.value}
                     onClick={() => handleTextScaleChange(option.value)}
                     className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                      textScale === option.value
+                      preferences.text_scale === option.value
                         ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                         : 'border-border/50 bg-secondary/30 hover:border-primary/50'
                     }`}
