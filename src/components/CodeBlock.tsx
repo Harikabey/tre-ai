@@ -26,7 +26,7 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
   }
 
   return (
-    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50">
+    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50 max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/80 border-b border-border/40">
         <span className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider">
