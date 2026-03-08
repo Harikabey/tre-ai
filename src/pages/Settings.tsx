@@ -160,8 +160,8 @@ const Settings = () => {
                 <ThemeCard
                   key={option.id}
                   option={option}
-                  isSelected={theme === option.id}
-                  onSelect={() => setTheme(option.id)}
+                  isSelected={preferences.theme === option.id}
+                  onSelect={() => updatePreference('theme', option.id)}
                 />
               ))}
             </CardContent>
