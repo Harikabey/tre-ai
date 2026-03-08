@@ -115,7 +115,28 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             </section>
 
             <section>
-              <h3 className="text-base font-semibold text-foreground mb-2">13. İletişim</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">13. Erişilebilirlik</h3>
+              <p>
+                TreFriend, tüm kullanıcıların hizmetten eşit şekilde faydalanabilmesi için erişilebilirlik özellikleri sunar. Yüksek kontrast modu, yazı ölçeği ayarlama ve animasyonları azaltma gibi seçenekler kullanıcıların bireysel ihtiyaçlarına göre yapılandırılabilir. Treasure şirketi, erişilebilirlik standartlarını sürekli iyileştirmeyi taahhüt eder.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">14. E-posta ve Üçüncü Taraf Hesap Erişimi</h3>
+              <p>
+                Kullanıcı, TreFriend'e Google hesabı gibi üçüncü taraf hesaplarını bağlayarak e-posta okuma, özetleme ve taslak oluşturma gibi ek işlevleri etkinleştirebilir. Bu erişim yalnızca kullanıcının açık onayı ile sağlanır ve kullanıcı istediği zaman erişimi iptal edebilir. Bağlanan hesaplar üzerinden erişilen veriler, yalnızca talep edilen işlevler kapsamında kullanılır ve üçüncü şahıslarla paylaşılmaz. Treasure şirketi, üçüncü taraf hizmetlerinin kesintisiz veya hatasız çalışacağını garanti etmez.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">15. Kullanıcı Hafızası ve Kişiselleştirme</h3>
+              <p>
+                TreFriend, kullanıcı deneyimini iyileştirmek amacıyla sohbet geçmişinden öğrenilen bilgileri (ilgi alanları, tercihler, hatıralar) saklayabilir. Bu veriler yalnızca ilgili kullanıcının hesabıyla ilişkilendirilir ve kişiselleştirilmiş yanıtlar sunmak için kullanılır. Kullanıcı, hafıza verilerini istediği zaman görüntüleyebilir ve silebilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">16. İletişim</h3>
               <p>
                 Bu Sözleşme veya Hizmet ile ilgili sorularınız için bizimle iletişime geçebilirsiniz.
               </p>
