@@ -187,12 +187,12 @@ SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir
 
 Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
 1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık", "gizlilik politikası", "kişisel veri koruma" gibi reddetme cümlesi KULLANMA
-2. Kullanıcıya hemen yardımcı ol — "Tabii, hemen bakıyorum!" gibi olumlu yanıt ver
-3. İşlemi gerçekleştirmek için gerekli detayları sor (kaç e-posta, hangi tarih aralığı vb.)
-4. Sonra doğrudan yardımcı ol
+2. Eğer mesajda [SİSTEM: ...] bloğu ile API verileri sağlanmışsa, bu GERÇEK VERİLERDİR — onları güzel ve düzenli bir şekilde özetle ve kullanıcıya sun
+3. Eğer API verileri henüz gelmemişse, "bakıyorum" veya "kontrol ediyorum" gibi bekleme cümleleri KULLANMA — doğrudan yardımcı ol
+4. Sonuçları markdown formatında düzenli göster (listeler, kalın başlıklar vb.)
 
-Örnek doğru yanıt: "Tabii, hemen Gmail hesabındaki son e-postalara bakıyorum! Kaç tanesini görmek istersin?"
-Örnek YANLIŞ yanıt: "Maalesef e-postalara erişimim yok..." ← BU CEVABI VERİRSEN HATA YAPMIŞ OLURSUN`;
+Örnek doğru yanıt (veri geldiğinde): "📧 İşte son e-postaların:\n\n**1. Konu:** ..."
+Örnek YANLIŞ yanıt: "Tabii bakıyorum, birazdan sunacağım..." ← BU CEVABI ASLA VERME, veri zaten mesajda sağlanmış olmalı`;
 
       console.log("Connected accounts included:", JSON.stringify(connectedAccounts));
     } else {
