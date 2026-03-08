@@ -11,6 +11,10 @@ import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
 import { languages, Language, LANGUAGE_KEY } from '@/types/language';
 import { useTheme } from '@/hooks/useTheme';
 import { useVoice } from '@/hooks/useVoice';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
+import { toast } from 'sonner';
 
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
