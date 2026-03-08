@@ -18,6 +18,7 @@ interface ChatHeaderProps {
   imageHistoryCount?: number;
   onToggleMemoryPanel?: () => void;
   memoryCount?: number;
+  onToggleConnectedAccounts?: () => void;
 }
 
 export const ChatHeader = ({
