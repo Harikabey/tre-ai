@@ -55,8 +55,8 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
         </button>
       </div>
       {/* Code content */}
-      <pre className="p-3 overflow-x-auto bg-secondary/40 text-xs sm:text-sm">
-        <code className="font-mono text-foreground/90 whitespace-pre">
+      <pre className="p-3 overflow-x-auto bg-secondary/40 text-xs sm:text-sm max-w-full">
+        <code className="font-mono text-foreground/90 whitespace-pre break-words">
           {children}
         </code>
       </pre>

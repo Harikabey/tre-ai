@@ -140,7 +140,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       
       <div
         className={cn(
-          'max-w-[calc(100%-3rem)] sm:max-w-[80%] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
+          'max-w-[calc(100%-3rem)] sm:max-w-[80%] min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
             ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm'
             : 'bg-primary/15 border border-primary/20 rounded-tr-md'
@@ -191,7 +191,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
 
         {displayContent && (
           isBot ? (
-            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden">
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
               <ReactMarkdown
                 components={{
                   code({ node, className, children, ...props }) {
