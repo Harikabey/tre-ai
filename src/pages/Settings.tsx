@@ -7,20 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { personalities, Personality } from '@/types/personality';
-import { voiceOptions, VoiceOption, VOICE_SETTINGS_KEY } from '@/types/voice';
-import { languages, Language, LANGUAGE_KEY } from '@/types/language';
-import { useTheme } from '@/hooks/useTheme';
+import { voiceOptions, VoiceOption } from '@/types/voice';
+import { languages, Language } from '@/types/language';
 import { useVoice } from '@/hooks/useVoice';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
-
-const PERSONALITY_KEY = 'ai_chatbot_personality';
-const SCREEN_SHARE_KEY = 'ai_chatbot_screen_share';
-const TEXT_SCALE_KEY = 'ai_chatbot_text_scale';
-const HIGH_CONTRAST_KEY = 'ai_chatbot_high_contrast';
-const REDUCE_MOTION_KEY = 'ai_chatbot_reduce_motion';
 
 const TEXT_SCALE_OPTIONS = [
   { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
@@ -59,23 +53,8 @@ const themeOptions: ThemeOption[] = [
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [selectedPersonality, setSelectedPersonality] = useState<string>('friendly');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('tr');
-  const [screenShareEnabled, setScreenShareEnabled] = useState<boolean>(() => {
-    return localStorage.getItem(SCREEN_SHARE_KEY) === 'true';
-  });
+  const { preferences, updatePreference } = useUserPreferences();
   const [languageSearch, setLanguageSearch] = useState('');
-  const [textScale, setTextScale] = useState<number>(() => {
-    const stored = localStorage.getItem(TEXT_SCALE_KEY);
-    return stored ? parseFloat(stored) : 1;
-  });
-  const [highContrast, setHighContrast] = useState<boolean>(() => {
-    return localStorage.getItem(HIGH_CONTRAST_KEY) === 'true';
-  });
-  const [reduceMotion, setReduceMotion] = useState<boolean>(() => {
-    return localStorage.getItem(REDUCE_MOTION_KEY) === 'true';
-  });
-  const { theme, setTheme } = useTheme();
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const [emailConnected, setEmailConnected] = useState(false);
@@ -108,13 +87,6 @@ const Settings = () => {
   useEffect(() => {
     loadEmailStatus();
   }, [loadEmailStatus]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(PERSONALITY_KEY);
-    if (stored) setSelectedPersonality(stored);
-    const storedLang = localStorage.getItem(LANGUAGE_KEY);
-    if (storedLang) setSelectedLanguage(storedLang);
-  }, []);
 
   const handleConnectEmail = async () => {
     if (!user) return;
@@ -169,47 +141,28 @@ const Settings = () => {
   };
 
   const handleSelectPersonality = (id: string) => {
-    setSelectedPersonality(id);
-    localStorage.setItem(PERSONALITY_KEY, id);
+    updatePreference('personality', id);
   };
 
   const handleSelectLanguage = (code: string) => {
-    setSelectedLanguage(code);
-    localStorage.setItem(LANGUAGE_KEY, code);
+    updatePreference('language', code);
   };
 
   const handleScreenShareToggle = (enabled: boolean) => {
-    setScreenShareEnabled(enabled);
-    localStorage.setItem(SCREEN_SHARE_KEY, String(enabled));
+    updatePreference('screen_share_enabled', enabled);
   };
 
   const handleTextScaleChange = (value: number) => {
-    setTextScale(value);
-    localStorage.setItem(TEXT_SCALE_KEY, String(value));
-    document.documentElement.style.fontSize = `${value * 16}px`;
+    updatePreference('text_scale', value);
   };
 
   const handleHighContrastChange = (enabled: boolean) => {
-    setHighContrast(enabled);
-    localStorage.setItem(HIGH_CONTRAST_KEY, String(enabled));
-    document.documentElement.classList.toggle('high-contrast', enabled);
+    updatePreference('high_contrast', enabled);
   };
 
   const handleReduceMotionChange = (enabled: boolean) => {
-    setReduceMotion(enabled);
-    localStorage.setItem(REDUCE_MOTION_KEY, String(enabled));
-    document.documentElement.classList.toggle('reduce-motion', enabled);
+    updatePreference('reduce_motion', enabled);
   };
-
-  // Apply text scale and accessibility on mount
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${textScale * 16}px`;
-    if (highContrast) document.documentElement.classList.add('high-contrast');
-    if (reduceMotion) document.documentElement.classList.add('reduce-motion');
-    return () => {
-      document.documentElement.style.fontSize = '';
-    };
-  }, []);
 
   const filteredLanguages = languages.filter(l =>
     l.name.toLowerCase().includes(languageSearch.toLowerCase()) ||
@@ -259,8 +212,8 @@ const Settings = () => {
                 <ThemeCard
                   key={option.id}
                   option={option}
-                  isSelected={theme === option.id}
-                  onSelect={() => setTheme(option.id)}
+                  isSelected={preferences.theme === option.id}
+                  onSelect={() => updatePreference('theme', option.id)}
                 />
               ))}
             </CardContent>
@@ -284,7 +237,7 @@ const Settings = () => {
                     key={option.value}
                     onClick={() => handleTextScaleChange(option.value)}
                     className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                      textScale === option.value
+                      preferences.text_scale === option.value
                         ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                         : 'border-border/50 bg-secondary/30 hover:border-primary/50'
                     }`}
@@ -302,7 +255,7 @@ const Settings = () => {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                Mevcut ölçek: {Math.round(textScale * 100)}%
+                Mevcut ölçek: {Math.round(preferences.text_scale * 100)}%
               </p>
             </CardContent>
           </Card>
@@ -330,7 +283,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={highContrast}
+                  checked={preferences.high_contrast}
                   onCheckedChange={handleHighContrastChange}
                   className="data-[state=checked]:bg-primary"
                 />
@@ -346,7 +299,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={reduceMotion}
+                  checked={preferences.reduce_motion}
                   onCheckedChange={handleReduceMotionChange}
                   className="data-[state=checked]:bg-primary"
                 />
@@ -373,7 +326,7 @@ const Settings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={screenShareEnabled}
+                  checked={preferences.screen_share_enabled}
                   onCheckedChange={handleScreenShareToggle}
                   className="data-[state=checked]:bg-primary"
                 />
@@ -544,7 +497,7 @@ const Settings = () => {
                   <LanguageCard
                     key={lang.code}
                     language={lang}
-                    isSelected={selectedLanguage === lang.code}
+                    isSelected={preferences.language === lang.code}
                     onSelect={() => handleSelectLanguage(lang.code)}
                   />
                 ))}
@@ -571,7 +524,7 @@ const Settings = () => {
                 <PersonalityCard
                   key={personality.id}
                   personality={personality}
-                  isSelected={selectedPersonality === personality.id}
+                  isSelected={preferences.personality === personality.id}
                   onSelect={() => handleSelectPersonality(personality.id)}
                 />
               ))}
