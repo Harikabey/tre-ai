@@ -57,6 +57,7 @@ const Index = () => {
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Open sidebar on desktop by default
