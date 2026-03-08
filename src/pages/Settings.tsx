@@ -244,6 +244,47 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Text Scale */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="h-5 w-5 text-primary" />
+                Yazı Ölçeği
+              </CardTitle>
+              <CardDescription>
+                Uygulama genelindeki yazı boyutunu ayarlayın
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2">
+                {TEXT_SCALE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleTextScaleChange(option.value)}
+                    className={`p-3 rounded-lg border text-center transition-all duration-200 ${
+                      textScale === option.value
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/50 bg-secondary/30 hover:border-primary/50'
+                    }`}
+                  >
+                    <span
+                      className="block font-medium text-foreground"
+                      style={{ fontSize: `${option.value * 0.875}rem` }}
+                    >
+                      Aa
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground mt-1">
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                Mevcut ölçek: {Math.round(textScale * 100)}%
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Screen Share Toggle */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
