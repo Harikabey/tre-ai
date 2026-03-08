@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      connected_accounts: {
+        Row: {
+          connected_at: string
+          id: string
+          is_active: boolean | null
+          provider: string
+          provider_display_name: string | null
+          provider_email: string | null
+          scopes: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          id?: string
+          is_active?: boolean | null
+          provider: string
+          provider_display_name?: string | null
+          provider_email?: string | null
+          scopes?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          provider_display_name?: string | null
+          provider_email?: string | null
+          scopes?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
