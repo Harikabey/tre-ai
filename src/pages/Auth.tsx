@@ -166,9 +166,16 @@ const Auth = () => {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-                </Button>
+                <div className="flex items-center justify-between">
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+                  </Button>
+                </div>
+                <div className="text-center">
+                  <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                    Şifremi Unuttum
+                  </Link>
+                </div>
               </form>
             </TabsContent>
             
