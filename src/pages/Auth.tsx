@@ -44,30 +44,6 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) {
-        toast({
-          title: 'Hata',
-          description: 'Google ile giriş yapılamadı',
-          variant: 'destructive',
-        });
-      }
-    } catch (err) {
-      toast({
-        title: 'Hata',
-        description: 'Google ile giriş yapılamadı',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateInputs()) return;
