@@ -21,16 +21,13 @@ serve(async (req) => {
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    // Use service role client to validate token
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !user) {
-      console.error("Auth error:", userError?.message);
+    const { data, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !data?.claims?.sub) {
+      console.error("Auth error:", claimsError?.message);
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
