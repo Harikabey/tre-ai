@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Link2, Unlink, Shield, Mail, HardDrive, Calendar, 
-  MessageSquare, Loader2, CheckCircle2, AlertCircle 
+  MessageSquare, Loader2, CheckCircle2, AlertCircle,
+  Instagram, Twitter, Music, Github, Twitch, Linkedin
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +26,7 @@ const providerConfig: Record<string, {
   icon: typeof Mail;
   color: string;
   description: string;
+  comingSoon?: boolean;
   availableScopes: { id: string; name: string; description: string; icon: typeof Mail }[];
 }> = {
   google: {
@@ -37,6 +39,54 @@ const providerConfig: Record<string, {
       { id: 'drive', name: 'Dosya Erişimi', description: 'Google Drive dosyalarınıza erişebilir', icon: HardDrive },
       { id: 'calendar', name: 'Takvim', description: 'Takvim etkinliklerinizi görebilir', icon: Calendar },
     ],
+  },
+  instagram: {
+    name: 'Instagram',
+    icon: Instagram,
+    color: 'text-pink-500',
+    description: 'Fotoğraflar, hikayeler ve mesajlar',
+    comingSoon: true,
+    availableScopes: [],
+  },
+  twitter: {
+    name: 'X (Twitter)',
+    icon: Twitter,
+    color: 'text-foreground',
+    description: 'Tweetler, mesajlar ve bildirimler',
+    comingSoon: true,
+    availableScopes: [],
+  },
+  spotify: {
+    name: 'Spotify',
+    icon: Music,
+    color: 'text-green-500',
+    description: 'Müzik, çalma listeleri ve dinleme geçmişi',
+    comingSoon: true,
+    availableScopes: [],
+  },
+  github: {
+    name: 'GitHub',
+    icon: Github,
+    color: 'text-foreground',
+    description: 'Repolar, issue\'lar ve pull request\'ler',
+    comingSoon: true,
+    availableScopes: [],
+  },
+  twitch: {
+    name: 'Twitch',
+    icon: Twitch,
+    color: 'text-purple-500',
+    description: 'Canlı yayınlar, sohbet ve abonelikler',
+    comingSoon: true,
+    availableScopes: [],
+  },
+  linkedin: {
+    name: 'LinkedIn',
+    icon: Linkedin,
+    color: 'text-blue-600',
+    description: 'Profil, bağlantılar ve paylaşımlar',
+    comingSoon: true,
+    availableScopes: [],
   },
 };
 
