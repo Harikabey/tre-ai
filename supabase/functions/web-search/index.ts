@@ -105,7 +105,7 @@ SADECE JSON döndür.`,
     }
 
     const responseData = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const content = responseData.choices?.[0]?.message?.content || "";
 
     try {
       const result = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
