@@ -24,7 +24,7 @@ export const LiveCameraView = ({ isOpen, onClose, onAnalysisComplete }: LiveCame
   const [continuousMode, setContinuousMode] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  const continuousIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const continuousIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Start camera when opened
   useEffect(() => {
