@@ -104,7 +104,7 @@ SADECE JSON döndür.`,
       throw new Error("Search failed");
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
     try {
