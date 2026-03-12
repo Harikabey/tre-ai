@@ -300,13 +300,6 @@ export const ConnectedAccountsPanel = ({ isOpen, onClose }: ConnectedAccountsPan
                 );
               })}
 
-              {/* Future providers placeholder */}
-              <div className="rounded-xl border border-dashed border-border/40 p-4">
-                <div className="text-center text-xs text-muted-foreground">
-                  <MessageSquare className="w-5 h-5 mx-auto mb-2 opacity-40" />
-                  <p>Instagram, Twitter ve diğer platformlar yakında eklenecek</p>
-                </div>
-              </div>
             </div>
           )}
         </ScrollArea>
