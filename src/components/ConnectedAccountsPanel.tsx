@@ -247,18 +247,11 @@ export const ConnectedAccountsPanel = ({ isOpen, onClose }: ConnectedAccountsPan
                           <Unlink className="w-3.5 h-3.5 mr-1" />
                           Kaldır
                         </Button>
+                      ) : config.comingSoon ? (
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                          Yakında
+                        </span>
                       ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => handleConnect(providerId)}
-                          disabled={connecting === providerId}
-                        >
-                          {connecting === providerId ? (
-                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                          ) : (
-                            <Link2 className="w-3.5 h-3.5 mr-1" />
                           )}
                           Bağla
                         </Button>
