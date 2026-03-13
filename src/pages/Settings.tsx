@@ -342,7 +342,7 @@ const Settings = () => {
                 E-posta Erişimi
               </CardTitle>
               <CardDescription>
-                TreFriend'in e-postalarınızı okumasına ve yönetmesine izin verin
+                Tre'nin e-postalarınızı okumasına ve yönetmesine izin verin
               </CardDescription>
             </CardHeader>
             <CardContent>
