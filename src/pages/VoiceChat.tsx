@@ -201,7 +201,7 @@ const VoiceChat = () => {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/50 shadow-glow">
-              <img src={aiLogo} alt="TreFriend" className="w-full h-full object-cover" />
+              <img src={aiLogo} alt="Tre" className="w-full h-full object-cover" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">Sesli Sohbete Hoş Geldiniz</h2>

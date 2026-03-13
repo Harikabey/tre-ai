@@ -178,7 +178,7 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       }).join("\n");
       
       connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR (EN YÜKSEK ÖNCELİK):
-Kullanıcı aşağıdaki hesapları TreFriend sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
+Kullanıcı aşağıdaki hesapları Tre sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
 ${accountDetails}
 
 SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir simülasyon değil, gerçek bir entegrasyondur.

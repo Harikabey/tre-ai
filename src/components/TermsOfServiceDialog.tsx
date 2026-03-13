@@ -26,7 +26,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">1. Genel Hükümler</h3>
               <p>
-                Bu Kullanım Sözleşmesi ("Sözleşme"), TreFriend yapay zeka asistanı hizmetini ("Hizmet") kullanmanız için geçerli olan şartları ve koşulları belirler. Hizmete kaydolarak veya Hizmeti kullanarak, bu Sözleşmenin tüm hükümlerini okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan ve taahhüt edersiniz.
+                Bu Kullanım Sözleşmesi ("Sözleşme"), Tre yapay zeka asistanı hizmetini ("Hizmet") kullanmanız için geçerli olan şartları ve koşulları belirler. Hizmete kaydolarak veya Hizmeti kullanarak, bu Sözleşmenin tüm hükümlerini okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan ve taahhüt edersiniz.
               </p>
             </section>
 

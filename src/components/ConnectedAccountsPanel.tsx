@@ -194,7 +194,7 @@ export const ConnectedAccountsPanel = ({ isOpen, onClose }: ConnectedAccountsPan
               </div>
               <div>
                 <h2 className="font-semibold text-foreground">Bağlı Hesaplar</h2>
-                <p className="text-xs text-muted-foreground">TreFriend'in erişebileceği hesaplarınız</p>
+                <p className="text-xs text-muted-foreground">Tre'nin erişebileceği hesaplarınız</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>

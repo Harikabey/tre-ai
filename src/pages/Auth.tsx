@@ -121,7 +121,7 @@ const Auth = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
             <Bot className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">TreFriend</CardTitle>
+          <CardTitle className="text-2xl">Tre</CardTitle>
           <CardDescription>Akıllı AI asistanınıza hoş geldiniz</CardDescription>
         </CardHeader>
         

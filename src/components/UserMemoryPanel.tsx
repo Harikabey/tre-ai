@@ -277,7 +277,7 @@ export const UserMemoryPanel = ({
       {/* Footer */}
       <div className="p-3 border-t border-border/50">
         <p className="text-xs text-muted-foreground text-center">
-          TreFriend seni tanıdıkça daha iyi yardımcı olur 💜
+          Tre seni tanıdıkça daha iyi yardımcı olur 💜
         </p>
       </div>
     </div>
