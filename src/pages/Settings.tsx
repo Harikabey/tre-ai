@@ -342,7 +342,7 @@ const Settings = () => {
                 E-posta Erişimi
               </CardTitle>
               <CardDescription>
-                TreFriend'in e-postalarınızı okumasına ve yönetmesine izin verin
+                Tre'nin e-postalarınızı okumasına ve yönetmesine izin verin
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -376,7 +376,7 @@ const Settings = () => {
                   </div>
                   <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
                     <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                    <p>TreFriend e-postalarınızı okuyabilir, özetleyebilir ve taslak oluşturabilir. Erişimi istediğiniz zaman kaldırabilirsiniz.</p>
+                    <p>Tre e-postalarınızı okuyabilir, özetleyebilir ve taslak oluşturabilir. Erişimi istediğiniz zaman kaldırabilirsiniz.</p>
                   </div>
                 </div>
               ) : (

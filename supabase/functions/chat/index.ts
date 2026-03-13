@@ -88,7 +88,7 @@ serve(async (req) => {
     const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
-    const baseContext = `Sen TreFriend adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
+    const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
 KİMLİĞİN:
 - Gerçek bir arkadaş gibisin — sıcak, samimi, güvenilir
@@ -178,7 +178,7 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
       }).join("\n");
       
       connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR (EN YÜKSEK ÖNCELİK):
-Kullanıcı aşağıdaki hesapları TreFriend sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
+Kullanıcı aşağıdaki hesapları Tre sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
 ${accountDetails}
 
 SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir simülasyon değil, gerçek bir entegrasyondur.

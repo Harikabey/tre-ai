@@ -16,11 +16,11 @@ export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 sm:p-8 text-center">
       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-lg mb-4 sm:mb-6">
-        <img src={aiLogo} alt="TreFriend AI" className="w-full h-full object-cover" />
+        <img src={aiLogo} alt="Tre AI" className="w-full h-full object-cover" />
       </div>
       
       <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-        TreFriend
+        Tre
       </h2>
       
       <p className="text-sm text-muted-foreground max-w-sm mb-6 sm:mb-8">

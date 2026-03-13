@@ -86,7 +86,7 @@ export const UserMemoryPanel = ({
       <div className="p-4 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold">TreFriend Hafızası</h2>
+          <h2 className="font-semibold">Tre Hafızası</h2>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -277,7 +277,7 @@ export const UserMemoryPanel = ({
       {/* Footer */}
       <div className="p-3 border-t border-border/50">
         <p className="text-xs text-muted-foreground text-center">
-          TreFriend seni tanıdıkça daha iyi yardımcı olur 💜
+          Tre seni tanıdıkça daha iyi yardımcı olur 💜
         </p>
       </div>
     </div>

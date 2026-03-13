@@ -67,10 +67,10 @@ export const ChatHeader = ({
           </Button>
         )}
         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-primary/30 shadow-glow">
-          <img src={aiLogo} alt="TreFriend AI" className="w-full h-full object-cover" />
+          <img src={aiLogo} alt="Tre AI" className="w-full h-full object-cover" />
         </div>
         <div className="hidden xs:block">
-          <h1 className="font-semibold text-foreground text-glow text-sm sm:text-base">TreFriend</h1>
+          <h1 className="font-semibold text-foreground text-glow text-sm sm:text-base">Tre</h1>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Akıllı AI Asistan</p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onToggleMemoryPanel}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9 relative"
-            title="TreFriend Hafızası"
+            title="Tre Hafızası"
           >
             <Brain className="w-4 h-4" />
             {memoryCount > 0 && (

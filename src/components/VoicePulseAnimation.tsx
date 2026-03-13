@@ -64,7 +64,7 @@ export const VoicePulseAnimation = ({ isActive, mood }: VoicePulseAnimationProps
 
         {/* Logo */}
         <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/50 shadow-glow z-10">
-          <img src={aiLogo} alt="TreFriend" className="w-full h-full object-cover" />
+          <img src={aiLogo} alt="Tre" className="w-full h-full object-cover" />
         </div>
 
         {/* Status text */}
