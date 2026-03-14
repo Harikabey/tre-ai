@@ -206,6 +206,18 @@ export const useChatbot = () => {
     // Get memory and mood context for personalized responses
     const memoryContext = getMemoryContext();
     const moodContext = getMoodContext();
+
+    // Collect user preferences for AI awareness
+    const userPreferences = {
+      theme: localStorage.getItem('ai_chatbot_theme') || 'dark',
+      personality,
+      language,
+      voice_id: localStorage.getItem('trefriend_voice_id') || 'EXAVITQu4vr4xnSDxMaL',
+      text_scale: parseFloat(localStorage.getItem('ai_chatbot_text_scale') || '1'),
+      high_contrast: localStorage.getItem('ai_chatbot_high_contrast') === 'true',
+      reduce_motion: localStorage.getItem('ai_chatbot_reduce_motion') === 'true',
+      screen_share_enabled: localStorage.getItem('ai_chatbot_screen_share') === 'true',
+    };
     
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -225,6 +237,7 @@ export const useChatbot = () => {
         moodContext,
         language,
         connectedAccounts,
+        userPreferences,
       }),
     });
 
