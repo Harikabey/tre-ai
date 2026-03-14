@@ -200,7 +200,36 @@ Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
       console.log("No connected accounts provided");
     }
 
-    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + connectedAccountsContext;
+    // Build user preferences context
+    let preferencesContext = "";
+    if (userPreferences && typeof userPreferences === "object") {
+      const themeNames: Record<string, string> = { dark: "Karanlık", light: "Aydınlık", system: "Sistem" };
+      const personalityNames: Record<string, string> = {
+        friendly: "Arkadaşça", professional: "Profesyonel", humorous: "Esprili",
+        wise: "Bilge", creative: "Yaratıcı", mirror: "Ayna",
+      };
+      const langNames2: Record<string, string> = {
+        tr: "Türkçe", en: "English", de: "Deutsch", fr: "Français", es: "Español",
+        it: "Italiano", pt: "Português", ru: "Русский", ar: "العربية", zh: "中文",
+        ja: "日本語", ko: "한국어",
+      };
+      const parts = [];
+      parts.push(`Tema: ${themeNames[userPreferences.theme] || userPreferences.theme}`);
+      parts.push(`Kişilik: ${personalityNames[userPreferences.personality] || userPreferences.personality}`);
+      parts.push(`Dil: ${langNames2[userPreferences.language] || userPreferences.language}`);
+      if (userPreferences.text_scale && userPreferences.text_scale !== 1) {
+        parts.push(`Metin ölçeği: ${userPreferences.text_scale}x`);
+      }
+      if (userPreferences.high_contrast) parts.push("Yüksek kontrast: Açık");
+      if (userPreferences.reduce_motion) parts.push("Azaltılmış hareket: Açık");
+      if (userPreferences.screen_share_enabled) parts.push("Ekran paylaşımı: Açık");
+
+      preferencesContext = `\n\nKULLANICI TERCİHLERİ (bu bilgileri hatırla ve gerektiğinde referans ver):
+${parts.join("\n")}
+Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihlerini sorduğunda bu bilgileri kullanarak yanıt ver.`;
+    }
+
+    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + connectedAccountsContext + preferencesContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 
