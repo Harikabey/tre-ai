@@ -499,9 +499,9 @@ export const ChatInput = ({
               GIF Oluştur {!input.trim() && <span className="text-xs text-muted-foreground ml-1">(önce açıklama yazın)</span>}
             </DropdownMenuItem>
             {isScreenShareEnabled && (
-              <DropdownMenuItem onClick={handleScreenShare}>
+              <DropdownMenuItem onClick={onOpenScreenShare}>
                 <ScreenShare className="w-4 h-4 mr-2" />
-                Ekran Paylaş
+                Canlı Ekran Paylaşımı
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
