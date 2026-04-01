@@ -58,6 +58,7 @@ const Index = () => {
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isScreenShareOpen, setIsScreenShareOpen] = useState(false);
   const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
