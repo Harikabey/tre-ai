@@ -26,6 +26,7 @@ interface ChatInputProps {
   thinkingMode: ThinkingMode;
   onThinkingModeChange: (mode: ThinkingMode) => void;
   onOpenCamera?: () => void;
+  onOpenScreenShare?: () => void;
   currentMood?: string;
 }
 
