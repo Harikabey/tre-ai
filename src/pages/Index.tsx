@@ -14,6 +14,7 @@ import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
 import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
+import { LiveScreenShareView } from '@/components/LiveScreenShareView';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
@@ -57,6 +58,7 @@ const Index = () => {
   const [isImageHistoryOpen, setIsImageHistoryOpen] = useState(false);
   const [isMemoryPanelOpen, setIsMemoryPanelOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isScreenShareOpen, setIsScreenShareOpen] = useState(false);
   const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +196,7 @@ const Index = () => {
             thinkingMode={thinkingMode}
             onThinkingModeChange={setThinkingMode}
             onOpenCamera={() => setIsCameraOpen(true)}
+            onOpenScreenShare={() => setIsScreenShareOpen(true)}
             currentMood={currentMood?.mood}
           />
         </div>
@@ -238,6 +241,13 @@ const Index = () => {
       <LiveCameraView
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
+        onAnalysisComplete={handleCameraAnalysis}
+      />
+
+      {/* Live Screen Share View */}
+      <LiveScreenShareView
+        isOpen={isScreenShareOpen}
+        onClose={() => setIsScreenShareOpen(false)}
         onAnalysisComplete={handleCameraAnalysis}
       />
 
