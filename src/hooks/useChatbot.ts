@@ -512,8 +512,12 @@ export const useChatbot = () => {
     }));
 
     // Analyze mood and extract memories in the background (don't await)
-    analyzeAndStore(trimmedInput, conversationId, actualMessageId, conversationHistory)
-      .catch(err => console.error('Analysis failed:', err));
+    // Strip base64 image data to avoid exceeding the 10k char limit
+    const messageForAnalysis = trimmedInput.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g, '[görsel]');
+    if (messageForAnalysis.length <= 10000) {
+      analyzeAndStore(messageForAnalysis, conversationId, actualMessageId, conversationHistory)
+        .catch(err => console.error('Analysis failed:', err));
+    }
 
     try {
       // Handle image generation request
