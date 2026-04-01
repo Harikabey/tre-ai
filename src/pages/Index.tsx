@@ -14,6 +14,7 @@ import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
 import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
+import { LiveScreenShareView } from '@/components/LiveScreenShareView';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
