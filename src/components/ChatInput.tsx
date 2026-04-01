@@ -38,6 +38,7 @@ export const ChatInput = ({
   thinkingMode,
   onThinkingModeChange,
   onOpenCamera,
+  onOpenScreenShare,
   currentMood,
 }: ChatInputProps) => {
   const { user } = useAuth();
