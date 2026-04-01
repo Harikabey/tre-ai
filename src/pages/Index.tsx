@@ -244,6 +244,13 @@ const Index = () => {
         onAnalysisComplete={handleCameraAnalysis}
       />
 
+      {/* Live Screen Share View */}
+      <LiveScreenShareView
+        isOpen={isScreenShareOpen}
+        onClose={() => setIsScreenShareOpen(false)}
+        onAnalysisComplete={handleCameraAnalysis}
+      />
+
       {/* Connected Accounts Panel */}
       <ConnectedAccountsPanel
         isOpen={isAccountsPanelOpen}
