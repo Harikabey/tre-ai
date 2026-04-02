@@ -233,17 +233,18 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
     const now = new Date();
     const turkishDays = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
     const turkishMonths = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-    const dateContext = `\n\nGÜNCEL TARİH VE SAAT BİLGİSİ (KESİNLİKLE DOĞRU — BU BİLGİYİ KULLAN):
-Bugünün tarihi: ${now.getDate()} ${turkishMonths[now.getMonth()]} ${now.getFullYear()} ${turkishDays[now.getDay()]}
-Saat (UTC): ${now.toISOString().slice(11, 16)}
-ISO: ${now.toISOString()}
-Tarih veya saat sorulduğunda MUTLAKA bu bilgiyi kullan. Eğitim verisindeki eski tarihleri KULLANMA.`;
+    const dateStr = `${now.getDate()} ${turkishMonths[now.getMonth()]} ${now.getFullYear()} ${turkishDays[now.getDay()]}`;
+    const timeStr = now.toISOString().slice(11, 16);
+    
+    // Put date at the VERY START of the system prompt so it's the first thing the model sees
+    const datePrefix = `[SİSTEM BİLGİSİ — BUGÜNÜN TARİHİ: ${dateStr}, Saat (UTC): ${timeStr}]\n\n`;
+    const dateSuffix = `\n\n⚠️ ZORUNLU KURAL: Bugünün tarihi ${dateStr}'dir. Tarih veya gün sorulduğunda SADECE bu tarihi kullan. Eğitim verisindeki eski tarihleri KESİNLİKLE KULLANMA. Bu bilgi gerçek zamanlıdır ve %100 doğrudur.`;
 
-    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + dateContext + connectedAccountsContext + preferencesContext;
+    let systemPrompt = datePrefix + baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + dateSuffix + connectedAccountsContext + preferencesContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 
-    console.log("Chat request - personality:", safePersonality, "mode:", safeThinkingMode, "model:", model);
+    console.log("Chat request - personality:", safePersonality, "mode:", safeThinkingMode, "model:", model, "date:", dateStr);
 
     let response = await fetch(apiUrl, {
       method: "POST",
