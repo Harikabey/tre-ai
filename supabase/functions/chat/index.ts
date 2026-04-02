@@ -229,7 +229,17 @@ ${parts.join("\n")}
 Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihlerini sorduğunda bu bilgileri kullanarak yanıt ver.`;
     }
 
-    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + connectedAccountsContext + preferencesContext;
+    // Add current date/time so the model always knows "today"
+    const now = new Date();
+    const turkishDays = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const turkishMonths = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    const dateContext = `\n\nGÜNCEL TARİH VE SAAT BİLGİSİ (KESİNLİKLE DOĞRU — BU BİLGİYİ KULLAN):
+Bugünün tarihi: ${now.getDate()} ${turkishMonths[now.getMonth()]} ${now.getFullYear()} ${turkishDays[now.getDay()]}
+Saat (UTC): ${now.toISOString().slice(11, 16)}
+ISO: ${now.toISOString()}
+Tarih veya saat sorulduğunda MUTLAKA bu bilgiyi kullan. Eğitim verisindeki eski tarihleri KULLANMA.`;
+
+    let systemPrompt = baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + dateContext + connectedAccountsContext + preferencesContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 
