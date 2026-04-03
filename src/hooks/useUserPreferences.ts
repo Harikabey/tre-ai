@@ -11,6 +11,7 @@ export interface UserPreferences {
   high_contrast: boolean;
   reduce_motion: boolean;
   screen_share_enabled: boolean;
+  swipe_to_delete_enabled: boolean;
 }
 
 const DEFAULTS: UserPreferences = {
