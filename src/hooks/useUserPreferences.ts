@@ -11,6 +11,7 @@ export interface UserPreferences {
   high_contrast: boolean;
   reduce_motion: boolean;
   screen_share_enabled: boolean;
+  swipe_to_delete_enabled: boolean;
 }
 
 const DEFAULTS: UserPreferences = {
@@ -22,6 +23,7 @@ const DEFAULTS: UserPreferences = {
   high_contrast: false,
   reduce_motion: false,
   screen_share_enabled: false,
+  swipe_to_delete_enabled: true,
 };
 
 // localStorage keys for fallback / initial load
@@ -34,6 +36,7 @@ const LS_KEYS: Record<keyof UserPreferences, string> = {
   high_contrast: 'ai_chatbot_high_contrast',
   reduce_motion: 'ai_chatbot_reduce_motion',
   screen_share_enabled: 'ai_chatbot_screen_share',
+  swipe_to_delete_enabled: 'ai_chatbot_swipe_delete',
 };
 
 function loadFromLocalStorage(): Partial<UserPreferences> {
@@ -51,6 +54,8 @@ function loadFromLocalStorage(): Partial<UserPreferences> {
   result.high_contrast = localStorage.getItem(LS_KEYS.high_contrast) === 'true';
   result.reduce_motion = localStorage.getItem(LS_KEYS.reduce_motion) === 'true';
   result.screen_share_enabled = localStorage.getItem(LS_KEYS.screen_share_enabled) === 'true';
+  const swipeDel = localStorage.getItem(LS_KEYS.swipe_to_delete_enabled);
+  result.swipe_to_delete_enabled = swipeDel === null ? true : swipeDel === 'true';
   return result;
 }
 
@@ -63,6 +68,7 @@ function syncToLocalStorage(prefs: UserPreferences) {
   localStorage.setItem(LS_KEYS.high_contrast, String(prefs.high_contrast));
   localStorage.setItem(LS_KEYS.reduce_motion, String(prefs.reduce_motion));
   localStorage.setItem(LS_KEYS.screen_share_enabled, String(prefs.screen_share_enabled));
+  localStorage.setItem(LS_KEYS.swipe_to_delete_enabled, String(prefs.swipe_to_delete_enabled));
 }
 
 export const useUserPreferences = () => {
@@ -97,6 +103,7 @@ export const useUserPreferences = () => {
           high_contrast: data.high_contrast ?? DEFAULTS.high_contrast,
           reduce_motion: data.reduce_motion ?? DEFAULTS.reduce_motion,
           screen_share_enabled: data.screen_share_enabled ?? DEFAULTS.screen_share_enabled,
+          swipe_to_delete_enabled: (data as any).swipe_to_delete_enabled ?? DEFAULTS.swipe_to_delete_enabled,
         };
         setPreferences(dbPrefs);
         syncToLocalStorage(dbPrefs);

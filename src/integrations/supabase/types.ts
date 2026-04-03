@@ -276,6 +276,7 @@ export type Database = {
           personality: string | null
           reduce_motion: boolean | null
           screen_share_enabled: boolean | null
+          swipe_to_delete_enabled: boolean | null
           text_scale: number | null
           theme: string | null
           updated_at: string
@@ -290,6 +291,7 @@ export type Database = {
           personality?: string | null
           reduce_motion?: boolean | null
           screen_share_enabled?: boolean | null
+          swipe_to_delete_enabled?: boolean | null
           text_scale?: number | null
           theme?: string | null
           updated_at?: string
@@ -304,6 +306,7 @@ export type Database = {
           personality?: string | null
           reduce_motion?: boolean | null
           screen_share_enabled?: boolean | null
+          swipe_to_delete_enabled?: boolean | null
           text_scale?: number | null
           theme?: string | null
           updated_at?: string
