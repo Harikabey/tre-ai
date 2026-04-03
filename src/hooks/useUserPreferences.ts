@@ -23,6 +23,7 @@ const DEFAULTS: UserPreferences = {
   high_contrast: false,
   reduce_motion: false,
   screen_share_enabled: false,
+  swipe_to_delete_enabled: true,
 };
 
 // localStorage keys for fallback / initial load
