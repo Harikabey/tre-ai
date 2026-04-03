@@ -36,6 +36,7 @@ const LS_KEYS: Record<keyof UserPreferences, string> = {
   high_contrast: 'ai_chatbot_high_contrast',
   reduce_motion: 'ai_chatbot_reduce_motion',
   screen_share_enabled: 'ai_chatbot_screen_share',
+  swipe_to_delete_enabled: 'ai_chatbot_swipe_delete',
 };
 
 function loadFromLocalStorage(): Partial<UserPreferences> {
