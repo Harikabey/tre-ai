@@ -1,0 +1,1 @@
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS swipe_to_delete_enabled boolean DEFAULT true;
