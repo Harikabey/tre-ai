@@ -54,6 +54,8 @@ function loadFromLocalStorage(): Partial<UserPreferences> {
   result.high_contrast = localStorage.getItem(LS_KEYS.high_contrast) === 'true';
   result.reduce_motion = localStorage.getItem(LS_KEYS.reduce_motion) === 'true';
   result.screen_share_enabled = localStorage.getItem(LS_KEYS.screen_share_enabled) === 'true';
+  const swipeDel = localStorage.getItem(LS_KEYS.swipe_to_delete_enabled);
+  result.swipe_to_delete_enabled = swipeDel === null ? true : swipeDel === 'true';
   return result;
 }
 
