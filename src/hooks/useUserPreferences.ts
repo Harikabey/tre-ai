@@ -68,6 +68,7 @@ function syncToLocalStorage(prefs: UserPreferences) {
   localStorage.setItem(LS_KEYS.high_contrast, String(prefs.high_contrast));
   localStorage.setItem(LS_KEYS.reduce_motion, String(prefs.reduce_motion));
   localStorage.setItem(LS_KEYS.screen_share_enabled, String(prefs.screen_share_enabled));
+  localStorage.setItem(LS_KEYS.swipe_to_delete_enabled, String(prefs.swipe_to_delete_enabled));
 }
 
 export const useUserPreferences = () => {
