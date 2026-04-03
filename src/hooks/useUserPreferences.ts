@@ -103,6 +103,7 @@ export const useUserPreferences = () => {
           high_contrast: data.high_contrast ?? DEFAULTS.high_contrast,
           reduce_motion: data.reduce_motion ?? DEFAULTS.reduce_motion,
           screen_share_enabled: data.screen_share_enabled ?? DEFAULTS.screen_share_enabled,
+          swipe_to_delete_enabled: (data as any).swipe_to_delete_enabled ?? DEFAULTS.swipe_to_delete_enabled,
         };
         setPreferences(dbPrefs);
         syncToLocalStorage(dbPrefs);
