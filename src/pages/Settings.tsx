@@ -306,6 +306,35 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Swipe to Delete Toggle */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-primary" />
+                Kaydırarak Silme
+              </CardTitle>
+              <CardDescription>
+                Sohbetteki mesajları yana kaydırarak silin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Kaydırarak Silmeyi Etkinleştir</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Mesajları sola kaydırarak hızlıca silebilirsiniz
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.swipe_to_delete_enabled}
+                  onCheckedChange={(v) => updatePreference('swipe_to_delete_enabled', v)}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Screen Share Toggle */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
