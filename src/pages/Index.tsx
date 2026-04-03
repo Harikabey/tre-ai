@@ -22,6 +22,7 @@ import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
+  const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   
   const {
