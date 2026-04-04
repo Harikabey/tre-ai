@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
@@ -8,6 +8,8 @@ import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '@/integrations/supabase/client';
+import { getLanguageByCode } from '@/types/language';
 
 interface ChatMessageProps {
   message: Message;
