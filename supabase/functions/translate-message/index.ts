@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -32,30 +32,62 @@ serve(async (req) => {
 
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("API key not configured");
 
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: `You are a translator. Translate the given text to ${targetLanguage}. Output ONLY the translated text, nothing else. Preserve markdown formatting.`,
-          },
-          { role: "user", content: text },
-        ],
-      }),
+    const requestBody = JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        {
+          role: "system",
+          content: `You are a translator. Translate the given text to ${targetLanguage}. Output ONLY the translated text, nothing else. Preserve markdown formatting.`,
+        },
+        { role: "user", content: text },
+      ],
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    let response: Response | null = null;
+
+    // Try OpenRouter first
+    if (OPENROUTER_API_KEY) {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        console.warn("OpenRouter failed:", response.status, await response.text());
+        response = null; // fallback
+      }
+    }
+
+    // Fallback to Lovable AI Gateway
+    if (!response && LOVABLE_API_KEY) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status || 500;
+      const errText = response ? await response.text() : "No API key available";
+      console.error("Translation API error:", status, errText);
+      
+      if (status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit aşıldı, lütfen bekleyin." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Çeviri servisi kullanılamıyor." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
