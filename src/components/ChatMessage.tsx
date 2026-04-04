@@ -130,6 +130,50 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     }
   };
 
+  const handleTranslate = useCallback(async () => {
+    if (showTranslation && translatedContent) {
+      setShowTranslation(false);
+      return;
+    }
+    if (translatedContent) {
+      setShowTranslation(true);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const userLang = localStorage.getItem('ai_chatbot_language') || 'tr';
+      const langInfo = getLanguageByCode(userLang);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            text: displayContent,
+            targetLanguage: langInfo.nativeName,
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error('Translation failed');
+      const data = await response.json();
+      setTranslatedContent(data.translatedText);
+      setShowTranslation(true);
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [displayContent, translatedContent, showTranslation]);
+
   return (
     <div
       className={cn(
