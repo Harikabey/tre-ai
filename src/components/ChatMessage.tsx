@@ -355,6 +355,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                   <Languages className={cn("w-3 h-3", showTranslation ? "text-primary" : "text-muted-foreground/60 hover:text-foreground")} />
                 )}
               </Button>
+            )}
           </div>
         </div>
       </div>
