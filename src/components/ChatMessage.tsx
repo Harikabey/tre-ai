@@ -273,6 +273,19 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           )
         )}
 
+        {/* Translation display */}
+        {isBot && showTranslation && translatedContent && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <div className="text-[10px] text-muted-foreground/60 mb-1 flex items-center gap-1">
+              <Languages className="w-3 h-3" />
+              Çeviri
+            </div>
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 break-words [word-break:break-word] [overflow-wrap:anywhere]">
+              <ReactMarkdown>{translatedContent}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
         {/* Citation panel */}
         {isFactualMessage && (
           <CitationPanel 
