@@ -338,6 +338,23 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                 )}
               </Button>
             )}
+
+            {/* Translate button */}
+            {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-5 w-5 sm:h-6 sm:w-6", showTranslation && "text-primary")}
+                onClick={handleTranslate}
+                disabled={isTranslating}
+                title="Çevir"
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                ) : (
+                  <Languages className={cn("w-3 h-3", showTranslation ? "text-primary" : "text-muted-foreground/60 hover:text-foreground")} />
+                )}
+              </Button>
           </div>
         </div>
       </div>
