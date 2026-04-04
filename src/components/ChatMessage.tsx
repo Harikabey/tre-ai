@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
@@ -8,6 +8,8 @@ import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '@/integrations/supabase/client';
+import { getLanguageByCode } from '@/types/language';
 
 interface ChatMessageProps {
   message: Message;
@@ -58,6 +60,9 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
 
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
@@ -124,6 +129,50 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       setIsCurrentlyPlaying(false);
     }
   };
+
+  const handleTranslate = useCallback(async () => {
+    if (showTranslation && translatedContent) {
+      setShowTranslation(false);
+      return;
+    }
+    if (translatedContent) {
+      setShowTranslation(true);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const userLang = localStorage.getItem('ai_chatbot_language') || 'tr';
+      const langInfo = getLanguageByCode(userLang);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            text: displayContent,
+            targetLanguage: langInfo.nativeName,
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error('Translation failed');
+      const data = await response.json();
+      setTranslatedContent(data.translatedText);
+      setShowTranslation(true);
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [displayContent, translatedContent, showTranslation]);
 
   return (
     <div
@@ -224,6 +273,19 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           )
         )}
 
+        {/* Translation display */}
+        {isBot && showTranslation && translatedContent && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <div className="text-[10px] text-muted-foreground/60 mb-1 flex items-center gap-1">
+              <Languages className="w-3 h-3" />
+              Çeviri
+            </div>
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 break-words [word-break:break-word] [overflow-wrap:anywhere]">
+              <ReactMarkdown>{translatedContent}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
         {/* Citation panel */}
         {isFactualMessage && (
           <CitationPanel 
@@ -273,6 +335,24 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
                   <VolumeX className="w-3 h-3 text-primary" />
                 ) : (
                   <Volume2 className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
+                )}
+              </Button>
+            )}
+
+            {/* Translate button */}
+            {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-5 w-5 sm:h-6 sm:w-6", showTranslation && "text-primary")}
+                onClick={handleTranslate}
+                disabled={isTranslating}
+                title="Çevir"
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                ) : (
+                  <Languages className={cn("w-3 h-3", showTranslation ? "text-primary" : "text-muted-foreground/60 hover:text-foreground")} />
                 )}
               </Button>
             )}
