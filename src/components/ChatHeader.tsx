@@ -81,7 +81,7 @@ export const ChatHeader = ({
         {/* Learning mode - hidden on small screens */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
-          <span className="text-xs text-muted-foreground">Öğrenme</span>
+          <span className="text-xs text-muted-foreground">{t.learning}</span>
           <Switch
             checked={isLearningMode}
             onCheckedChange={onLearningModeChange}
