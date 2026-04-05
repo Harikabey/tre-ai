@@ -73,7 +73,7 @@ serve(async (req) => {
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
     const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
-    const safeLanguage = typeof language === "string" && language.length <= 10 ? language : "tr";
+    // Language is now auto-detected from user messages
 
     // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
@@ -97,7 +97,7 @@ KİMLİĞİN:
 - Yanıtlarını zenginleştirmek için örnekler, benzetmeler ve senaryolar kullan
 
 YANITLAMA İLKELERİN:
-- Kullanıcının yazdığı dilde yanıt ver (dil ayarı varsa o dilde)
+- Kullanıcının yazdığı dilde yanıt ver. Kullanıcı hangi dilde yazıyorsa o dilde cevap ver. Dil ayarı kullanma, mesajın dilini otomatik algıla.
 - Markdown formatını etkili kullan: başlıklar, listeler, kalın/italik, kod blokları
 - Karmaşık konularda adım adım açıkla
 - Kısa sorulara kısa, uzun sorulara detaylı yanıt ver
@@ -157,20 +157,8 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
 - "Hımm", "Anlıyorum" gibi doğal dolgu ifadeleri ekle`
       : "";
 
-    let languageInstruction = "";
-    if (safeLanguage && safeLanguage !== "tr") {
-      const langNames: Record<string, string> = {
-        en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano",
-        pt: "Português", ru: "Русский", ar: "العربية", zh: "中文", ja: "日本語",
-        ko: "한국어", hi: "हिन्दी", nl: "Nederlands", pl: "Polski", uk: "Українська",
-        sv: "Svenska", da: "Dansk", fi: "Suomi", no: "Norsk", el: "Ελληνικά",
-        hu: "Magyar", ro: "Română", bg: "Български", cs: "Čeština", he: "עברית",
-        fa: "فارسی", th: "ไทย", vi: "Tiếng Việt", id: "Bahasa Indonesia",
-        az: "Azərbaycan", ka: "ქართული",
-      };
-      const langName = langNames[safeLanguage] || safeLanguage;
-      languageInstruction = `\n\nDİL TALİMATI: Tüm yanıtlarını ${langName} dilinde ver. Başka bir dil kullanma.`;
-    }
+    // Language is auto-detected from user messages - no explicit directive needed
+    const languageInstruction = "";
 
     // Build connected accounts context
     

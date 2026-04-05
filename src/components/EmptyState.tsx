@@ -1,18 +1,21 @@
 import { Sparkles, Brain, Image, MessageSquare } from 'lucide-react';
+import { getTranslations } from '@/utils/translations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface EmptyStateProps {
   onSuggestionClick?: (text: string) => void;
 }
 
-const suggestions = [
-  { icon: MessageSquare, text: "Bugün nasıl yardımcı olabilirim?", color: "text-primary" },
-  { icon: Brain, text: "Bana ilginç bir şey öğret", color: "text-accent" },
-  { icon: Image, text: "🎨 Görsel oluştur: gökyüzünde uçan balıklar", color: "text-primary" },
-  { icon: Sparkles, text: "Yaratıcı bir hikaye yaz", color: "text-accent" },
-];
-
 export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
+  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
+  
+  const suggestions = [
+    { icon: MessageSquare, text: t.askAnything, color: "text-primary" },
+    { icon: Brain, text: t.teachMe, color: "text-accent" },
+    { icon: Image, text: t.generateImage, color: "text-primary" },
+    { icon: Sparkles, text: t.writeStory, color: "text-accent" },
+  ];
+
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 sm:p-8 text-center">
       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-lg mb-4 sm:mb-6">
@@ -24,7 +27,7 @@ export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
       </h2>
       
       <p className="text-sm text-muted-foreground max-w-sm mb-6 sm:mb-8">
-        Soru sorun, fikir alın, görsel oluşturun — her konuda yanınızdayım.
+        {t.emptyStateDesc}
       </p>
 
       {onSuggestionClick && (

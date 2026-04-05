@@ -15,40 +15,26 @@ import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
+import { getTranslations } from '@/utils/translations';
 
-const TEXT_SCALE_OPTIONS = [
-  { value: 0.85, label: 'Küçük', description: 'Daha küçük yazı boyutu' },
-  { value: 1, label: 'Normal', description: 'Varsayılan boyut' },
-  { value: 1.15, label: 'Büyük', description: 'Daha büyük yazı boyutu' },
-  { value: 1.3, label: 'Çok Büyük', description: 'En büyük yazı boyutu' },
+const TEXT_SCALE_OPTIONS_KEYS = [
+  { value: 0.85, labelKey: 'small' as const },
+  { value: 1, labelKey: 'normal' as const },
+  { value: 1.15, labelKey: 'large' as const },
+  { value: 1.3, labelKey: 'extraLarge' as const },
 ];
 
 type ThemeOption = {
   id: 'light' | 'dark' | 'system';
-  name: string;
-  description: string;
+  nameKey: 'lightMode' | 'darkMode' | 'systemMode';
+  descKey: 'lightDesc' | 'darkDesc' | 'systemDesc';
   icon: typeof Sun;
 };
 
 const themeOptions: ThemeOption[] = [
-  {
-    id: 'light',
-    name: 'Açık Mod',
-    description: 'Aydınlık tema',
-    icon: Sun,
-  },
-  {
-    id: 'dark',
-    name: 'Koyu Mod',
-    description: 'Karanlık tema',
-    icon: Moon,
-  },
-  {
-    id: 'system',
-    name: 'Sistem',
-    description: 'Cihaz ayarlarını takip et',
-    icon: Monitor,
-  },
+  { id: 'light', nameKey: 'lightMode', descKey: 'lightDesc', icon: Sun },
+  { id: 'dark', nameKey: 'darkMode', descKey: 'darkDesc', icon: Moon },
+  { id: 'system', nameKey: 'systemMode', descKey: 'systemDesc', icon: Monitor },
 ];
 
 const Settings = () => {
@@ -62,6 +48,8 @@ const Settings = () => {
   const [emailConnecting, setEmailConnecting] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+
+  const t = getTranslations(preferences.language);
 
   const loadEmailStatus = useCallback(async () => {
     if (!user) { setEmailLoading(false); return; }
@@ -106,19 +94,19 @@ const Settings = () => {
           is_active: true,
         }, { onConflict: 'user_id,provider' });
         if (error) {
-          toast.error('E-posta erişimi etkinleştirilemedi');
+          toast.error(t.signOutError);
         } else {
-          toast.success('E-posta erişimi etkinleştirildi!');
+          toast.success(t.emailActive + '!');
           loadEmailStatus();
         }
       } else {
         const { error } = await lovable.auth.signInWithOAuth("google", {
           redirect_uri: window.location.origin + '/settings',
         });
-        if (error) toast.error('Google ile bağlantı kurulamadı');
+        if (error) toast.error(t.error);
       }
     } catch {
-      toast.error('Bağlantı hatası');
+      toast.error(t.error);
     } finally {
       setEmailConnecting(false);
     }
@@ -134,9 +122,9 @@ const Settings = () => {
       setEmailConnected(false);
       setConnectedEmail(null);
       setConnectedAccountId(null);
-      toast.success('E-posta erişimi kaldırıldı');
+      toast.success(t.remove + '!');
     } else {
-      toast.error('İşlem başarısız');
+      toast.error(t.error);
     }
   };
 
@@ -190,323 +178,21 @@ const Settings = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Ayarlar</h1>
-            <p className="text-muted-foreground text-sm">Uygulamayı özelleştirin</p>
+            <h1 className="text-2xl font-bold text-foreground">{t.settings}</h1>
+            <p className="text-muted-foreground text-sm">{t.customizeApp}</p>
           </div>
         </div>
 
         <div className="space-y-6">
-          {/* Theme Selection */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sun className="h-5 w-5 text-primary" />
-                Tema
-              </CardTitle>
-              <CardDescription>
-                Uygulama görünümünü seçin
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-3 gap-3">
-              {themeOptions.map((option) => (
-                <ThemeCard
-                  key={option.id}
-                  option={option}
-                  isSelected={preferences.theme === option.id}
-                  onSelect={() => updatePreference('theme', option.id)}
-                />
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Text Scale */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Type className="h-5 w-5 text-primary" />
-                Yazı Ölçeği
-              </CardTitle>
-              <CardDescription>
-                Uygulama genelindeki yazı boyutunu ayarlayın
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-2">
-                {TEXT_SCALE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleTextScaleChange(option.value)}
-                    className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                      preferences.text_scale === option.value
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
-                        : 'border-border/50 bg-secondary/30 hover:border-primary/50'
-                    }`}
-                  >
-                    <span
-                      className="block font-medium text-foreground"
-                      style={{ fontSize: `${option.value * 0.875}rem` }}
-                    >
-                      Aa
-                    </span>
-                    <span className="block text-[10px] text-muted-foreground mt-1">
-                      {option.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                Mevcut ölçek: {Math.round(preferences.text_scale * 100)}%
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Accessibility */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" />
-                Erişilebilirlik
-              </CardTitle>
-              <CardDescription>
-                Görsel erişilebilirlik tercihlerinizi ayarlayın
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
-                <div>
-                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-primary" />
-                    Yüksek Kontrast
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Metin ve arka plan arasındaki kontrastı artırır
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.high_contrast}
-                  onCheckedChange={handleHighContrastChange}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
-                <div>
-                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-primary" />
-                    Animasyonları Azalt
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Geçiş efektlerini ve animasyonları en aza indirir
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.reduce_motion}
-                  onCheckedChange={handleReduceMotionChange}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Swipe to Delete Toggle */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trash2 className="h-5 w-5 text-primary" />
-                Kaydırarak Silme
-              </CardTitle>
-              <CardDescription>
-                Sohbetteki mesajları yana kaydırarak silin
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
-                <div>
-                  <div className="font-medium text-foreground text-sm">Kaydırarak Silmeyi Etkinleştir</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Mesajları sola kaydırarak hızlıca silebilirsiniz
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.swipe_to_delete_enabled}
-                  onCheckedChange={(v) => updatePreference('swipe_to_delete_enabled', v)}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Screen Share Toggle */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ScreenShare className="h-5 w-5 text-primary" />
-                Ekran Paylaşma
-              </CardTitle>
-              <CardDescription>
-                Ekranınızı AI ile paylaşarak analiz ettirin
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
-                <div>
-                  <div className="font-medium text-foreground text-sm">Ekran Paylaşmayı Etkinleştir</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Sohbet menüsünde ekran paylaşma seçeneğini göster
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.screen_share_enabled}
-                  onCheckedChange={handleScreenShareToggle}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Email Access Authorization */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-primary" />
-                E-posta Erişimi
-              </CardTitle>
-              <CardDescription>
-                Tre'nin e-postalarınızı okumasına ve yönetmesine izin verin
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {emailLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                </div>
-              ) : emailConnected ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-primary/30 bg-primary/5">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-foreground text-sm">E-posta Erişimi Aktif</div>
-                        {connectedEmail && (
-                          <div className="text-xs text-muted-foreground mt-0.5">{connectedEmail}</div>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
-                      onClick={handleDisconnectEmail}
-                    >
-                      <Unlink className="w-3.5 h-3.5 mr-1" />
-                      Kaldır
-                    </Button>
-                  </div>
-                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
-                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                    <p>Tre e-postalarınızı okuyabilir, özetleyebilir ve taslak oluşturabilir. Erişimi istediğiniz zaman kaldırabilirsiniz.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="p-3 rounded-lg border border-border/50 bg-secondary/30">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-muted/50">
-                        <Mail className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-foreground text-sm">Henüz bağlı değil</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          Google hesabınızı bağlayarak AI'ın e-postalarınıza erişmesini sağlayın
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={handleConnectEmail}
-                      disabled={emailConnecting}
-                    >
-                      {emailConnecting ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Link2 className="w-4 h-4 mr-2" />
-                      )}
-                      Google Hesabını Bağla
-                    </Button>
-                  </div>
-                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
-                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                    <p>Hesap erişimi sadece sizin izninizle kullanılır. Verileriniz güvende tutulur.</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Voice Chat Section */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="h-5 w-5 text-primary" />
-                Sesli Sohbet
-              </CardTitle>
-              <CardDescription>
-                Sesli komutlarla AI ile sohbet edin
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <button
-                onClick={() => navigate('/voice-chat')}
-                className="w-full p-4 rounded-lg border border-border/50 bg-secondary/30 hover:border-primary/50 hover:bg-secondary/50 transition-all duration-200 text-left flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Mic className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground text-sm">Sesli Sohbeti Başlat</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Mikrofon ile konuşarak AI ile sesli sohbet edin
-                  </div>
-                </div>
-                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
-              </button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Volume2 className="h-5 w-5 text-primary" />
-                Ses Seçimi
-              </CardTitle>
-              <CardDescription>
-                Bot cevaplarını sesli okutmak için bir ses seçin
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              {voiceOptions.map((voice) => (
-                <VoiceCard
-                  key={voice.id}
-                  voice={voice}
-                  isSelected={selectedVoiceId === voice.id}
-                  onSelect={() => handleSelectVoice(voice.id)}
-                  onTest={() => testVoice(voice)}
-                  isLoading={isLoading}
-                />
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Language Selection */}
+          {/* Language Selection - UI language */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
-                Yanıt Dili
+                {t.language}
               </CardTitle>
               <CardDescription>
-                Botun hangi dilde yanıt vereceğini seçin
+                {t.languageDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -514,7 +200,7 @@ const Settings = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Dil ara..."
+                    placeholder={t.searchLanguage}
                     value={languageSearch}
                     onChange={(e) => setLanguageSearch(e.target.value)}
                     className="pl-9 bg-input/50 border-border/50"
@@ -531,9 +217,313 @@ const Settings = () => {
                   />
                 ))}
                 {filteredLanguages.length === 0 && (
-                  <p className="text-sm text-muted-foreground col-span-full text-center py-4">Sonuç bulunamadı</p>
+                  <p className="text-sm text-muted-foreground col-span-full text-center py-4">{t.noResults}</p>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Theme Selection */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sun className="h-5 w-5 text-primary" />
+                {t.theme}
+              </CardTitle>
+              <CardDescription>
+                {t.themeDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-3 gap-3">
+              {themeOptions.map((option) => (
+                <ThemeCard
+                  key={option.id}
+                  option={option}
+                  isSelected={preferences.theme === option.id}
+                  onSelect={() => updatePreference('theme', option.id)}
+                  t={t}
+                />
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Text Scale */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="h-5 w-5 text-primary" />
+                {t.textScale}
+              </CardTitle>
+              <CardDescription>
+                {t.textScaleDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2">
+                {TEXT_SCALE_OPTIONS_KEYS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleTextScaleChange(option.value)}
+                    className={`p-3 rounded-lg border text-center transition-all duration-200 ${
+                      preferences.text_scale === option.value
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border/50 bg-secondary/30 hover:border-primary/50'
+                    }`}
+                  >
+                    <span
+                      className="block font-medium text-foreground"
+                      style={{ fontSize: `${option.value * 0.875}rem` }}
+                    >
+                      Aa
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground mt-1">
+                      {t[option.labelKey]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                {t.currentScale}: {Math.round(preferences.text_scale * 100)}%
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Accessibility */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                {t.accessibility}
+              </CardTitle>
+              <CardDescription>
+                {t.accessibilityDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" />
+                    {t.highContrast}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {t.highContrastDesc}
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.high_contrast}
+                  onCheckedChange={handleHighContrastChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    {t.reduceMotion}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {t.reduceMotionDesc}
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.reduce_motion}
+                  onCheckedChange={handleReduceMotionChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Swipe to Delete Toggle */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-primary" />
+                {t.swipeToDelete}
+              </CardTitle>
+              <CardDescription>
+                {t.swipeToDeleteDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">{t.enableSwipe}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {t.enableSwipeDesc}
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.swipe_to_delete_enabled}
+                  onCheckedChange={(v) => updatePreference('swipe_to_delete_enabled', v)}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Screen Share Toggle */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScreenShare className="h-5 w-5 text-primary" />
+                {t.screenShare}
+              </CardTitle>
+              <CardDescription>
+                {t.screenShareDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">{t.enableScreenShare}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {t.enableScreenShareDesc}
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences.screen_share_enabled}
+                  onCheckedChange={handleScreenShareToggle}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Access Authorization */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-primary" />
+                {t.emailAccess}
+              </CardTitle>
+              <CardDescription>
+                {t.emailAccessDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {emailLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : emailConnected ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground text-sm">{t.emailActive}</div>
+                        {connectedEmail && (
+                          <div className="text-xs text-muted-foreground mt-0.5">{connectedEmail}</div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
+                      onClick={handleDisconnectEmail}
+                    >
+                      <Unlink className="w-3.5 h-3.5 mr-1" />
+                      {t.remove}
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
+                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <p>{t.emailSecurityNote}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg border border-border/50 bg-secondary/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-muted/50">
+                        <Mail className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground text-sm">{t.notConnected}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {t.connectGoogleDesc}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleConnectEmail}
+                      disabled={emailConnecting}
+                    >
+                      {emailConnecting ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Link2 className="w-4 h-4 mr-2" />
+                      )}
+                      {t.connectGoogle}
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
+                    <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <p>{t.accountSecurityNote}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Voice Chat Section */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                {t.voiceChat}
+              </CardTitle>
+              <CardDescription>
+                {t.voiceChatDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <button
+                onClick={() => navigate('/voice-chat')}
+                className="w-full p-4 rounded-lg border border-border/50 bg-secondary/30 hover:border-primary/50 hover:bg-secondary/50 transition-all duration-200 text-left flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Mic className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-foreground text-sm">{t.startVoiceChat}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {t.startVoiceChatDesc}
+                  </div>
+                </div>
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+              </button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Volume2 className="h-5 w-5 text-primary" />
+                {t.voiceSelection}
+              </CardTitle>
+              <CardDescription>
+                {t.voiceSelectionDesc}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              {voiceOptions.map((voice) => (
+                <VoiceCard
+                  key={voice.id}
+                  voice={voice}
+                  isSelected={selectedVoiceId === voice.id}
+                  onSelect={() => handleSelectVoice(voice.id)}
+                  onTest={() => testVoice(voice)}
+                  isLoading={isLoading}
+                  testLabel={t.test}
+                />
+              ))}
             </CardContent>
           </Card>
 
@@ -542,10 +532,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-primary" />
-                Bot Kişiliği
+                {t.botPersonality}
               </CardTitle>
               <CardDescription>
-                Botun size nasıl yanıt vereceğini belirleyin
+                {t.botPersonalityDesc}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
@@ -569,9 +559,10 @@ interface ThemeCardProps {
   option: ThemeOption;
   isSelected: boolean;
   onSelect: () => void;
+  t: ReturnType<typeof getTranslations>;
 }
 
-const ThemeCard = ({ option, isSelected, onSelect }: ThemeCardProps) => {
+const ThemeCard = ({ option, isSelected, onSelect, t }: ThemeCardProps) => {
   const Icon = option.icon;
   
   return (
@@ -584,8 +575,8 @@ const ThemeCard = ({ option, isSelected, onSelect }: ThemeCardProps) => {
       }`}
     >
       <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-      <div className="font-medium text-foreground text-xs sm:text-sm">{option.name}</div>
-      <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{option.description}</div>
+      <div className="font-medium text-foreground text-xs sm:text-sm">{t[option.nameKey]}</div>
+      <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{t[option.descKey]}</div>
       {isSelected && (
         <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary flex items-center justify-center mt-1">
           <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary-foreground" />
@@ -601,9 +592,10 @@ interface VoiceCardProps {
   onSelect: () => void;
   onTest: () => void;
   isLoading: boolean;
+  testLabel: string;
 }
 
-const VoiceCard = ({ voice, isSelected, onSelect, onTest, isLoading }: VoiceCardProps) => {
+const VoiceCard = ({ voice, isSelected, onSelect, onTest, isLoading, testLabel }: VoiceCardProps) => {
   return (
     <div
       className={`p-3 sm:p-4 rounded-lg border transition-all duration-200 ${
@@ -639,7 +631,7 @@ const VoiceCard = ({ voice, isSelected, onSelect, onTest, isLoading }: VoiceCard
             disabled={isLoading}
             className="text-xs h-7 px-2"
           >
-            Test
+            {testLabel}
           </Button>
           {isSelected && (
             <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">

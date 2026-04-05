@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getTranslations } from '@/utils/translations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface ChatHeaderProps {
@@ -36,19 +37,20 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
       toast({
-        title: 'Hata',
-        description: 'Çıkış yapılamadı',
+        title: t.error,
+        description: t.signOutError,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Görüşürüz!',
-        description: 'Başarıyla çıkış yaptınız',
+        title: t.goodbye,
+        description: t.signOutSuccess,
       });
     }
   };
@@ -71,7 +73,7 @@ export const ChatHeader = ({
         </div>
         <div className="hidden xs:block">
           <h1 className="font-semibold text-foreground text-glow text-sm sm:text-base">Tre</h1>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Akıllı AI Asistan</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">AI Assistant</p>
         </div>
       </div>
       
@@ -79,7 +81,7 @@ export const ChatHeader = ({
         {/* Learning mode - hidden on small screens */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
-          <span className="text-xs text-muted-foreground">Öğrenme</span>
+          <span className="text-xs text-muted-foreground">{t.learning}</span>
           <Switch
             checked={isLearningMode}
             onCheckedChange={onLearningModeChange}
