@@ -37,19 +37,20 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
       toast({
-        title: 'Hata',
-        description: 'Çıkış yapılamadı',
+        title: t.error,
+        description: t.signOutError,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Görüşürüz!',
-        description: 'Başarıyla çıkış yaptınız',
+        title: t.goodbye,
+        description: t.signOutSuccess,
       });
     }
   };
