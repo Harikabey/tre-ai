@@ -73,7 +73,7 @@ export const ChatHeader = ({
         </div>
         <div className="hidden xs:block">
           <h1 className="font-semibold text-foreground text-glow text-sm sm:text-base">Tre</h1>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Akıllı AI Asistan</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">AI Assistant</p>
         </div>
       </div>
       
