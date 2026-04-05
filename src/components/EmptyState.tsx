@@ -1,16 +1,10 @@
 import { Sparkles, Brain, Image, MessageSquare } from 'lucide-react';
+import { getTranslations } from '@/utils/translations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface EmptyStateProps {
   onSuggestionClick?: (text: string) => void;
 }
-
-const suggestions = [
-  { icon: MessageSquare, text: "Bugün nasıl yardımcı olabilirim?", color: "text-primary" },
-  { icon: Brain, text: "Bana ilginç bir şey öğret", color: "text-accent" },
-  { icon: Image, text: "🎨 Görsel oluştur: gökyüzünde uçan balıklar", color: "text-primary" },
-  { icon: Sparkles, text: "Yaratıcı bir hikaye yaz", color: "text-accent" },
-];
 
 export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
   return (
