@@ -73,7 +73,7 @@ serve(async (req) => {
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
     const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
-    const safeLanguage = typeof language === "string" && language.length <= 10 ? language : "tr";
+    // Language is now auto-detected from user messages
 
     // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
