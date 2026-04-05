@@ -157,20 +157,8 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
 - "Hımm", "Anlıyorum" gibi doğal dolgu ifadeleri ekle`
       : "";
 
-    let languageInstruction = "";
-    if (safeLanguage && safeLanguage !== "tr") {
-      const langNames: Record<string, string> = {
-        en: "English", de: "Deutsch", fr: "Français", es: "Español", it: "Italiano",
-        pt: "Português", ru: "Русский", ar: "العربية", zh: "中文", ja: "日本語",
-        ko: "한국어", hi: "हिन्दी", nl: "Nederlands", pl: "Polski", uk: "Українська",
-        sv: "Svenska", da: "Dansk", fi: "Suomi", no: "Norsk", el: "Ελληνικά",
-        hu: "Magyar", ro: "Română", bg: "Български", cs: "Čeština", he: "עברית",
-        fa: "فارسی", th: "ไทย", vi: "Tiếng Việt", id: "Bahasa Indonesia",
-        az: "Azərbaycan", ka: "ქართული",
-      };
-      const langName = langNames[safeLanguage] || safeLanguage;
-      languageInstruction = `\n\nDİL TALİMATI: Tüm yanıtlarını ${langName} dilinde ver. Başka bir dil kullanma.`;
-    }
+    // Language is auto-detected from user messages - no explicit directive needed
+    const languageInstruction = "";
 
     // Build connected accounts context
     
