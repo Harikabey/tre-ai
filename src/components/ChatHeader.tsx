@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getTranslations } from '@/utils/translations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface ChatHeaderProps {
