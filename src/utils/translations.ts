@@ -1,0 +1,451 @@
+export type UILanguage = 'tr' | 'en' | 'de' | 'fr' | 'es' | 'it' | 'pt' | 'ru' | 'ar' | 'zh' | 'ja' | 'ko';
+
+export interface Translations {
+  // Settings page
+  settings: string;
+  customizeApp: string;
+  theme: string;
+  themeDesc: string;
+  lightMode: string;
+  darkMode: string;
+  systemMode: string;
+  lightDesc: string;
+  darkDesc: string;
+  systemDesc: string;
+  textScale: string;
+  textScaleDesc: string;
+  small: string;
+  normal: string;
+  large: string;
+  extraLarge: string;
+  currentScale: string;
+  accessibility: string;
+  accessibilityDesc: string;
+  highContrast: string;
+  highContrastDesc: string;
+  reduceMotion: string;
+  reduceMotionDesc: string;
+  swipeToDelete: string;
+  swipeToDeleteDesc: string;
+  enableSwipe: string;
+  enableSwipeDesc: string;
+  screenShare: string;
+  screenShareDesc: string;
+  enableScreenShare: string;
+  enableScreenShareDesc: string;
+  emailAccess: string;
+  emailAccessDesc: string;
+  emailActive: string;
+  remove: string;
+  notConnected: string;
+  connectGoogleDesc: string;
+  connectGoogle: string;
+  emailSecurityNote: string;
+  accountSecurityNote: string;
+  voiceChat: string;
+  voiceChatDesc: string;
+  startVoiceChat: string;
+  startVoiceChatDesc: string;
+  voiceSelection: string;
+  voiceSelectionDesc: string;
+  language: string;
+  languageDesc: string;
+  searchLanguage: string;
+  noResults: string;
+  botPersonality: string;
+  botPersonalityDesc: string;
+  // ChatHeader
+  learning: string;
+  treMemory: string;
+  imageHistory: string;
+  connectedAccounts: string;
+  signOut: string;
+  signOutSuccess: string;
+  signOutError: string;
+  goodbye: string;
+  // EmptyState
+  askAnything: string;
+  teachMe: string;
+  generateImage: string;
+  writeStory: string;
+  emptyStateDesc: string;
+  // Common
+  test: string;
+  error: string;
+}
+
+const tr: Translations = {
+  settings: 'Ayarlar',
+  customizeApp: 'Uygulamayı özelleştirin',
+  theme: 'Tema',
+  themeDesc: 'Uygulama görünümünü seçin',
+  lightMode: 'Açık Mod',
+  darkMode: 'Koyu Mod',
+  systemMode: 'Sistem',
+  lightDesc: 'Aydınlık tema',
+  darkDesc: 'Karanlık tema',
+  systemDesc: 'Cihaz ayarlarını takip et',
+  textScale: 'Yazı Ölçeği',
+  textScaleDesc: 'Uygulama genelindeki yazı boyutunu ayarlayın',
+  small: 'Küçük',
+  normal: 'Normal',
+  large: 'Büyük',
+  extraLarge: 'Çok Büyük',
+  currentScale: 'Mevcut ölçek',
+  accessibility: 'Erişilebilirlik',
+  accessibilityDesc: 'Görsel erişilebilirlik tercihlerinizi ayarlayın',
+  highContrast: 'Yüksek Kontrast',
+  highContrastDesc: 'Metin ve arka plan arasındaki kontrastı artırır',
+  reduceMotion: 'Animasyonları Azalt',
+  reduceMotionDesc: 'Geçiş efektlerini ve animasyonları en aza indirir',
+  swipeToDelete: 'Kaydırarak Silme',
+  swipeToDeleteDesc: 'Sohbetteki mesajları yana kaydırarak silin',
+  enableSwipe: 'Kaydırarak Silmeyi Etkinleştir',
+  enableSwipeDesc: 'Mesajları sola kaydırarak hızlıca silebilirsiniz',
+  screenShare: 'Ekran Paylaşma',
+  screenShareDesc: 'Ekranınızı AI ile paylaşarak analiz ettirin',
+  enableScreenShare: 'Ekran Paylaşmayı Etkinleştir',
+  enableScreenShareDesc: 'Sohbet menüsünde ekran paylaşma seçeneğini göster',
+  emailAccess: 'E-posta Erişimi',
+  emailAccessDesc: "Tre'nin e-postalarınızı okumasına ve yönetmesine izin verin",
+  emailActive: 'E-posta Erişimi Aktif',
+  remove: 'Kaldır',
+  notConnected: 'Henüz bağlı değil',
+  connectGoogleDesc: "Google hesabınızı bağlayarak AI'ın e-postalarınıza erişmesini sağlayın",
+  connectGoogle: 'Google Hesabını Bağla',
+  emailSecurityNote: "Tre e-postalarınızı okuyabilir, özetleyebilir ve taslak oluşturabilir. Erişimi istediğiniz zaman kaldırabilirsiniz.",
+  accountSecurityNote: 'Hesap erişimi sadece sizin izninizle kullanılır. Verileriniz güvende tutulur.',
+  voiceChat: 'Sesli Sohbet',
+  voiceChatDesc: 'Sesli komutlarla AI ile sohbet edin',
+  startVoiceChat: 'Sesli Sohbeti Başlat',
+  startVoiceChatDesc: 'Mikrofon ile konuşarak AI ile sesli sohbet edin',
+  voiceSelection: 'Ses Seçimi',
+  voiceSelectionDesc: 'Bot cevaplarını sesli okutmak için bir ses seçin',
+  language: 'Dil',
+  languageDesc: 'Uygulama arayüz dilini seçin',
+  searchLanguage: 'Dil ara...',
+  noResults: 'Sonuç bulunamadı',
+  botPersonality: 'Bot Kişiliği',
+  botPersonalityDesc: 'Botun size nasıl yanıt vereceğini belirleyin',
+  learning: 'Öğrenme',
+  treMemory: 'Tre Hafızası',
+  imageHistory: 'Görsel Geçmişi',
+  connectedAccounts: 'Bağlı Hesaplar',
+  signOut: 'Çıkış Yap',
+  signOutSuccess: 'Başarıyla çıkış yaptınız',
+  signOutError: 'Çıkış yapılamadı',
+  goodbye: 'Görüşürüz!',
+  askAnything: 'Bugün nasıl yardımcı olabilirim?',
+  teachMe: 'Bana ilginç bir şey öğret',
+  generateImage: '🎨 Görsel oluştur: gökyüzünde uçan balıklar',
+  writeStory: 'Yaratıcı bir hikaye yaz',
+  emptyStateDesc: 'Soru sorun, fikir alın, görsel oluşturun — her konuda yanınızdayım.',
+  test: 'Test',
+  error: 'Hata',
+};
+
+const en: Translations = {
+  settings: 'Settings',
+  customizeApp: 'Customize the app',
+  theme: 'Theme',
+  themeDesc: 'Choose the app appearance',
+  lightMode: 'Light Mode',
+  darkMode: 'Dark Mode',
+  systemMode: 'System',
+  lightDesc: 'Light theme',
+  darkDesc: 'Dark theme',
+  systemDesc: 'Follow device settings',
+  textScale: 'Text Scale',
+  textScaleDesc: 'Adjust the text size across the app',
+  small: 'Small',
+  normal: 'Normal',
+  large: 'Large',
+  extraLarge: 'Extra Large',
+  currentScale: 'Current scale',
+  accessibility: 'Accessibility',
+  accessibilityDesc: 'Set your visual accessibility preferences',
+  highContrast: 'High Contrast',
+  highContrastDesc: 'Increases contrast between text and background',
+  reduceMotion: 'Reduce Motion',
+  reduceMotionDesc: 'Minimizes transitions and animations',
+  swipeToDelete: 'Swipe to Delete',
+  swipeToDeleteDesc: 'Swipe messages sideways to delete them',
+  enableSwipe: 'Enable Swipe to Delete',
+  enableSwipeDesc: 'Quickly delete messages by swiping left',
+  screenShare: 'Screen Share',
+  screenShareDesc: 'Share your screen with AI for analysis',
+  enableScreenShare: 'Enable Screen Share',
+  enableScreenShareDesc: 'Show screen share option in chat menu',
+  emailAccess: 'Email Access',
+  emailAccessDesc: 'Allow Tre to read and manage your emails',
+  emailActive: 'Email Access Active',
+  remove: 'Remove',
+  notConnected: 'Not connected yet',
+  connectGoogleDesc: 'Connect your Google account to give AI access to your emails',
+  connectGoogle: 'Connect Google Account',
+  emailSecurityNote: 'Tre can read, summarize, and draft emails. You can revoke access anytime.',
+  accountSecurityNote: 'Account access is only used with your permission. Your data is kept safe.',
+  voiceChat: 'Voice Chat',
+  voiceChatDesc: 'Chat with AI using voice commands',
+  startVoiceChat: 'Start Voice Chat',
+  startVoiceChatDesc: 'Chat with AI by speaking through your microphone',
+  voiceSelection: 'Voice Selection',
+  voiceSelectionDesc: 'Choose a voice for bot responses',
+  language: 'Language',
+  languageDesc: 'Choose the app interface language',
+  searchLanguage: 'Search language...',
+  noResults: 'No results found',
+  botPersonality: 'Bot Personality',
+  botPersonalityDesc: 'Choose how the bot responds to you',
+  learning: 'Learning',
+  treMemory: 'Tre Memory',
+  imageHistory: 'Image History',
+  connectedAccounts: 'Connected Accounts',
+  signOut: 'Sign Out',
+  signOutSuccess: 'Successfully signed out',
+  signOutError: 'Could not sign out',
+  goodbye: 'Goodbye!',
+  askAnything: 'How can I help you today?',
+  teachMe: 'Teach me something interesting',
+  generateImage: '🎨 Generate image: fish flying in the sky',
+  writeStory: 'Write a creative story',
+  emptyStateDesc: 'Ask questions, get ideas, generate images — I\'m here for everything.',
+  test: 'Test',
+  error: 'Error',
+};
+
+const de: Translations = {
+  settings: 'Einstellungen',
+  customizeApp: 'App anpassen',
+  theme: 'Design',
+  themeDesc: 'App-Erscheinungsbild wählen',
+  lightMode: 'Hell',
+  darkMode: 'Dunkel',
+  systemMode: 'System',
+  lightDesc: 'Helles Design',
+  darkDesc: 'Dunkles Design',
+  systemDesc: 'Geräteeinstellungen folgen',
+  textScale: 'Textgröße',
+  textScaleDesc: 'Textgröße in der gesamten App anpassen',
+  small: 'Klein',
+  normal: 'Normal',
+  large: 'Groß',
+  extraLarge: 'Sehr Groß',
+  currentScale: 'Aktuelle Skalierung',
+  accessibility: 'Barrierefreiheit',
+  accessibilityDesc: 'Visuelle Barrierefreiheit einstellen',
+  highContrast: 'Hoher Kontrast',
+  highContrastDesc: 'Erhöht den Kontrast zwischen Text und Hintergrund',
+  reduceMotion: 'Bewegung reduzieren',
+  reduceMotionDesc: 'Übergänge und Animationen minimieren',
+  swipeToDelete: 'Wischen zum Löschen',
+  swipeToDeleteDesc: 'Nachrichten durch Wischen löschen',
+  enableSwipe: 'Wischen zum Löschen aktivieren',
+  enableSwipeDesc: 'Nachrichten durch Linkswischen schnell löschen',
+  screenShare: 'Bildschirmfreigabe',
+  screenShareDesc: 'Teilen Sie Ihren Bildschirm mit der KI zur Analyse',
+  enableScreenShare: 'Bildschirmfreigabe aktivieren',
+  enableScreenShareDesc: 'Option zur Bildschirmfreigabe im Chat-Menü anzeigen',
+  emailAccess: 'E-Mail-Zugriff',
+  emailAccessDesc: 'Erlauben Sie Tre, Ihre E-Mails zu lesen und zu verwalten',
+  emailActive: 'E-Mail-Zugriff aktiv',
+  remove: 'Entfernen',
+  notConnected: 'Noch nicht verbunden',
+  connectGoogleDesc: 'Verbinden Sie Ihr Google-Konto, um der KI Zugriff auf Ihre E-Mails zu geben',
+  connectGoogle: 'Google-Konto verbinden',
+  emailSecurityNote: 'Tre kann E-Mails lesen, zusammenfassen und Entwürfe erstellen. Zugriff jederzeit widerrufbar.',
+  accountSecurityNote: 'Kontozugriff wird nur mit Ihrer Erlaubnis verwendet. Ihre Daten sind sicher.',
+  voiceChat: 'Sprachchat',
+  voiceChatDesc: 'Mit KI per Sprachbefehle chatten',
+  startVoiceChat: 'Sprachchat starten',
+  startVoiceChatDesc: 'Sprechen Sie über das Mikrofon mit der KI',
+  voiceSelection: 'Stimmauswahl',
+  voiceSelectionDesc: 'Wählen Sie eine Stimme für Bot-Antworten',
+  language: 'Sprache',
+  languageDesc: 'Sprache der App-Oberfläche wählen',
+  searchLanguage: 'Sprache suchen...',
+  noResults: 'Keine Ergebnisse gefunden',
+  botPersonality: 'Bot-Persönlichkeit',
+  botPersonalityDesc: 'Bestimmen Sie, wie der Bot antwortet',
+  learning: 'Lernen',
+  treMemory: 'Tre Gedächtnis',
+  imageHistory: 'Bildverlauf',
+  connectedAccounts: 'Verbundene Konten',
+  signOut: 'Abmelden',
+  signOutSuccess: 'Erfolgreich abgemeldet',
+  signOutError: 'Abmeldung fehlgeschlagen',
+  goodbye: 'Auf Wiedersehen!',
+  askAnything: 'Wie kann ich Ihnen heute helfen?',
+  teachMe: 'Lehre mich etwas Interessantes',
+  generateImage: '🎨 Bild erstellen: fliegende Fische am Himmel',
+  writeStory: 'Schreibe eine kreative Geschichte',
+  emptyStateDesc: 'Stellen Sie Fragen, holen Sie sich Ideen, erstellen Sie Bilder — ich bin für alles da.',
+  test: 'Test',
+  error: 'Fehler',
+};
+
+const fr: Translations = {
+  settings: 'Paramètres',
+  customizeApp: "Personnaliser l'application",
+  theme: 'Thème',
+  themeDesc: "Choisir l'apparence de l'application",
+  lightMode: 'Clair',
+  darkMode: 'Sombre',
+  systemMode: 'Système',
+  lightDesc: 'Thème clair',
+  darkDesc: 'Thème sombre',
+  systemDesc: "Suivre les paramètres de l'appareil",
+  textScale: 'Taille du texte',
+  textScaleDesc: "Ajuster la taille du texte dans l'application",
+  small: 'Petit',
+  normal: 'Normal',
+  large: 'Grand',
+  extraLarge: 'Très Grand',
+  currentScale: 'Échelle actuelle',
+  accessibility: 'Accessibilité',
+  accessibilityDesc: "Définir vos préférences d'accessibilité visuelle",
+  highContrast: 'Contraste élevé',
+  highContrastDesc: 'Augmente le contraste entre le texte et le fond',
+  reduceMotion: 'Réduire les animations',
+  reduceMotionDesc: 'Minimise les transitions et animations',
+  swipeToDelete: 'Glisser pour supprimer',
+  swipeToDeleteDesc: 'Glissez les messages pour les supprimer',
+  enableSwipe: 'Activer glisser pour supprimer',
+  enableSwipeDesc: 'Supprimez rapidement les messages en glissant vers la gauche',
+  screenShare: "Partage d'écran",
+  screenShareDesc: "Partagez votre écran avec l'IA pour analyse",
+  enableScreenShare: "Activer le partage d'écran",
+  enableScreenShareDesc: "Afficher l'option de partage d'écran dans le menu",
+  emailAccess: 'Accès e-mail',
+  emailAccessDesc: 'Autoriser Tre à lire et gérer vos e-mails',
+  emailActive: 'Accès e-mail actif',
+  remove: 'Supprimer',
+  notConnected: 'Pas encore connecté',
+  connectGoogleDesc: "Connectez votre compte Google pour donner accès à vos e-mails à l'IA",
+  connectGoogle: 'Connecter un compte Google',
+  emailSecurityNote: 'Tre peut lire, résumer et rédiger des e-mails. Vous pouvez révoquer l\'accès à tout moment.',
+  accountSecurityNote: "L'accès au compte n'est utilisé qu'avec votre permission. Vos données sont protégées.",
+  voiceChat: 'Chat vocal',
+  voiceChatDesc: "Discutez avec l'IA par commandes vocales",
+  startVoiceChat: 'Démarrer le chat vocal',
+  startVoiceChatDesc: "Parlez à l'IA via votre microphone",
+  voiceSelection: 'Sélection de voix',
+  voiceSelectionDesc: 'Choisissez une voix pour les réponses du bot',
+  language: 'Langue',
+  languageDesc: "Choisir la langue de l'interface",
+  searchLanguage: 'Rechercher une langue...',
+  noResults: 'Aucun résultat trouvé',
+  botPersonality: 'Personnalité du bot',
+  botPersonalityDesc: 'Choisissez comment le bot vous répond',
+  learning: 'Apprentissage',
+  treMemory: 'Mémoire de Tre',
+  imageHistory: 'Historique des images',
+  connectedAccounts: 'Comptes connectés',
+  signOut: 'Se déconnecter',
+  signOutSuccess: 'Déconnexion réussie',
+  signOutError: 'Échec de la déconnexion',
+  goodbye: 'Au revoir !',
+  askAnything: "Comment puis-je vous aider aujourd'hui ?",
+  teachMe: "Apprends-moi quelque chose d'intéressant",
+  generateImage: '🎨 Générer une image : poissons volants dans le ciel',
+  writeStory: 'Écris une histoire créative',
+  emptyStateDesc: "Posez des questions, obtenez des idées, générez des images — je suis là pour tout.",
+  test: 'Test',
+  error: 'Erreur',
+};
+
+const es: Translations = {
+  settings: 'Configuración',
+  customizeApp: 'Personalizar la aplicación',
+  theme: 'Tema',
+  themeDesc: 'Elige la apariencia de la aplicación',
+  lightMode: 'Claro',
+  darkMode: 'Oscuro',
+  systemMode: 'Sistema',
+  lightDesc: 'Tema claro',
+  darkDesc: 'Tema oscuro',
+  systemDesc: 'Seguir ajustes del dispositivo',
+  textScale: 'Escala de texto',
+  textScaleDesc: 'Ajustar el tamaño del texto en la aplicación',
+  small: 'Pequeño',
+  normal: 'Normal',
+  large: 'Grande',
+  extraLarge: 'Muy Grande',
+  currentScale: 'Escala actual',
+  accessibility: 'Accesibilidad',
+  accessibilityDesc: 'Configurar preferencias de accesibilidad visual',
+  highContrast: 'Alto contraste',
+  highContrastDesc: 'Aumenta el contraste entre texto y fondo',
+  reduceMotion: 'Reducir movimiento',
+  reduceMotionDesc: 'Minimiza transiciones y animaciones',
+  swipeToDelete: 'Deslizar para eliminar',
+  swipeToDeleteDesc: 'Desliza los mensajes para eliminarlos',
+  enableSwipe: 'Activar deslizar para eliminar',
+  enableSwipeDesc: 'Elimina mensajes rápidamente deslizando a la izquierda',
+  screenShare: 'Compartir pantalla',
+  screenShareDesc: 'Comparte tu pantalla con la IA para análisis',
+  enableScreenShare: 'Activar compartir pantalla',
+  enableScreenShareDesc: 'Mostrar opción de compartir pantalla en el menú',
+  emailAccess: 'Acceso al correo',
+  emailAccessDesc: 'Permitir que Tre lea y gestione tus correos',
+  emailActive: 'Acceso al correo activo',
+  remove: 'Eliminar',
+  notConnected: 'Aún no conectado',
+  connectGoogleDesc: 'Conecta tu cuenta de Google para dar acceso a tus correos a la IA',
+  connectGoogle: 'Conectar cuenta de Google',
+  emailSecurityNote: 'Tre puede leer, resumir y redactar correos. Puedes revocar el acceso en cualquier momento.',
+  accountSecurityNote: 'El acceso a la cuenta solo se usa con tu permiso. Tus datos están seguros.',
+  voiceChat: 'Chat de voz',
+  voiceChatDesc: 'Chatea con la IA usando comandos de voz',
+  startVoiceChat: 'Iniciar chat de voz',
+  startVoiceChatDesc: 'Habla con la IA a través de tu micrófono',
+  voiceSelection: 'Selección de voz',
+  voiceSelectionDesc: 'Elige una voz para las respuestas del bot',
+  language: 'Idioma',
+  languageDesc: 'Elige el idioma de la interfaz',
+  searchLanguage: 'Buscar idioma...',
+  noResults: 'No se encontraron resultados',
+  botPersonality: 'Personalidad del bot',
+  botPersonalityDesc: 'Elige cómo te responde el bot',
+  learning: 'Aprendizaje',
+  treMemory: 'Memoria de Tre',
+  imageHistory: 'Historial de imágenes',
+  connectedAccounts: 'Cuentas conectadas',
+  signOut: 'Cerrar sesión',
+  signOutSuccess: 'Sesión cerrada correctamente',
+  signOutError: 'No se pudo cerrar sesión',
+  goodbye: '¡Adiós!',
+  askAnything: '¿Cómo puedo ayudarte hoy?',
+  teachMe: 'Enséñame algo interesante',
+  generateImage: '🎨 Generar imagen: peces volando en el cielo',
+  writeStory: 'Escribe una historia creativa',
+  emptyStateDesc: 'Haz preguntas, obtén ideas, genera imágenes — estoy aquí para todo.',
+  test: 'Test',
+  error: 'Error',
+};
+
+// Fallback for unsupported languages - use English
+const allTranslations: Record<UILanguage, Translations> = {
+  tr,
+  en,
+  de,
+  fr,
+  es,
+  it: en, // fallback to English
+  pt: en,
+  ru: en,
+  ar: en,
+  zh: en,
+  ja: en,
+  ko: en,
+};
+
+export function getTranslations(langCode: string): Translations {
+  const key = langCode as UILanguage;
+  return allTranslations[key] || en;
+}
+
+export function useTranslations(): Translations {
+  const lang = localStorage.getItem('ai_chatbot_language') || 'tr';
+  return getTranslations(lang);
+}
