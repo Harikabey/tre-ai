@@ -1,5 +1,3 @@
-export type UILanguage = 'tr' | 'en' | 'de' | 'fr' | 'es' | 'it' | 'pt' | 'ru' | 'ar' | 'zh' | 'ja' | 'ko';
-
 export interface Translations {
   // Settings page
   settings: string;
@@ -424,25 +422,116 @@ const es: Translations = {
   error: 'Error',
 };
 
-// Fallback for unsupported languages - use English
-const allTranslations: Record<UILanguage, Translations> = {
-  tr,
-  en,
-  de,
-  fr,
-  es,
-  it: en, // fallback to English
-  pt: en,
-  ru: en,
-  ar: en,
-  zh: en,
-  ja: en,
-  ko: en,
+// Hardcoded translations
+const hardcodedTranslations: Record<string, Translations> = {
+  tr, en, de, fr, es,
 };
 
+const CACHE_KEY_PREFIX = 'ui_translations_cache_';
+const CACHE_VERSION = 'v1';
+
+function getCacheKey(langCode: string): string {
+  return `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${langCode}`;
+}
+
+function getCachedTranslation(langCode: string): Translations | null {
+  try {
+    const cached = localStorage.getItem(getCacheKey(langCode));
+    if (cached) {
+      return JSON.parse(cached) as Translations;
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedTranslation(langCode: string, translations: Translations): void {
+  try {
+    localStorage.setItem(getCacheKey(langCode), JSON.stringify(translations));
+  } catch {}
+}
+
+// Translate all UI strings dynamically using the translate-message edge function
+export async function translateUIStrings(targetLanguage: string): Promise<Translations | null> {
+  // Check cache first
+  const cached = getCachedTranslation(targetLanguage);
+  if (cached) return cached;
+
+  try {
+    const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return null;
+
+    const { getLanguageByCode } = await import('@/types/language');
+    const langInfo = getLanguageByCode(targetLanguage);
+
+    // Send all English strings as a JSON block to translate in one call
+    const textToTranslate = JSON.stringify(en);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-message`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          text: textToTranslate,
+          targetLanguage: langInfo.nativeName,
+        }),
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const translatedText = data.translatedText || '';
+
+    // Parse the translated JSON
+    // The AI might wrap it in markdown code blocks, so clean it
+    const cleaned = translatedText
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    const parsed = JSON.parse(cleaned) as Translations;
+
+    // Validate that all keys exist
+    const allKeys = Object.keys(en) as (keyof Translations)[];
+    const isValid = allKeys.every(key => typeof parsed[key] === 'string' && parsed[key].length > 0);
+
+    if (isValid) {
+      setCachedTranslation(targetLanguage, parsed);
+      return parsed;
+    }
+
+    // If some keys are missing, fill them from English
+    const merged = { ...en };
+    for (const key of allKeys) {
+      if (typeof parsed[key] === 'string' && parsed[key].length > 0) {
+        merged[key] = parsed[key];
+      }
+    }
+    setCachedTranslation(targetLanguage, merged);
+    return merged;
+  } catch (err) {
+    console.error('Dynamic translation failed:', err);
+    return null;
+  }
+}
+
 export function getTranslations(langCode: string): Translations {
-  const key = langCode as UILanguage;
-  return allTranslations[key] || en;
+  // Return hardcoded if available
+  if (hardcodedTranslations[langCode]) {
+    return hardcodedTranslations[langCode];
+  }
+
+  // Check localStorage cache for dynamically translated strings
+  const cached = getCachedTranslation(langCode);
+  if (cached) return cached;
+
+  // Fallback to English (dynamic translation will be triggered separately)
+  return en;
 }
 
 export function useTranslations(): Translations {
