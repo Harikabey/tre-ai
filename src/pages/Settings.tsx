@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useReducer } from 'react';
 import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
-import { getTranslations } from '@/utils/translations';
+import { getTranslations, translateUIStrings } from '@/utils/translations';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -48,6 +48,8 @@ const Settings = () => {
   const [emailConnecting, setEmailConnecting] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+  const [translating, setTranslating] = useState(false);
 
   const t = getTranslations(preferences.language);
 
@@ -132,8 +134,18 @@ const Settings = () => {
     updatePreference('personality', id);
   };
 
-  const handleSelectLanguage = (code: string) => {
+  const handleSelectLanguage = async (code: string) => {
     updatePreference('language', code);
+    // For non-hardcoded languages, trigger dynamic translation
+    const hardcoded = ['tr', 'en', 'de', 'fr', 'es'];
+    if (!hardcoded.includes(code)) {
+      setTranslating(true);
+      const result = await translateUIStrings(code);
+      setTranslating(false);
+      if (result) {
+        forceUpdate();
+      }
+    }
   };
 
   const handleScreenShareToggle = (enabled: boolean) => {
@@ -192,7 +204,12 @@ const Settings = () => {
                 {t.language}
               </CardTitle>
               <CardDescription>
-                {t.languageDesc}
+                {translating ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t.languageDesc}
+                  </span>
+                ) : t.languageDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
