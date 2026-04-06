@@ -48,6 +48,8 @@ const Settings = () => {
   const [emailConnecting, setEmailConnecting] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+  const [translating, setTranslating] = useState(false);
 
   const t = getTranslations(preferences.language);
 
