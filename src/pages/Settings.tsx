@@ -134,8 +134,18 @@ const Settings = () => {
     updatePreference('personality', id);
   };
 
-  const handleSelectLanguage = (code: string) => {
+  const handleSelectLanguage = async (code: string) => {
     updatePreference('language', code);
+    // For non-hardcoded languages, trigger dynamic translation
+    const hardcoded = ['tr', 'en', 'de', 'fr', 'es'];
+    if (!hardcoded.includes(code)) {
+      setTranslating(true);
+      const result = await translateUIStrings(code);
+      setTranslating(false);
+      if (result) {
+        forceUpdate();
+      }
+    }
   };
 
   const handleScreenShareToggle = (enabled: boolean) => {
