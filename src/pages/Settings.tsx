@@ -204,7 +204,12 @@ const Settings = () => {
                 {t.language}
               </CardTitle>
               <CardDescription>
-                {t.languageDesc}
+                {translating ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t.languageDesc}
+                  </span>
+                ) : t.languageDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
