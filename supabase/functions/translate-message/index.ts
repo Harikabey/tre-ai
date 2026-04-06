@@ -33,13 +33,15 @@ serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+    const isJson = text.trim().startsWith('{') && text.trim().endsWith('}');
+    const systemPrompt = isJson
+      ? `You are a translator. The input is a JSON object with string values. Translate ALL string values to ${targetLanguage}. Keep the JSON keys exactly the same. Output ONLY valid JSON, nothing else. No markdown code blocks.`
+      : `You are a translator. Translate the given text to ${targetLanguage}. Output ONLY the translated text, nothing else. Preserve markdown formatting.`;
+
     const requestBody = JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-2.5-flash",
       messages: [
-        {
-          role: "system",
-          content: `You are a translator. Translate the given text to ${targetLanguage}. Output ONLY the translated text, nothing else. Preserve markdown formatting.`,
-        },
+        { role: "system", content: systemPrompt },
         { role: "user", content: text },
       ],
     });
