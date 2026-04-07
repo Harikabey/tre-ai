@@ -245,6 +245,15 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </div>
         )}
 
+        {/* Downloadable file blocks */}
+        {downloadableFiles.length > 0 && (
+          <div className="mb-2">
+            {downloadableFiles.map((file, index) => (
+              <FileDownloadBlock key={index} file={file} />
+            ))}
+          </div>
+        )}
+
         {displayContent && (
           isBot ? (
             <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
