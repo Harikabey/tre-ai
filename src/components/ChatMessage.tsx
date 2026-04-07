@@ -7,6 +7,7 @@ import { useVoice } from '@/hooks/useVoice';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
+import { parseFileBlocks, FileDownloadBlock } from '@/components/FileDownloadBlock';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/types/language';
@@ -87,7 +88,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     return { cleanContent: message.content, sources: [] };
   }, [message.content, isBot]);
 
-  let displayContent = contentWithoutSources
+  // Parse file blocks for download
+  const { cleanContent: contentWithoutFiles, files: downloadableFiles } = useMemo(() => {
+    if (isBot) return parseFileBlocks(contentWithoutSources);
+    return { cleanContent: contentWithoutSources, files: [] };
+  }, [contentWithoutSources, isBot]);
+
+  let displayContent = contentWithoutFiles
     .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
