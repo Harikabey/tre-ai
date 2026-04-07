@@ -205,12 +205,10 @@ export const ChatInput = ({
           }
         } else {
           // Read document content if it's a readable file type
-          const readableTypes = ['text/plain', 'application/json', 'text/csv', 'text/markdown'];
-          const isReadable = readableTypes.some(type => selectedFile.type.includes(type)) ||
-            selectedFile.name.match(/\.(txt|json|csv|md)$/i);
+          // Almost all non-image/non-video files are readable
+          const isNonReadable = selectedFile.name.match(/\.(zip|rar|7z|tar|gz|bz2|xz|exe|dll|so|bin)$/i);
           
-          if (isReadable || selectedFile.type.includes('application/pdf') || 
-              selectedFile.name.match(/\.(doc|docx)$/i)) {
+          if (!isNonReadable) {
             documentContent = await readDocument(url, selectedFile.name, selectedFile.type);
           }
         }
@@ -316,7 +314,7 @@ export const ChatInput = ({
       } else if (type === 'video') {
         fileInputRef.current.accept = 'video/*';
       } else {
-        fileInputRef.current.accept = '.pdf,.doc,.docx,.txt,.json,.csv,.md';
+        fileInputRef.current.accept = '.pdf,.doc,.docx,.txt,.json,.csv,.md,.mdx,.xlsx,.xls,.ods,.pptx,.ppt,.odp,.odt,.rtf,.html,.htm,.css,.xml,.svg,.yaml,.yml,.toml,.js,.jsx,.ts,.tsx,.py,.rb,.go,.rs,.java,.kt,.swift,.c,.cpp,.h,.hpp,.cs,.php,.sql,.sh,.bash,.lua,.r,.dart,.vue,.svelte,.log,.ini,.cfg,.conf,.env,.graphql,.proto,.makefile,.dockerfile,.gradle,.groovy,.pl,.ex,.hs,.zip,.rar,.7z,.tar,.gz';
       }
       fileInputRef.current.click();
     }
