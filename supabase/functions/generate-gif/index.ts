@@ -133,7 +133,8 @@ serve(async (req) => {
             const errorText = await response.text();
             console.error(`${attempt.name} frame error: ${response.status} - ${errorText.slice(0, 200)}`);
             if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
-              throw new Error("API kredi limiti aşıldı.");
+              console.error(`${attempt.name}: credits exhausted, trying next provider`);
+              continue;
             }
             continue;
           }
