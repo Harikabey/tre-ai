@@ -87,14 +87,6 @@ serve(async (req) => {
       }
     }
 
-    // Fallback to Lovable gateway
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-    }
 
     if (!response || !response.ok) {
       console.error("AI gateway error:", response?.status);
