@@ -50,7 +50,7 @@ serve(async (req) => {
     if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
 
     const requestBody = JSON.stringify({
-      model: "google/gemini-3-pro-image-preview",
+      model: "google/gemini-3.1-flash-image-preview",
       messages: [{
         role: "user",
         content: `Generate ONE high-quality image. Visually depict this request: ${prompt}. If the request is abstract, create a symbolic/illustrative scene. Do not refuse; always produce an image.`,
@@ -60,27 +60,33 @@ serve(async (req) => {
 
     let response: Response | null = null;
 
-    // Try OpenRouter first
-    if (OPENROUTER_API_KEY) {
+    // Try Lovable gateway first (more reliable), then OpenRouter
+    if (LOVABLE_API_KEY) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Lovable gateway error:", response.status, errText.slice(0, 200));
+        response = null;
+      }
+    }
+
+    // Fallback to OpenRouter
+    if (!response && OPENROUTER_API_KEY) {
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
         body: requestBody,
       });
       if (!response.ok) {
-        console.error("OpenRouter error:", response.status, "- falling back to Lovable gateway");
+        console.error("OpenRouter error:", response.status, "- both gateways failed");
         response = null;
       }
     }
 
-    // Fallback to Lovable gateway
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-    }
 
     if (!response || !response.ok) {
       console.error("AI gateway error:", response?.status);

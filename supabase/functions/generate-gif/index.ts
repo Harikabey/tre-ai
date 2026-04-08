@@ -20,11 +20,7 @@ serve(async (req) => {
       });
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
@@ -47,72 +43,115 @@ serve(async (req) => {
     // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-    if (!apiKey) throw new Error("API key is not configured");
+    if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
 
     console.log(`Generating ${numFrames} frames for GIF with prompt:`, prompt);
 
-    const generateFrame = async (framePrompt: string, referenceImageUrl?: string): Promise<string | null> => {
-      try {
-        const messages: any[] = [];
-        if (referenceImageUrl) {
-          messages.push({
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: referenceImageUrl } },
-              { type: "text", text: framePrompt },
-            ],
-          });
-        } else {
-          messages.push({ role: "user", content: framePrompt });
-        }
-
-        const requestBody = JSON.stringify({ model: "google/gemini-3-pro-image-preview", messages, modalities: ["image", "text"] });
-
-        let response: Response | null = null;
-
-        // Try OpenRouter first
-        if (OPENROUTER_API_KEY) {
-          response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-            body: requestBody,
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
-              throw new Error("API kredi limiti aşıldı.");
-            }
-            console.error("OpenRouter frame error:", response.status, "- falling back");
-            response = null;
+    const extractImageUrl = (data: any): string | null => {
+      // Check images array (Lovable gateway format)
+      const images = data.choices?.[0]?.message?.images;
+      if (images && images.length > 0) {
+        const img = images[0];
+        if (typeof img === "string") return img;
+        if (img?.image_url?.url) return img.image_url.url;
+        if (img?.url) return img.url;
+      }
+      // Check inline_data in parts (Gemini native format)
+      const parts = data.choices?.[0]?.message?.parts;
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          if (part.inline_data?.data) {
+            return `data:${part.inline_data.mime_type || "image/png"};base64,${part.inline_data.data}`;
           }
         }
+      }
+      // Check content for base64 data URI
+      const textContent = data.choices?.[0]?.message?.content || "";
+      if (typeof textContent === "string") {
+        const base64Match = textContent.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
+        if (base64Match) return base64Match[0];
+      }
+      // Check if content is an array of parts (OpenAI multimodal format)
+      if (Array.isArray(textContent)) {
+        for (const part of textContent) {
+          if (part.type === "image_url" && part.image_url?.url) return part.image_url.url;
+        }
+      }
+      return null;
+    };
 
-        // Fallback to Lovable gateway
-        if (!response && LOVABLE_API_KEY) {
-          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const generateFrame = async (framePrompt: string, referenceImageUrl?: string): Promise<string | null> => {
+      const messages: any[] = [];
+      if (referenceImageUrl) {
+        messages.push({
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: referenceImageUrl } },
+            { type: "text", text: framePrompt },
+          ],
+        });
+      } else {
+        messages.push({ role: "user", content: framePrompt });
+      }
+
+      const requestBody = JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        messages,
+        modalities: ["image", "text"],
+      });
+
+      // Try Lovable gateway first (more reliable), then OpenRouter
+      const attempts = [];
+      if (LOVABLE_API_KEY) {
+        attempts.push({
+          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+          key: LOVABLE_API_KEY,
+          name: "Lovable",
+        });
+      }
+      if (OPENROUTER_API_KEY) {
+        attempts.push({
+          url: "https://openrouter.ai/api/v1/chat/completions",
+          key: OPENROUTER_API_KEY,
+          name: "OpenRouter",
+        });
+      }
+
+      for (const attempt of attempts) {
+        try {
+          const response = await fetch(attempt.url, {
             method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            headers: {
+              Authorization: `Bearer ${attempt.key}`,
+              "Content-Type": "application/json",
+            },
             body: requestBody,
           });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`${attempt.name} frame error: ${response.status} - ${errorText.slice(0, 200)}`);
+            if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
+              console.error(`${attempt.name}: credits exhausted, trying next provider`);
+              continue;
+            }
+            continue;
+          }
+
+          const data = await response.json();
+          const imageUrl = extractImageUrl(data);
+          if (imageUrl) {
+            console.log(`Frame generated via ${attempt.name}`);
+            return imageUrl;
+          }
+          console.error(`${attempt.name}: no image found in response keys:`, Object.keys(data.choices?.[0]?.message || {}));
+        } catch (err) {
+          if (err instanceof Error && err.message.includes("kredi")) throw err;
+          console.error(`${attempt.name} fetch error:`, err);
         }
-
-        if (!response || !response.ok) return null;
-
-        const data = await response.json();
-        const images = data.choices?.[0]?.message?.images;
-        if (images && images.length > 0) return images[0]?.image_url?.url;
-        const textContent = data.choices?.[0]?.message?.content || "";
-        const base64Match = textContent.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
-        return base64Match ? base64Match[0] : null;
-      } catch (err) {
-        console.error("Frame fetch error:", err);
-        return null;
       }
+      return null;
     };
 
     const imageUrls: string[] = [];
@@ -134,7 +173,7 @@ serve(async (req) => {
       if (frame) imageUrls.push(frame);
     }
 
-    if (imageUrls.length < 2) throw new Error("Yeterli kare oluşturulamadı.");
+    if (imageUrls.length < 2) throw new Error("Yeterli kare oluşturulamadı. Lütfen tekrar deneyin.");
 
     return new Response(
       JSON.stringify({ frames: imageUrls, frameCount: imageUrls.length, delay: 500 }),
