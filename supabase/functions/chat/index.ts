@@ -93,16 +93,19 @@ serve(async (req) => {
     // Language is now auto-detected from user messages
 
     // --- API Setup ---
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    // Prefer Lovable AI Gateway (built-in, no extra credits needed beyond workspace usage).
+    // Fall back to OpenRouter only if Lovable key is missing.
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("API key is not configured");
 
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const apiUrl = LOVABLE_API_KEY
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
 
-    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+    // Token-efficient default: gemini-2.5-flash-lite for fast mode, 2.5-pro only for deep mode.
+    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash-lite";
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
