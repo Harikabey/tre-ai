@@ -93,16 +93,19 @@ serve(async (req) => {
     // Language is now auto-detected from user messages
 
     // --- API Setup ---
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    // Prefer Lovable AI Gateway (built-in, no extra credits needed beyond workspace usage).
+    // Fall back to OpenRouter only if Lovable key is missing.
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("API key is not configured");
 
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const apiUrl = LOVABLE_API_KEY
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
 
-    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+    // Token-efficient default: gemini-2.5-flash-lite for fast mode, 2.5-pro only for deep mode.
+    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash-lite";
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
@@ -301,12 +304,12 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       }),
     });
 
-    // Fallback
-    if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
-      console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Fallback: if Lovable gateway fails, try OpenRouter as backup
+    if (!response.ok && LOVABLE_API_KEY && OPENROUTER_API_KEY) {
+      console.warn("Lovable gateway failed with", response.status, "- falling back to OpenRouter");
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
           messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
