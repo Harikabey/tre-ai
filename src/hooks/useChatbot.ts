@@ -362,6 +362,28 @@ export const useChatbot = () => {
     }
   }, []);
 
+  const generatePptx = useCallback(async (prompt: string): Promise<{ url: string; fileName: string; title: string; slideCount: number } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(GENERATE_PPTX_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!response.ok) throw new Error('PPTX oluşturulamadı');
+      const data = await response.json();
+      if (!data.url) return null;
+      return { url: data.url, fileName: data.fileName, title: data.title, slideCount: data.slideCount };
+    } catch (error) {
+      console.error('PPTX generation error:', error);
+      return null;
+    }
+  }, []);
+
   // Detect if user message requires a Google API call
   const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
     const lower = message.toLowerCase();
