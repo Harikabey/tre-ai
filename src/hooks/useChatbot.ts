@@ -15,6 +15,7 @@ const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
+const GENERATE_PPTX_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pptx`;
 const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-api`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
