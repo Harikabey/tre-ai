@@ -15,6 +15,7 @@ const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
+const GENERATE_PPTX_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pptx`;
 const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-api`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
@@ -361,6 +362,28 @@ export const useChatbot = () => {
     }
   }, []);
 
+  const generatePptx = useCallback(async (prompt: string): Promise<{ url: string; fileName: string; title: string; slideCount: number } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(GENERATE_PPTX_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!response.ok) throw new Error('PPTX oluşturulamadı');
+      const data = await response.json();
+      if (!data.url) return null;
+      return { url: data.url, fileName: data.fileName, title: data.title, slideCount: data.slideCount };
+    } catch (error) {
+      console.error('PPTX generation error:', error);
+      return null;
+    }
+  }, []);
+
   // Detect if user message requires a Google API call
   const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
     const lower = message.toLowerCase();
@@ -552,6 +575,24 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
+      } else if (/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation|sunum hazırla|sunum oluştur|sunum yap)\b/i.test(trimmedInput)) {
+        // PPTX generation intent
+        const pptxPrompt = trimmedInput
+          .replace(/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation)\b/gi, '')
+          .replace(/\b(hazırla|oluştur|yap|yarat|üret|ver)\b/gi, '')
+          .replace(/\bbana\b/gi, '')
+          .trim() || trimmedInput;
+        updateLastBotMessage('📊 PowerPoint sunumu hazırlanıyor... (slaytlar tasarlanıyor)');
+        const result = await generatePptx(pptxPrompt);
+        if (result) {
+          const responseContent = `İşte hazırladığım sunum: **${result.title}** (${result.slideCount} slayt)\n\n[Ek dosya: ${result.fileName}](${result.url})`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ Sunum oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
       } else {
         // Check if user is requesting a connected account action
         const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
@@ -641,7 +682,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
