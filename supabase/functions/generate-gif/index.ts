@@ -99,6 +99,7 @@ serve(async (req) => {
         model: "google/gemini-3.1-flash-image-preview",
         messages,
         modalities: ["image", "text"],
+        max_tokens: 8192,
       });
 
       // Try Lovable gateway first (more reliable), then OpenRouter
