@@ -6,6 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-voice-mode",
 };
 
+const streamErrorMessage = (message: string) => {
+  const encoder = new TextEncoder();
+  const payload = JSON.stringify({ choices: [{ delta: { content: message } }] });
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -302,18 +319,12 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit aşıldı. Lütfen biraz bekleyin." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return streamErrorMessage("⚠️ Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.");
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Kullanım limiti doldu. Lütfen kredinizi kontrol edin." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return streamErrorMessage("⚠️ Yapay zeka sağlayıcısının kullanım limiti dolduğu için şu an yanıt üretemiyorum. Lütfen OpenRouter bakiyenizi veya Lovable AI bakiyenizi kontrol edip tekrar deneyin.");
       }
-      return new Response(JSON.stringify({ error: "AI servisi şu anda kullanılamıyor." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return streamErrorMessage("⚠️ AI servisi şu anda kullanılamıyor. Lütfen biraz sonra tekrar deneyin.");
     }
 
     return new Response(response.body, {
@@ -321,8 +332,6 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
     });
   } catch (error) {
     console.error("Chat function error:", error);
-    return new Response(JSON.stringify({ error: "Bilinmeyen hata" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return streamErrorMessage("⚠️ Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.");
   }
 });
