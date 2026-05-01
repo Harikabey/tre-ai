@@ -229,7 +229,15 @@ Deno.serve(async (req) => {
     const buffer = await buildPptx(deck);
 
     const safeName = (deck.title || "sunum")
-      .replace(/[^\p{L}\p{N}\s-]/gu, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[ıİ]/g, (c) => (c === "ı" ? "i" : "I"))
+      .replace(/[şŞ]/g, (c) => (c === "ş" ? "s" : "S"))
+      .replace(/[ğĞ]/g, (c) => (c === "ğ" ? "g" : "G"))
+      .replace(/[çÇ]/g, (c) => (c === "ç" ? "c" : "C"))
+      .replace(/[öÖ]/g, (c) => (c === "ö" ? "o" : "O"))
+      .replace(/[üÜ]/g, (c) => (c === "ü" ? "u" : "U"))
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
       .trim()
       .slice(0, 50)
       .replace(/\s+/g, "-") || "sunum";
