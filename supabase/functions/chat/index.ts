@@ -304,12 +304,12 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       }),
     });
 
-    // Fallback
-    if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
-      console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Fallback: if Lovable gateway fails, try OpenRouter as backup
+    if (!response.ok && LOVABLE_API_KEY && OPENROUTER_API_KEY) {
+      console.warn("Lovable gateway failed with", response.status, "- falling back to OpenRouter");
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
           messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
