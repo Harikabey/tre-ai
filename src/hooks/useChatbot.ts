@@ -575,6 +575,24 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
+      } else if (/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation|sunum hazırla|sunum oluştur|sunum yap)\b/i.test(trimmedInput)) {
+        // PPTX generation intent
+        const pptxPrompt = trimmedInput
+          .replace(/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation)\b/gi, '')
+          .replace(/\b(hazırla|oluştur|yap|yarat|üret|ver)\b/gi, '')
+          .replace(/\bbana\b/gi, '')
+          .trim() || trimmedInput;
+        updateLastBotMessage('📊 PowerPoint sunumu hazırlanıyor... (slaytlar tasarlanıyor)');
+        const result = await generatePptx(pptxPrompt);
+        if (result) {
+          const responseContent = `İşte hazırladığım sunum: **${result.title}** (${result.slideCount} slayt)\n\n[Ek dosya: ${result.fileName}](${result.url})`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ Sunum oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
       } else {
         // Check if user is requesting a connected account action
         const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
