@@ -17,6 +17,8 @@ const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ge
 const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-gif`;
 const GENERATE_PPTX_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pptx`;
 const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-api`;
+const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-apk`;
+const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -381,6 +383,48 @@ export const useChatbot = () => {
     } catch (error) {
       console.error('PPTX generation error:', error);
       return null;
+    }
+  }, []);
+
+  // Build a real signed APK from a PWA URL via PWABuilder.
+  const buildApk = useCallback(async (siteUrl: string, appName?: string): Promise<{ url: string; filename: string; appName: string; packageId: string } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(BUILD_APK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url: siteUrl, appName }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'APK üretilemedi');
+      return data;
+    } catch (error) {
+      console.error('APK build error:', error);
+      throw error;
+    }
+  }, []);
+
+  // Generate an ISO 9660 disk image from in-chat text (single text-file ISO by default).
+  const generateIso = useCallback(async (
+    files: Array<{ name: string; contentBase64: string }>,
+    isoName?: string,
+    volumeName?: string,
+  ): Promise<{ url: string; filename: string; size: number; fileCount: number } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(GENERATE_ISO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ files, isoName, volumeName }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'ISO üretilemedi');
+      return data;
+    } catch (error) {
+      console.error('ISO generation error:', error);
+      throw error;
     }
   }, []);
 
