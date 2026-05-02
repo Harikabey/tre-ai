@@ -774,7 +774,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, buildApk, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
