@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.google-api]
 verify_jwt = false
+
+[functions.generate-iso]
+verify_jwt = false
+
+[functions.build-apk]
+verify_jwt = false
