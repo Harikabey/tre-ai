@@ -387,15 +387,36 @@ export const useChatbot = () => {
     }
   }, []);
 
+  // Generate a tiny PWA site (HTML+manifest+icon) hosted on Supabase storage.
+  const generatePwaSite = useCallback(async (description: string): Promise<{
+    siteUrl: string; manifestUrl: string; iconUrl: string;
+    title: string; themeColor: string; backgroundColor: string;
+  } | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const response = await fetch(GENERATE_PWA_SITE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ description }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Site üretilemedi');
+    return data;
+  }, []);
+
   // Build a real signed APK from a PWA URL via PWABuilder.
-  const buildApk = useCallback(async (siteUrl: string, appName?: string): Promise<{ url: string; filename: string; appName: string; packageId: string } | null> => {
+  const buildApk = useCallback(async (
+    siteUrl: string,
+    appName?: string,
+    extras?: { manifestUrl?: string; iconUrl?: string; themeColor?: string; backgroundColor?: string },
+  ): Promise<{ url: string; filename: string; appName: string; packageId: string } | null> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const response = await fetch(BUILD_APK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ url: siteUrl, appName }),
+        body: JSON.stringify({ url: siteUrl, appName, ...extras }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'APK üretilemedi');
