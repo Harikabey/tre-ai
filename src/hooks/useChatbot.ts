@@ -662,7 +662,6 @@ export const useChatbot = () => {
           updateLastBotMessage(msg);
           await saveMessage(conversationId, 'assistant', msg);
         }
-      }
       } else if (/\b(iso|iso dosya|iso oluştur|iso yap|iso üret|disk imaj|cd imaj)\b/i.test(trimmedInput)) {
         // ISO generation intent — wrap the user's text content (or a placeholder) into an ISO.
         const cleaned = trimmedInput
