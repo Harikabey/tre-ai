@@ -57,7 +57,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { url, packageId, appName } = body as { url: string; packageId?: string; appName?: string };
+    const { url, packageId, appName, manifestUrl, iconUrl, themeColor, backgroundColor } = body as {
+      url: string; packageId?: string; appName?: string;
+      manifestUrl?: string; iconUrl?: string; themeColor?: string; backgroundColor?: string;
+    };
 
     if (!url || typeof url !== "string" || !isSafeUrl(url)) {
       return new Response(JSON.stringify({
@@ -80,14 +83,14 @@ serve(async (req) => {
       appVersionCode: 1,
       display: "standalone",
       host: hostname,
-      themeColor: "#000000",
-      navigationColor: "#000000",
-      navigationColorDark: "#000000",
-      navigationDividerColor: "#000000",
-      navigationDividerColorDark: "#000000",
-      backgroundColor: "#000000",
+      themeColor: themeColor || "#000000",
+      navigationColor: themeColor || "#000000",
+      navigationColorDark: themeColor || "#000000",
+      navigationDividerColor: themeColor || "#000000",
+      navigationDividerColorDark: themeColor || "#000000",
+      backgroundColor: backgroundColor || "#ffffff",
       startUrl: "/",
-      iconUrl: `${url.replace(/\/$/, "")}/icon-512.png`,
+      iconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
       maskableIconUrl: null,
       monochromeIconUrl: null,
       shortcuts: [],
@@ -102,7 +105,7 @@ serve(async (req) => {
         keyPassword: "",
         storePassword: "",
       },
-      webManifestUrl: `${url.replace(/\/$/, "")}/manifest.json`,
+      webManifestUrl: manifestUrl || `${url.replace(/\/$/, "")}/manifest.json`,
       fallbackType: "customtabs",
       enableNotifications: false,
       features: { locationDelegation: { enabled: false }, playBilling: { enabled: false } },
