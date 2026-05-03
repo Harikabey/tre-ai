@@ -638,28 +638,31 @@ export const useChatbot = () => {
           await saveMessage(conversationId, 'assistant', errorContent);
         }
       } else if (/\b(apk|android uygulaması|android app|android paketi|apk oluştur|apk yap|apk üret)\b/i.test(trimmedInput)) {
-        // APK build intent — needs a URL.
+        // APK build intent — default to Tre's own published site if no URL given.
         const urlMatch = trimmedInput.match(/https?:\/\/[^\s)]+/i);
-        if (!urlMatch) {
-          const msg = '📱 Bir web sitesini Android APK\'ya dönüştürebilirim! Lütfen sitenin tam URL\'sini paylaş (örn: `https://senin-sitesi.com`). Site PWA manifest (`/manifest.json`) ve en az bir ikona sahip olmalı.';
+        const targetUrl = urlMatch ? urlMatch[0] : 'https://tre-ai.lovable.app';
+        const isOwnSite = !urlMatch;
+        const buildingMsg = isOwnSite
+          ? '📱 Önce Tre\'nin kendi web sitesini (PWA) hazırladım, şimdi onu imzalı bir Android APK\'ya dönüştürüyorum... (PWABuilder, 30-60 sn)'
+          : '📱 APK üretiliyor... (PWABuilder ile imzalanıyor, bu 30-60 saniye sürebilir)';
+        updateLastBotMessage(buildingMsg);
+        try {
+          const result = await buildApk(targetUrl, isOwnSite ? 'Tre' : undefined);
+          if (result) {
+            const intro = isOwnSite
+              ? `✅ Tre Android uygulaması hazır! Kendi web sitemden (\`${targetUrl}\`) imzalı bir APK ürettim.`
+              : `✅ APK hazır: **${result.appName}**`;
+            const responseContent = `${intro}\n\nPaket: \`${result.packageId}\`\n\n[Ek dosya: ${result.filename}](${result.url})\n\n📦 ZIP içinde imzalanmış \`.apk\` (telefonuna sideload edebilirsin) ve \`.aab\` (Google Play yüklemesi için) dosyaları bulunur. README'de kurulum talimatları var.`;
+            updateLastBotMessage(responseContent);
+            await saveMessage(conversationId, 'assistant', responseContent);
+          }
+        } catch (e) {
+          const err = e instanceof Error ? e.message : 'Bilinmeyen hata';
+          const msg = `❌ APK oluşturulamadı: ${err}`;
           updateLastBotMessage(msg);
           await saveMessage(conversationId, 'assistant', msg);
-        } else {
-          updateLastBotMessage('📱 APK üretiliyor... (PWABuilder ile imzalanıyor, bu 30-60 saniye sürebilir)');
-          try {
-            const result = await buildApk(urlMatch[0]);
-            if (result) {
-              const responseContent = `✅ APK hazır: **${result.appName}**\n\nPaket: \`${result.packageId}\`\n\n[Ek dosya: ${result.filename}](${result.url})\n\n📦 ZIP içinde imzalanmış \`.apk\` (test/sideload) ve \`.aab\` (Google Play) dosyaları bulunur. README dosyasında kurulum talimatları var.`;
-              updateLastBotMessage(responseContent);
-              await saveMessage(conversationId, 'assistant', responseContent);
-            }
-          } catch (e) {
-            const err = e instanceof Error ? e.message : 'Bilinmeyen hata';
-            const msg = `❌ APK oluşturulamadı: ${err}`;
-            updateLastBotMessage(msg);
-            await saveMessage(conversationId, 'assistant', msg);
-          }
         }
+      }
       } else if (/\b(iso|iso dosya|iso oluştur|iso yap|iso üret|disk imaj|cd imaj)\b/i.test(trimmedInput)) {
         // ISO generation intent — wrap the user's text content (or a placeholder) into an ISO.
         const cleaned = trimmedInput
