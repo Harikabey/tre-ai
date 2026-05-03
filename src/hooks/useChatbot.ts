@@ -18,6 +18,7 @@ const GENERATE_GIF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gene
 const GENERATE_PPTX_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pptx`;
 const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-api`;
 const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-apk`;
+const GENERATE_PWA_SITE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pwa-site`;
 const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
