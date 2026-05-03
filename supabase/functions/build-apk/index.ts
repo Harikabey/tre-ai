@@ -57,7 +57,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { url, packageId, appName } = body as { url: string; packageId?: string; appName?: string };
+    const { url, packageId, appName, manifestUrl, iconUrl, themeColor, backgroundColor } = body as {
+      url: string; packageId?: string; appName?: string;
+      manifestUrl?: string; iconUrl?: string; themeColor?: string; backgroundColor?: string;
+    };
 
     if (!url || typeof url !== "string" || !isSafeUrl(url)) {
       return new Response(JSON.stringify({
