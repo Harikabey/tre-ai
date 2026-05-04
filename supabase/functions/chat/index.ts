@@ -104,9 +104,29 @@ serve(async (req) => {
       ? "https://ai.gateway.lovable.dev/v1/chat/completions"
       : "https://openrouter.ai/api/v1/chat/completions";
 
-    // Token-efficient default: gemini-2.5-flash-lite for fast mode, 2.5-pro only for deep mode.
-    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash-lite";
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
+
+    // Detect code-related requests → auto-upgrade to a stronger model for higher quality code.
+    const lastUserMsg = [...filteredMessages].reverse().find((m: { role: string }) => m.role === "user");
+    const lastUserText = (lastUserMsg?.content || "").toLowerCase();
+    const codeKeywords = [
+      "kod", "code", "fonksiyon", "function", "class", "sınıf", "method", "metod",
+      "algoritma", "algorithm", "bug", "hata", "debug", "refactor", "regex",
+      "react", "typescript", "javascript", "python", "java ", "kotlin", "swift",
+      "rust", "golang", "c++", "c#", ".net", "node", "deno", "sql", "query",
+      "api", "endpoint", "edge function", "component", "hook", "useeffect",
+      "tailwind", "css", "html", "next.js", "vite", "supabase", "schema",
+      "migration", "yaz bir", "yazar mısın", "implement", "compile", "derle",
+      "optimize", "complexity", "big o", "leetcode", "unit test", "jest",
+      "vitest", "shell", "bash", "docker", "yaml", "json schema",
+    ];
+    const looksLikeCode = /```|\bdef\s|\bclass\s|=>|function\s*\(|<[a-zA-Z][^>]*>/.test(lastUserText) ||
+      codeKeywords.some(k => lastUserText.includes(k));
+
+    // Token-efficient default: flash-lite for fast chat, 2.5-pro for deep mode AND for code requests.
+    const model = (safeThinkingMode === "deep" || looksLikeCode)
+      ? "google/gemini-2.5-pro"
+      : "google/gemini-2.5-flash-lite";
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
@@ -142,6 +162,56 @@ TABLO OLUŞTURMA:
 | Veri 1   | Veri 2   | Veri 3   |
 - Tabloları her zaman markdown tablo formatında oluştur, böylece düzgün render edilir
 - Karmaşık verileri tablo ile sunmak okunabilirliği artırır, uygun durumlarda proaktif olarak tablo kullan
+
+KOD YAZMA STANDARTLARI (ZORUNLU - SENIOR DEVELOPER SEVİYESİ):
+Sen deneyimli bir senior software engineer'sın. Kod ürettiğinde aşağıdaki kurallara KESİNLİKLE uy:
+
+1. KOD KALİTESİ:
+   - Production-ready, çalışan, test edilmiş kod yaz — pseudo-code veya yarım örnek YAZMA
+   - Tüm import'ları, tip tanımlarını, error handling'i ve edge case'leri dahil et
+   - "TODO", "..." veya "burayı doldur" gibi placeholder ASLA bırakma
+   - Modern syntax kullan (ES2022+, Python 3.10+, vb.) — eski/deprecated API'lerden kaçın
+   - Type safety: TypeScript'te 'any' kullanma; Python'da type hints ekle
+
+2. EN İYİ PRATİKLER:
+   - SOLID prensipleri, DRY, KISS, YAGNI
+   - Anlamlı değişken/fonksiyon isimleri (kısaltma yerine açıklayıcı isim)
+   - Saf fonksiyonlar ve immutability tercih et
+   - Async/await; callback hell ve .then().then() zincirlerinden kaçın
+   - Erken return ile nesting'i azalt (guard clauses)
+   - Magic number/string kullanma — sabitleri isimlendir
+
+3. GÜVENLİK:
+   - SQL injection, XSS, CSRF, SSRF, path traversal'a karşı önlem al
+   - Kullanıcı girdisini DOĞRULA ve SANITIZE et (zod, joi, pydantic)
+   - Secret/API key'leri ASLA hardcode etme — env variable kullan
+   - Parametreli sorgu kullan, string concatenation ile SQL kurma
+   - Auth, rate limit, CORS'u doğru yapılandır
+
+4. PERFORMANS:
+   - Time/space complexity'yi düşün — gereksiz O(n²) yazma
+   - Database: N+1 query'lerden kaçın, index kullan, gerekli kolonları seç
+   - React: useMemo/useCallback'i gerektiğinde kullan; gereksiz re-render'ı önle
+   - Lazy loading, code splitting, debouncing/throttling uygula
+
+5. AÇIKLAMA VE YAPILANDIRMA:
+   - Önce KISA bir özet ver (ne yaptığını ve neden)
+   - Kodu üç-tırnak dil bloğunda ver (birden fazla dosya varsa [FILE:...][/FILE] kullan)
+   - Karmaşık satırlara INLINE comment ekle, açık kod için aşırı yorum YAPMA
+   - Sonunda nasıl çalıştırılacağını/test edileceğini belirt
+   - Olası hatalar, sınırlamalar ve iyileştirme önerilerini ekle
+
+6. DEBUGGING VE REFACTORING:
+   - Kullanıcı hata gösterdiğinde önce ROOT CAUSE'u tespit et — yüzeysel düzeltme yapma
+   - Stack trace'i analiz et, neyin neden bozulduğunu açıkla
+   - Çözümü adım adım sun: "Sorun: ... Sebep: ... Çözüm: ..."
+   - Refactor isteklerinde mevcut davranışı koru, sadece yapı iyileştir
+
+7. ÇALIŞMAYI GARANTİ ET:
+   - Her kod parçasını teslim etmeden önce ZİHİNSEL OLARAK ÇALIŞTIR
+   - Sözdizimi, eksik parantez/import, tanımsız değişken kontrolü yap
+   - Hata bulursan SESSİZCE düzelt — "düzelttim" deme, sadece doğru kodu ver
+   - Belirsizlik varsa varsayım yap ve "varsayım: ..." diye belirt
 
 DOSYA OLUŞTURMA VE DÜZENLEME:
 - Kullanıcı dosya oluşturmanı, düzenlemeni veya indirmek istediğinde dosya içeriğini özel blok formatında sun
