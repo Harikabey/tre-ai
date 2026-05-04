@@ -74,7 +74,7 @@ serve(async (req) => {
     const safeAppName = (appName || hostname.split(".")[0] || "Tre App").slice(0, 40);
 
     // PWABuilder generate endpoint — produces signed APK + Play Store ZIP.
-    const pwaBuilderUrl = "https://pwabuilder-cloudapk-pre.azurewebsites.net/generateAppPackage";
+    const pwaBuilderUrl = "https://pwabuilder-cloudapk.azurewebsites.net/generateAppPackage";
     const apkRequest = {
       packageId: safePackageId,
       name: safeAppName,
