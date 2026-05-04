@@ -68,8 +68,14 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Sensible defaults — packageId reverse-DNS, appName from hostname
-    const hostname = new URL(url).hostname;
+    // Sensible defaults — packageId reverse-DNS, appName from hostname.
+    // Keep the full launch path because generated apps are hosted as files under a storage path.
+    const siteUrl = new URL(url);
+    const hostname = siteUrl.hostname;
+    const origin = siteUrl.origin;
+    const startPath = `${siteUrl.pathname || "/"}${siteUrl.search || ""}` || "/";
+    const resolvedManifestUrl = manifestUrl || new URL("manifest.json", siteUrl).toString();
+    const resolvedIconUrl = iconUrl || new URL("icon-512.png", siteUrl).toString();
     const safePackageId = (packageId || `app.tre.${hostname.replace(/[^a-z0-9]/gi, "").toLowerCase()}`).slice(0, 60);
     const safeAppName = (appName || hostname.split(".")[0] || "Tre App").slice(0, 40);
 
@@ -77,23 +83,33 @@ serve(async (req) => {
     const pwaBuilderUrl = "https://pwabuilder-cloudapk.azurewebsites.net/generateAppPackage";
     const apkRequest = {
       packageId: safePackageId,
+      pwaUrl: url,
+      analysisId: null,
       name: safeAppName,
       launcherName: safeAppName.slice(0, 30),
-      appVersion: "1.0.0",
+      appVersion: "1.0.0.0",
       appVersionCode: 1,
       display: "standalone",
-      host: hostname,
+      host: origin,
       themeColor: themeColor || "#000000",
+      themeColorDark: themeColor || "#000000",
       navigationColor: themeColor || "#000000",
       navigationColorDark: themeColor || "#000000",
       navigationDividerColor: themeColor || "#000000",
       navigationDividerColorDark: themeColor || "#000000",
       backgroundColor: backgroundColor || "#ffffff",
-      startUrl: "/",
-      iconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
-      maskableIconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
-      monochromeIconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
+      startUrl: startPath,
+      iconUrl: resolvedIconUrl,
+      maskableIconUrl: resolvedIconUrl,
+      monochromeIconUrl: resolvedIconUrl,
       shortcuts: [],
+      additionalTrustedOrigins: [],
+      includeSourceCode: false,
+      isChromeOSOnly: false,
+      orientation: "default",
+      serviceAccountJsonFile: null,
+      shareTarget: null,
+      splashScreenFadeOutDuration: 300,
       signingMode: "new",
       signing: {
         file: null,
@@ -105,9 +121,10 @@ serve(async (req) => {
         keyPassword: "",
         storePassword: "",
       },
-      webManifestUrl: manifestUrl || `${url.replace(/\/$/, "")}/manifest.json`,
+      webManifestUrl: resolvedManifestUrl,
       fallbackType: "customtabs",
       enableNotifications: false,
+      enableSiteSettingsShortcut: true,
       features: { locationDelegation: { enabled: false }, playBilling: { enabled: false } },
     };
 
@@ -122,7 +139,7 @@ serve(async (req) => {
       const errText = await pwaResponse.text();
       console.error("PWABuilder error:", pwaResponse.status, errText.slice(0, 500));
       return new Response(JSON.stringify({
-        error: `APK üretimi başarısız (${pwaResponse.status}). Sitenin geçerli bir PWA manifest dosyası olmalı (${url}/manifest.json). Detay: ${errText.slice(0, 200)}`,
+        error: `APK üretimi başarısız (${pwaResponse.status}). Sitenin geçerli bir PWA manifest dosyası olmalı (${resolvedManifestUrl}). Detay: ${errText.slice(0, 200)}`,
       }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

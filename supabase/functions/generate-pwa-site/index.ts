@@ -174,7 +174,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
     const manifest = {
       name: site.title,
       short_name: site.short_name,
-      start_url: "./",
+      start_url: "index.html",
       scope: "./",
       display: "standalone",
       background_color: site.background_color,
@@ -198,10 +198,10 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     ];
 
     for (const [name, content, contentType] of uploads) {
-      const bytes = typeof content === "string" ? new TextEncoder().encode(content) : content;
+      const uploadBody = new Blob([content], { type: contentType });
       const { error } = await adminClient.storage
         .from("generated-files")
-        .upload(`${folder}/${name}`, bytes, { contentType, upsert: true });
+        .upload(`${folder}/${name}`, uploadBody, { contentType, upsert: true });
       if (error) throw new Error(`Yükleme hatası (${name}): ${error.message}`);
     }
 
@@ -211,7 +211,7 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     const baseUrl = pub.publicUrl.replace(/\/index\.html$/, "");
 
     return new Response(JSON.stringify({
-      siteUrl: baseUrl,
+      siteUrl: pub.publicUrl,
       indexUrl: pub.publicUrl,
       manifestUrl: `${baseUrl}/manifest.json`,
       iconUrl: `${baseUrl}/icon-512.png`,
