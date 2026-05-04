@@ -104,9 +104,29 @@ serve(async (req) => {
       ? "https://ai.gateway.lovable.dev/v1/chat/completions"
       : "https://openrouter.ai/api/v1/chat/completions";
 
-    // Token-efficient default: gemini-2.5-flash-lite for fast mode, 2.5-pro only for deep mode.
-    const model = safeThinkingMode === "deep" ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash-lite";
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
+
+    // Detect code-related requests → auto-upgrade to a stronger model for higher quality code.
+    const lastUserMsg = [...filteredMessages].reverse().find((m: { role: string }) => m.role === "user");
+    const lastUserText = (lastUserMsg?.content || "").toLowerCase();
+    const codeKeywords = [
+      "kod", "code", "fonksiyon", "function", "class", "sınıf", "method", "metod",
+      "algoritma", "algorithm", "bug", "hata", "debug", "refactor", "regex",
+      "react", "typescript", "javascript", "python", "java ", "kotlin", "swift",
+      "rust", "golang", "c++", "c#", ".net", "node", "deno", "sql", "query",
+      "api", "endpoint", "edge function", "component", "hook", "useeffect",
+      "tailwind", "css", "html", "next.js", "vite", "supabase", "schema",
+      "migration", "yaz bir", "yazar mısın", "implement", "compile", "derle",
+      "optimize", "complexity", "big o", "leetcode", "unit test", "jest",
+      "vitest", "shell", "bash", "docker", "yaml", "json schema",
+    ];
+    const looksLikeCode = /```|\bdef\s|\bclass\s|=>|function\s*\(|<[a-zA-Z][^>]*>/.test(lastUserText) ||
+      codeKeywords.some(k => lastUserText.includes(k));
+
+    // Token-efficient default: flash-lite for fast chat, 2.5-pro for deep mode AND for code requests.
+    const model = (safeThinkingMode === "deep" || looksLikeCode)
+      ? "google/gemini-2.5-pro"
+      : "google/gemini-2.5-flash-lite";
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
