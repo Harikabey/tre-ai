@@ -91,8 +91,8 @@ serve(async (req) => {
       backgroundColor: backgroundColor || "#ffffff",
       startUrl: "/",
       iconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
-      maskableIconUrl: null,
-      monochromeIconUrl: null,
+      maskableIconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
+      monochromeIconUrl: iconUrl || `${url.replace(/\/$/, "")}/icon-512.png`,
       shortcuts: [],
       signingMode: "new",
       signing: {
