@@ -459,14 +459,22 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
 
     console.log("Chat request - personality:", safePersonality, "mode:", safeThinkingMode, "model:", model, "date:", dateStr);
 
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
+      stream: true,
+    };
+    // Boost code quality with extended reasoning when handling code requests
+    if (looksLikeCode) {
+      requestBody.reasoning = { effort: "high" };
+    } else if (safeThinkingMode === "deep") {
+      requestBody.reasoning = { effort: "medium" };
+    }
+
     let response = await fetch(apiUrl, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
-        stream: true,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     // Fallback: if Lovable gateway fails, try OpenRouter as backup
@@ -475,11 +483,7 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "system", content: systemPrompt }, ...filteredMessages],
-          stream: true,
-        }),
+        body: JSON.stringify(requestBody),
       });
     }
 
