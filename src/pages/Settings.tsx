@@ -41,6 +41,7 @@ const themeOptions: ThemeOption[] = [
 const Settings = () => {
   const navigate = useNavigate();
   const { preferences, updatePreference } = useUserPreferences();
+  const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
