@@ -123,10 +123,12 @@ serve(async (req) => {
     const looksLikeCode = /```|\bdef\s|\bclass\s|=>|function\s*\(|<[a-zA-Z][^>]*>/.test(lastUserText) ||
       codeKeywords.some(k => lastUserText.includes(k));
 
-    // Token-efficient default: flash-lite for fast chat, 2.5-pro for deep mode AND for code requests.
-    const model = (safeThinkingMode === "deep" || looksLikeCode)
-      ? "google/gemini-2.5-pro"
-      : "google/gemini-2.5-flash-lite";
+    // Code → strongest reasoning model. Deep mode → Gemini Pro. Otherwise → fast flash-lite.
+    const model = looksLikeCode
+      ? "openai/gpt-5.2"
+      : safeThinkingMode === "deep"
+        ? "google/gemini-2.5-pro"
+        : "google/gemini-2.5-flash-lite";
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 
