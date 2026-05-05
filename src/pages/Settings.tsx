@@ -266,7 +266,141 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Text Scale */}
+          {/* UI Customization */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" />
+                Arayüz Özelleştirme
+              </CardTitle>
+              <CardDescription>
+                Vurgu rengi, yazı tipi, sohbet baloncuğu stili ve duvar kağıdı seç
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Accent Color */}
+              <div>
+                <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-primary" /> Vurgu Rengi
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {(Object.keys(ACCENT_HSL) as AccentColor[]).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => updateUI('accent', c)}
+                      title={ACCENT_LABELS[c]}
+                      className={`h-10 rounded-lg border-2 transition-all ${
+                        ui.accent === c ? 'border-foreground scale-105' : 'border-border/50 hover:border-foreground/50'
+                      }`}
+                      style={{ background: `hsl(${ACCENT_HSL[c].primary})` }}
+                    >
+                      {ui.accent === c && <Check className="w-4 h-4 text-white mx-auto drop-shadow" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <Type className="w-4 h-4 text-primary" /> Yazı Tipi
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(FONT_LABELS) as FontFamily[]).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => updateUI('font', f)}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        ui.font === f
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                          : 'border-border/50 bg-secondary/30 hover:border-primary/50'
+                      }`}
+                      style={{
+                        fontFamily:
+                          f === 'inter' ? 'Inter, sans-serif' :
+                          f === 'mono' ? 'JetBrains Mono, monospace' :
+                          f === 'serif' ? 'Georgia, serif' : 'Outfit, sans-serif',
+                      }}
+                    >
+                      <div className="text-sm font-medium">Aa Bb Cc</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{FONT_LABELS[f]}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bubble Style */}
+              <div>
+                <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" /> Sohbet Baloncuğu
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(BUBBLE_LABELS) as BubbleStyle[]).map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => updateUI('bubble', b)}
+                      className={`p-3 border text-center transition-all ${
+                        b === 'square' ? 'rounded-md' : b === 'minimal' ? 'rounded-sm' : 'rounded-2xl'
+                      } ${
+                        ui.bubble === b
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                          : 'border-border/50 bg-secondary/30 hover:border-primary/50'
+                      }`}
+                    >
+                      <div
+                        className={`w-full h-6 bg-primary/30 mb-1 ${
+                          b === 'square' ? 'rounded-sm' : b === 'minimal' ? 'rounded-none bg-transparent border-b border-primary/40' : 'rounded-xl'
+                        }`}
+                      />
+                      <div className="text-[10px] text-muted-foreground">{BUBBLE_LABELS[b]}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Wallpaper */}
+              <div>
+                <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-primary" /> Arka Plan
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {(Object.keys(WALLPAPER_LABELS) as Wallpaper[]).map((w) => {
+                    const bg =
+                      w === 'aurora' ? 'radial-gradient(circle at 30% 30%, hsl(var(--primary)/0.5), transparent 60%), radial-gradient(circle at 70% 70%, hsl(var(--accent)/0.5), transparent 60%)' :
+                      w === 'mesh' ? 'linear-gradient(135deg, hsl(var(--primary)/0.4), hsl(var(--accent)/0.3))' :
+                      w === 'dots' ? 'radial-gradient(hsl(var(--primary)/0.6) 1.5px, transparent 1.5px) 0 0/10px 10px' :
+                      w === 'sunset' ? 'linear-gradient(180deg, hsl(15 90% 55%/0.6), hsl(330 80% 50%/0.4))' :
+                      'hsl(var(--secondary))';
+                    return (
+                      <button
+                        key={w}
+                        onClick={() => updateUI('wallpaper', w)}
+                        title={WALLPAPER_LABELS[w]}
+                        className={`h-14 rounded-lg border-2 transition-all relative overflow-hidden ${
+                          ui.wallpaper === w ? 'border-primary scale-105' : 'border-border/50 hover:border-primary/50'
+                        }`}
+                        style={{ background: bg }}
+                      >
+                        {ui.wallpaper === w && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white drop-shadow" />
+                          </span>
+                        )}
+                        <span className="absolute bottom-0 inset-x-0 text-[9px] bg-background/70 text-foreground py-0.5">
+                          {WALLPAPER_LABELS[w]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Button variant="outline" size="sm" onClick={resetUI} className="w-full">
+                <RotateCcw className="w-3.5 h-3.5 mr-2" /> Varsayılana Sıfırla
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
