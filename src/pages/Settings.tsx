@@ -496,6 +496,34 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Show Tre's thinking (deep mode) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Tre'nin Düşüncesini Göster
+              </CardTitle>
+              <CardDescription>
+                Derin düşünme modu açıkken Tre'nin yanıtı oluştururken aklından geçenleri katlanabilir bir blok olarak gör.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Düşünce sürecini göster</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Sadece "Derin Düşünce" modu seçiliyken etkindir.
+                  </div>
+                </div>
+                <Switch
+                  checked={showThinking}
+                  onCheckedChange={handleShowThinkingChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Swipe to Delete Toggle */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
