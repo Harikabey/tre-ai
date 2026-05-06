@@ -263,6 +263,26 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </div>
         )}
 
+        {/* Tre's thinking process (collapsible) */}
+        {isBot && thinkingContent && (
+          <div className="mb-2 rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowThinkingBlock(v => !v)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span>Tre'nin düşüncesi</span>
+              {showThinkingBlock ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+            </button>
+            {showThinkingBlock && (
+              <div className="px-3 py-2 border-t border-primary/15 text-[11px] sm:text-xs text-muted-foreground italic whitespace-pre-wrap leading-relaxed [word-break:break-word] [overflow-wrap:anywhere]">
+                {thinkingContent}
+              </div>
+            )}
+          </div>
+        )}
+
         {displayContent && (
           isBot ? (
             <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
