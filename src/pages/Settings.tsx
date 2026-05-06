@@ -52,6 +52,14 @@ const Settings = () => {
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [translating, setTranslating] = useState(false);
+  const [showThinking, setShowThinking] = useState(
+    () => localStorage.getItem('ai_chatbot_show_thinking') === 'true'
+  );
+
+  const handleShowThinkingChange = (enabled: boolean) => {
+    setShowThinking(enabled);
+    localStorage.setItem('ai_chatbot_show_thinking', String(enabled));
+  };
 
   const t = getTranslations(preferences.language);
 
