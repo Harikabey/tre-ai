@@ -102,6 +102,15 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
     .trim();
 
+  // Extract Tre's "thinking" block (deep mode + show thinking enabled)
+  let thinkingContent: string | null = null;
+  const thinkMatch = displayContent.match(/\[THINKING\]([\s\S]*?)(\[\/THINKING\]|$)/);
+  if (thinkMatch) {
+    thinkingContent = thinkMatch[1].trim();
+    displayContent = displayContent.replace(/\[THINKING\][\s\S]*?(\[\/THINKING\]|$)/, '').trim();
+  }
+  const [showThinkingBlock, setShowThinkingBlock] = useState(false);
+
   const isFactualMessage = isBot && displayContent.length > 60 && 
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
     !displayContent.startsWith('❌');
