@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
@@ -101,6 +101,15 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
     .trim();
+
+  // Extract Tre's "thinking" block (deep mode + show thinking enabled)
+  let thinkingContent: string | null = null;
+  const thinkMatch = displayContent.match(/\[THINKING\]([\s\S]*?)(\[\/THINKING\]|$)/);
+  if (thinkMatch) {
+    thinkingContent = thinkMatch[1].trim();
+    displayContent = displayContent.replace(/\[THINKING\][\s\S]*?(\[\/THINKING\]|$)/, '').trim();
+  }
+  const [showThinkingBlock, setShowThinkingBlock] = useState(false);
 
   const isFactualMessage = isBot && displayContent.length > 60 && 
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
@@ -251,6 +260,26 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
             {downloadableFiles.map((file, index) => (
               <FileDownloadBlock key={index} file={file} />
             ))}
+          </div>
+        )}
+
+        {/* Tre's thinking process (collapsible) */}
+        {isBot && thinkingContent && (
+          <div className="mb-2 rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowThinkingBlock(v => !v)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span>Tre'nin düşüncesi</span>
+              {showThinkingBlock ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+            </button>
+            {showThinkingBlock && (
+              <div className="px-3 py-2 border-t border-primary/15 text-[11px] sm:text-xs text-muted-foreground italic whitespace-pre-wrap leading-relaxed [word-break:break-word] [overflow-wrap:anywhere]">
+                {thinkingContent}
+              </div>
+            )}
           </div>
         )}
 

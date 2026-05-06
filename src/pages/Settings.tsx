@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain } from 'lucide-react';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,14 @@ const Settings = () => {
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [translating, setTranslating] = useState(false);
+  const [showThinking, setShowThinking] = useState(
+    () => localStorage.getItem('ai_chatbot_show_thinking') === 'true'
+  );
+
+  const handleShowThinkingChange = (enabled: boolean) => {
+    setShowThinking(enabled);
+    localStorage.setItem('ai_chatbot_show_thinking', String(enabled));
+  };
 
   const t = getTranslations(preferences.language);
 
@@ -482,6 +490,34 @@ const Settings = () => {
                 <Switch
                   checked={preferences.reduce_motion}
                   onCheckedChange={handleReduceMotionChange}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Show Tre's thinking (deep mode) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Tre'nin Düşüncesini Göster
+              </CardTitle>
+              <CardDescription>
+                Derin düşünme modu açıkken Tre'nin yanıtı oluştururken aklından geçenleri katlanabilir bir blok olarak gör.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Düşünce sürecini göster</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Sadece "Derin Düşünce" modu seçiliyken etkindir.
+                  </div>
+                </div>
+                <Switch
+                  checked={showThinking}
+                  onCheckedChange={handleShowThinkingChange}
                   className="data-[state=checked]:bg-primary"
                 />
               </div>

@@ -54,7 +54,7 @@ serve(async (req) => {
 
     // --- Input Validation ---
     const body = await req.json();
-    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences } = body;
+    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences, showThinking } = body;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
@@ -465,10 +465,14 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       stream: true,
     };
     // Boost code quality with extended reasoning when handling code requests
+    const wantsThinking = !!showThinking && safeThinkingMode === "deep";
     if (looksLikeCode) {
       requestBody.reasoning = { effort: "high" };
     } else if (safeThinkingMode === "deep") {
       requestBody.reasoning = { effort: "medium" };
+    }
+    if (wantsThinking && requestBody.reasoning) {
+      (requestBody.reasoning as Record<string, unknown>).summary = "auto";
     }
 
     let response = await fetch(apiUrl, {
@@ -497,6 +501,92 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
         return streamErrorMessage("⚠️ Yapay zeka sağlayıcısının kullanım limiti dolduğu için şu an yanıt üretemiyorum. Lütfen OpenRouter bakiyenizi veya Lovable AI bakiyenizi kontrol edip tekrar deneyin.");
       }
       return streamErrorMessage("⚠️ AI servisi şu anda kullanılamıyor. Lütfen biraz sonra tekrar deneyin.");
+    }
+
+    // If user wants to see thinking, transform stream to inject reasoning deltas
+    // wrapped in [THINKING]...[/THINKING] markers as part of content stream.
+    if (wantsThinking && response.body) {
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let inThinking = false;
+      let thinkingClosed = false;
+
+      const transformed = new ReadableStream({
+        async start(controller) {
+          const reader = response.body!.getReader();
+          const emitContent = (text: string) => {
+            const payload = JSON.stringify({ choices: [{ delta: { content: text } }] });
+            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+          };
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+              let idx: number;
+              while ((idx = buf.indexOf("\n")) !== -1) {
+                const rawLine = buf.slice(0, idx).replace(/\r$/, "");
+                buf = buf.slice(idx + 1);
+                if (!rawLine.startsWith("data: ")) {
+                  controller.enqueue(encoder.encode(rawLine + "\n"));
+                  continue;
+                }
+                const jsonStr = rawLine.slice(6).trim();
+                if (jsonStr === "[DONE]") {
+                  if (inThinking && !thinkingClosed) {
+                    emitContent("[/THINKING]\n\n");
+                    thinkingClosed = true;
+                  }
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                  continue;
+                }
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const delta = parsed.choices?.[0]?.delta ?? {};
+                  // Reasoning text can come in several shapes depending on provider.
+                  const reasoningText: string | undefined =
+                    (typeof delta.reasoning === "string" ? delta.reasoning : undefined) ??
+                    delta.reasoning?.content ??
+                    delta.reasoning?.summary ??
+                    delta.reasoning_content ??
+                    parsed.choices?.[0]?.message?.reasoning;
+                  const contentText: string | undefined = typeof delta.content === "string" ? delta.content : undefined;
+
+                  if (reasoningText) {
+                    if (!inThinking) {
+                      emitContent("[THINKING]");
+                      inThinking = true;
+                    }
+                    emitContent(reasoningText);
+                  }
+                  if (contentText) {
+                    if (inThinking && !thinkingClosed) {
+                      emitContent("[/THINKING]\n\n");
+                      thinkingClosed = true;
+                    }
+                    emitContent(contentText);
+                  }
+                } catch {
+                  // Forward unparsable lines as-is
+                  controller.enqueue(encoder.encode(rawLine + "\n"));
+                }
+              }
+            }
+            if (inThinking && !thinkingClosed) {
+              emitContent("[/THINKING]\n\n");
+            }
+          } catch (e) {
+            console.error("thinking-stream transform error:", e);
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(transformed, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
     }
 
     return new Response(response.body, {

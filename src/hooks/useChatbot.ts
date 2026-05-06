@@ -242,6 +242,7 @@ export const useChatbot = () => {
         language,
         connectedAccounts,
         userPreferences,
+        showThinking: localStorage.getItem('ai_chatbot_show_thinking') === 'true',
       }),
     });
 
