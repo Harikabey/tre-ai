@@ -54,7 +54,7 @@ serve(async (req) => {
 
     // --- Input Validation ---
     const body = await req.json();
-    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences } = body;
+    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences, showThinking } = body;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
