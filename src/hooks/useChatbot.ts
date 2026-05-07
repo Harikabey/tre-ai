@@ -20,6 +20,7 @@ const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google
 const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-apk`;
 const GENERATE_PWA_SITE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pwa-site`;
 const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
+const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
