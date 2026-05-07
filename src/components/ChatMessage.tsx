@@ -69,6 +69,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const fileName = fileMatch ? fileMatch[1] : null;
   const fileUrl = fileMatch ? fileMatch[2] : null;
   const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  const isAudio = fileName?.match(/\.(mp3|wav|ogg|m4a)$/i);
+  const isVideo = fileName?.match(/\.(mp4|webm|mov)$/i);
   
   const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
   const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
