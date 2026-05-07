@@ -20,6 +20,7 @@ const GOOGLE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google
 const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-apk`;
 const GENERATE_PWA_SITE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pwa-site`;
 const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
+const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -451,7 +452,135 @@ export const useChatbot = () => {
     }
   }, []);
 
-  // Detect if user message requires a Google API call
+  // Generate MP3 audio (TTS or music) via ElevenLabs
+  const generateAudio = useCallback(async (
+    text: string,
+    mode: 'tts' | 'music' = 'tts',
+    duration?: number,
+  ): Promise<{ url: string; fileName: string; mode: string } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(GENERATE_AUDIO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text, mode, duration }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Ses üretilemedi');
+      return data;
+    } catch (error) {
+      console.error('Audio generation error:', error);
+      return null;
+    }
+  }, []);
+
+  // Generate an MP4 slideshow video from AI-generated images
+  const generateMp4Slideshow = useCallback(async (
+    prompt: string,
+    frameCount = 4,
+    secondsPerFrame = 2,
+  ): Promise<{ url: string; fileName: string; frameCount: number } | null> => {
+    try {
+      // 1) Generate frames via the existing GIF endpoint (same image-gen pipeline)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const gifResp = await fetch(GENERATE_GIF_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt, frameCount }),
+      });
+      if (!gifResp.ok) throw new Error('Kareler üretilemedi');
+      const gifData = await gifResp.json();
+      const frames: string[] = gifData.frames || [];
+      if (frames.length < 2) throw new Error('Yeterli kare üretilemedi');
+
+      // 2) Load images
+      const imgs = await Promise.all(frames.map((src) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      })));
+
+      // 3) Setup canvas
+      const W = 720, H = 720;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context alınamadı');
+
+      // 4) Pick best supported MIME (mp4 if Safari supports it, otherwise webm)
+      const mp4Type = 'video/mp4;codecs=avc1.42E01E';
+      const webmType = 'video/webm;codecs=vp9';
+      const webmType2 = 'video/webm;codecs=vp8';
+      let mimeType = '';
+      let ext = 'mp4';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported(mp4Type)) { mimeType = mp4Type; ext = 'mp4'; }
+        else if (MediaRecorder.isTypeSupported(webmType)) { mimeType = webmType; ext = 'webm'; }
+        else if (MediaRecorder.isTypeSupported(webmType2)) { mimeType = webmType2; ext = 'webm'; }
+      }
+      if (!mimeType) throw new Error('Tarayıcı video kaydını desteklemiyor');
+
+      // 5) Capture stream
+      const fps = 30;
+      const stream: MediaStream = (canvas as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(fps);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+      recorder.start();
+
+      // 6) Draw frames with simple fade
+      const frameDurationMs = Math.max(800, secondsPerFrame * 1000);
+      const fadeMs = 250;
+      const drawCover = (img: HTMLImageElement, alpha = 1) => {
+        ctx.globalAlpha = alpha;
+        const scale = Math.max(W / img.width, H / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        ctx.globalAlpha = 1;
+      };
+
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      for (let i = 0; i < imgs.length; i++) {
+        // fade in
+        const fadeSteps = 8;
+        for (let s = 1; s <= fadeSteps; s++) {
+          drawCover(imgs[i], s / fadeSteps);
+          await sleep(fadeMs / fadeSteps);
+        }
+        drawCover(imgs[i], 1);
+        await sleep(frameDurationMs - fadeMs);
+      }
+      // hold last frame briefly
+      await sleep(400);
+      recorder.stop();
+      await stopped;
+      stream.getTracks().forEach((t) => t.stop());
+
+      const blob = new Blob(chunks, { type: mimeType });
+
+      // 7) Upload to generated-files
+      if (!user) throw new Error('Giriş gerekli');
+      const fileName = `mp4-${Date.now()}.${ext}`;
+      const path = `${user.id}/${fileName}`;
+      const { error: upErr } = await supabase.storage
+        .from('generated-files')
+        .upload(path, blob, { contentType: mimeType.split(';')[0], upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('generated-files').getPublicUrl(path);
+      return { url: pub.publicUrl, fileName, frameCount: imgs.length };
+    } catch (error) {
+      console.error('MP4 generation error:', error);
+      return null;
+    }
+  }, [user]);
+
   const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
     const lower = message.toLowerCase();
     
@@ -642,6 +771,44 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
+      } else if (/\b(mp3|seslendir|ses dosyası|seslendirme|tts|metni oku|sesli oku)\b/i.test(trimmedInput) || /\b(müzik|melodi|şarkı|beste|jingle|enstrümantal|ses efekti|sfx)\b/i.test(trimmedInput) && /\b(oluştur|üret|yap|hazırla|yarat|ver)\b/i.test(trimmedInput)) {
+        // MP3 generation: detect music vs TTS
+        const isMusic = /\b(müzik|melodi|şarkı|beste|jingle|enstrümantal|ses efekti|sfx|music|song|melody)\b/i.test(trimmedInput);
+        const cleanPrompt = trimmedInput
+          .replace(/\b(mp3|tts|seslendir|seslendirme|ses dosyası|metni oku|sesli oku|müzik|melodi|şarkı|beste|jingle|enstrümantal|ses efekti|sfx)\b/gi, '')
+          .replace(/\b(olarak|hazırla|oluştur|yap|yarat|üret|ver|bana|lütfen|bir)\b/gi, '')
+          .replace(/^[:\-\s]+/, '')
+          .trim() || trimmedInput;
+        updateLastBotMessage(isMusic ? '🎵 Müzik üretiliyor...' : '🔊 Ses üretiliyor (seslendirme)...');
+        const result = await generateAudio(cleanPrompt, isMusic ? 'music' : 'tts', isMusic ? 25 : undefined);
+        if (result) {
+          const label = isMusic ? 'müzik' : 'seslendirme';
+          const responseContent = `İşte oluşturduğum ${label} (MP3):\n\n<audio controls src="${result.url}"></audio>\n\n[Ek dosya: ${result.fileName}](${result.url})`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ Ses üretilirken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
+      } else if (/\b(mp4|video oluştur|video üret|video yap|slayt video|slideshow|kısa video)\b/i.test(trimmedInput)) {
+        // MP4 slideshow generation
+        const cleanPrompt = trimmedInput
+          .replace(/\b(mp4|video|slayt video|slideshow|kısa video)\b/gi, '')
+          .replace(/\b(olarak|hazırla|oluştur|yap|yarat|üret|ver|bana|lütfen|bir)\b/gi, '')
+          .replace(/^[:\-\s]+/, '')
+          .trim() || trimmedInput;
+        updateLastBotMessage('🎬 MP4 video üretiliyor... (kareler hazırlanıyor, sonra video kodlanıyor)');
+        const result = await generateMp4Slideshow(cleanPrompt, 4, 2);
+        if (result) {
+          const responseContent = `İşte oluşturduğum video (${result.frameCount} sahne):\n\n<video controls src="${result.url}" style="max-width:100%"></video>\n\n[Ek dosya: ${result.fileName}](${result.url})`;
+          updateLastBotMessage(responseContent);
+          await saveMessage(conversationId, 'assistant', responseContent);
+        } else {
+          const errorContent = '❌ Video üretilirken bir hata oluştu. Lütfen tekrar deneyin.';
+          updateLastBotMessage(errorContent);
+          await saveMessage(conversationId, 'assistant', errorContent);
+        }
       } else if (/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation|sunum hazırla|sunum oluştur|sunum yap)\b/i.test(trimmedInput)) {
         // PPTX generation intent
         const pptxPrompt = trimmedInput
@@ -816,7 +983,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {

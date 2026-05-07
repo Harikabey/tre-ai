@@ -69,6 +69,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   const fileName = fileMatch ? fileMatch[1] : null;
   const fileUrl = fileMatch ? fileMatch[2] : null;
   const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  const isAudio = fileName?.match(/\.(mp3|wav|ogg|m4a)$/i);
+  const isVideo = fileName?.match(/\.(mp4|webm|mov)$/i);
   
   const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
   const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
@@ -100,6 +102,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
+    .replace(/<audio[\s\S]*?<\/audio>/gi, '')
+    .replace(/<video[\s\S]*?<\/video>/gi, '')
     .trim();
 
   // Extract Tre's "thinking" block (deep mode + show thinking enabled)
@@ -251,6 +255,20 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
               alt={generatedImageAlt} 
               className="max-w-full max-h-48 sm:max-h-64 rounded-lg object-contain"
             />
+          </div>
+        )}
+
+        {/* Audio (MP3) preview */}
+        {isAudio && fileUrl && (
+          <div className="mb-2">
+            <audio controls src={fileUrl} className="w-full max-w-sm" />
+          </div>
+        )}
+
+        {/* Video (MP4) preview */}
+        {isVideo && fileUrl && (
+          <div className="mb-2">
+            <video controls src={fileUrl} className="max-w-full max-h-64 rounded-lg" />
           </div>
         )}
 
