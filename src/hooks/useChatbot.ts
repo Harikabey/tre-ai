@@ -452,7 +452,136 @@ export const useChatbot = () => {
     }
   }, []);
 
-  // Detect if user message requires a Google API call
+  // Generate MP3 audio (TTS or music) via ElevenLabs
+  const generateAudio = useCallback(async (
+    text: string,
+    mode: 'tts' | 'music' = 'tts',
+    duration?: number,
+  ): Promise<{ url: string; fileName: string; mode: string } | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(GENERATE_AUDIO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text, mode, duration }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Ses üretilemedi');
+      return data;
+    } catch (error) {
+      console.error('Audio generation error:', error);
+      return null;
+    }
+  }, []);
+
+  // Generate an MP4 slideshow video from AI-generated images
+  const generateMp4Slideshow = useCallback(async (
+    prompt: string,
+    frameCount = 4,
+    secondsPerFrame = 2,
+  ): Promise<{ url: string; fileName: string; frameCount: number } | null> => {
+    try {
+      // 1) Generate frames via the existing GIF endpoint (same image-gen pipeline)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const gifResp = await fetch(GENERATE_GIF_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt, frameCount }),
+      });
+      if (!gifResp.ok) throw new Error('Kareler üretilemedi');
+      const gifData = await gifResp.json();
+      const frames: string[] = gifData.frames || [];
+      if (frames.length < 2) throw new Error('Yeterli kare üretilemedi');
+
+      // 2) Load images
+      const imgs = await Promise.all(frames.map((src) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      })));
+
+      // 3) Setup canvas
+      const W = 720, H = 720;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context alınamadı');
+
+      // 4) Pick best supported MIME (mp4 if Safari supports it, otherwise webm)
+      const mp4Type = 'video/mp4;codecs=avc1.42E01E';
+      const webmType = 'video/webm;codecs=vp9';
+      const webmType2 = 'video/webm;codecs=vp8';
+      let mimeType = '';
+      let ext = 'mp4';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported(mp4Type)) { mimeType = mp4Type; ext = 'mp4'; }
+        else if (MediaRecorder.isTypeSupported(webmType)) { mimeType = webmType; ext = 'webm'; }
+        else if (MediaRecorder.isTypeSupported(webmType2)) { mimeType = webmType2; ext = 'webm'; }
+      }
+      if (!mimeType) throw new Error('Tarayıcı video kaydını desteklemiyor');
+
+      // 5) Capture stream
+      const fps = 30;
+      // @ts-expect-error captureStream exists on HTMLCanvasElement
+      const stream: MediaStream = canvas.captureStream(fps);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+      recorder.start();
+
+      // 6) Draw frames with simple fade
+      const frameDurationMs = Math.max(800, secondsPerFrame * 1000);
+      const fadeMs = 250;
+      const drawCover = (img: HTMLImageElement, alpha = 1) => {
+        ctx.globalAlpha = alpha;
+        const scale = Math.max(W / img.width, H / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        ctx.globalAlpha = 1;
+      };
+
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      for (let i = 0; i < imgs.length; i++) {
+        // fade in
+        const fadeSteps = 8;
+        for (let s = 1; s <= fadeSteps; s++) {
+          drawCover(imgs[i], s / fadeSteps);
+          await sleep(fadeMs / fadeSteps);
+        }
+        drawCover(imgs[i], 1);
+        await sleep(frameDurationMs - fadeMs);
+      }
+      // hold last frame briefly
+      await sleep(400);
+      recorder.stop();
+      await stopped;
+      stream.getTracks().forEach((t) => t.stop());
+
+      const blob = new Blob(chunks, { type: mimeType });
+
+      // 7) Upload to generated-files
+      if (!user) throw new Error('Giriş gerekli');
+      const fileName = `mp4-${Date.now()}.${ext}`;
+      const path = `${user.id}/${fileName}`;
+      const { error: upErr } = await supabase.storage
+        .from('generated-files')
+        .upload(path, blob, { contentType: mimeType.split(';')[0], upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('generated-files').getPublicUrl(path);
+      return { url: pub.publicUrl, fileName, frameCount: imgs.length };
+    } catch (error) {
+      console.error('MP4 generation error:', error);
+      return null;
+    }
+  }, [user]);
+
   const detectGoogleAction = useCallback((message: string): { action: string; params: Record<string, unknown> } | null => {
     const lower = message.toLowerCase();
     
