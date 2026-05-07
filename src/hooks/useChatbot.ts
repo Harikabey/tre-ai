@@ -526,8 +526,7 @@ export const useChatbot = () => {
 
       // 5) Capture stream
       const fps = 30;
-      // @ts-expect-error captureStream exists on HTMLCanvasElement
-      const stream: MediaStream = canvas.captureStream(fps);
+      const stream: MediaStream = (canvas as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(fps);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 });
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
