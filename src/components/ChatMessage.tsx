@@ -258,6 +258,20 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           </div>
         )}
 
+        {/* Audio (MP3) preview */}
+        {isAudio && fileUrl && (
+          <div className="mb-2">
+            <audio controls src={fileUrl} className="w-full max-w-sm" />
+          </div>
+        )}
+
+        {/* Video (MP4) preview */}
+        {isVideo && fileUrl && (
+          <div className="mb-2">
+            <video controls src={fileUrl} className="max-w-full max-h-64 rounded-lg" />
+          </div>
+        )}
+
         {/* Downloadable file blocks */}
         {downloadableFiles.length > 0 && (
           <div className="mb-2">
