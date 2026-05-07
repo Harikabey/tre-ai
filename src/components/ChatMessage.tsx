@@ -102,6 +102,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .replace(/\[ANIMATED_FRAMES\][\s\S]*?\[\/ANIMATED_FRAMES\]/g, '')
+    .replace(/<audio[\s\S]*?<\/audio>/gi, '')
+    .replace(/<video[\s\S]*?<\/video>/gi, '')
     .trim();
 
   // Extract Tre's "thinking" block (deep mode + show thinking enabled)
