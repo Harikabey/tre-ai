@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { getTranslations, translateUIStrings } from '@/utils/translations';
+import { useTreCredits, CREDIT_COSTS } from '@/hooks/useTreCredits';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
