@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
+import { useTreCredits, type CreditAction } from './useTreCredits';
 
 // Voice mode state shared across components
 let isVoiceModeActive = false;
