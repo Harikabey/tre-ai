@@ -720,6 +720,16 @@ export const useChatbot = () => {
 
     setIsTyping(true);
 
+    // ===== Tre Kredi: aksiyon tipini tespit et ve sayacı artır =====
+    let creditAction: CreditAction = 'chat';
+    if (generationType === 'image') creditAction = 'image';
+    else if (generationType === 'gif') creditAction = 'gif';
+    else if (/\b(mp4|video oluştur|video üret|video yap|slayt video|slideshow|kısa video)\b/i.test(trimmedInput)) creditAction = 'video';
+    else if (/\b(mp3|seslendir|tts|müzik|melodi|şarkı|beste|sfx|ses efekti)\b/i.test(trimmedInput)) creditAction = 'audio';
+    else if (/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation)\b/i.test(trimmedInput)) creditAction = 'pptx';
+    else if (thinkingMode === 'deep') creditAction = 'deep';
+    addCreditUsage(creditAction);
+
     // Get conversation history for mood/memory analysis
     const { data: historyData } = await supabase
       .from('messages')
