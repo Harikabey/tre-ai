@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
+import { useTreCredits, type CreditAction } from './useTreCredits';
 
 // Voice mode state shared across components
 let isVoiceModeActive = false;
@@ -46,6 +47,8 @@ export const useChatbot = () => {
     deleteMemory,
     deleteInterest
   } = useUserMemory();
+
+  const { addUsage: addCreditUsage, isExhausted: creditsExhausted } = useTreCredits();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -717,6 +720,16 @@ export const useChatbot = () => {
 
     setIsTyping(true);
 
+    // ===== Tre Kredi: aksiyon tipini tespit et ve sayacı artır =====
+    let creditAction: CreditAction = 'chat';
+    if (generationType === 'image') creditAction = 'image';
+    else if (generationType === 'gif') creditAction = 'gif';
+    else if (/\b(mp4|video oluştur|video üret|video yap|slayt video|slideshow|kısa video)\b/i.test(trimmedInput)) creditAction = 'video';
+    else if (/\b(mp3|seslendir|tts|müzik|melodi|şarkı|beste|sfx|ses efekti)\b/i.test(trimmedInput)) creditAction = 'audio';
+    else if (/\b(powerpoint|pptx|sunum(?!cu)|sunu(?!cu)|slayt|presentation)\b/i.test(trimmedInput)) creditAction = 'pptx';
+    else if (thinkingMode === 'deep') creditAction = 'deep';
+    addCreditUsage(creditAction);
+
     // Get conversation history for mood/memory analysis
     const { data: historyData } = await supabase
       .from('messages')
@@ -983,7 +996,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, addCreditUsage]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
