@@ -38,6 +38,7 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { percent, used, limit, isWarning, isExhausted } = useTreCredits();
   const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
 
   const handleSignOut = async () => {
