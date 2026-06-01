@@ -749,8 +749,6 @@ const Settings = () => {
 };
 
 const TreCreditsCard = () => {
-  // Lazy require to avoid circular issues
-  const { useTreCredits, CREDIT_COSTS } = require('@/hooks/useTreCredits') as typeof import('@/hooks/useTreCredits');
   const { used, limit, percent, isWarning, isExhausted, setLimit, reset } = useTreCredits();
   const [draftLimit, setDraftLimit] = useState<string>(String(limit));
 
