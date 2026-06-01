@@ -47,6 +47,8 @@ export const useChatbot = () => {
     deleteMemory,
     deleteInterest
   } = useUserMemory();
+
+  const { addUsage: addCreditUsage, isExhausted: creditsExhausted } = useTreCredits();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
