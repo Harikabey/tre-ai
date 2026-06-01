@@ -17,7 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { getTranslations, translateUIStrings } from '@/utils/translations';
-import { useTreCredits, CREDIT_COSTS } from '@/hooks/useTreCredits';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -739,101 +738,9 @@ const Settings = () => {
               ))}
             </CardContent>
           </Card>
-
-          {/* Tre Credits */}
-          <TreCreditsCard />
         </div>
       </div>
     </div>
-  );
-};
-
-const TreCreditsCard = () => {
-  const { used, limit, percent, isWarning, isExhausted, setLimit, reset } = useTreCredits();
-  const [draftLimit, setDraftLimit] = useState<string>(String(limit));
-
-  useEffect(() => { setDraftLimit(String(limit)); }, [limit]);
-
-  const barColor = isExhausted
-    ? 'bg-destructive'
-    : isWarning
-    ? 'bg-yellow-500'
-    : 'bg-primary';
-
-  return (
-    <Card id="credits" className="border-border/50 bg-card/50 backdrop-blur-sm scroll-mt-20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-primary" />
-          Tre Kredi Tasarrufu
-        </CardTitle>
-        <CardDescription>
-          Aylık kredi kullanımını takip et. %80'e ulaştığında otomatik uyarı alırsın. Krediler her ay başında otomatik sıfırlanır.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div>
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Bu ayki kullanım</span>
-            <span className={`font-medium tabular-nums ${isExhausted ? 'text-destructive' : isWarning ? 'text-yellow-500' : 'text-foreground'}`}>
-              {used} / {limit} (%{percent})
-            </span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-            <div
-              className={`h-full transition-all ${barColor}`}
-              style={{ width: `${Math.min(100, percent)}%` }}
-            />
-          </div>
-          {isWarning && !isExhausted && (
-            <p className="text-xs text-yellow-500 mt-2">⚡ Kredinin %80'ini kullandın. Tasarruf moduna geçmeyi düşünebilirsin.</p>
-          )}
-          {isExhausted && (
-            <p className="text-xs text-destructive mt-2">🚨 Aylık kredi limitin doldu.</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Aylık kredi limiti</label>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              min={50}
-              max={100000}
-              value={draftLimit}
-              onChange={(e) => setDraftLimit(e.target.value)}
-              className="bg-secondary/50"
-            />
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const n = parseInt(draftLimit, 10);
-                if (!isNaN(n)) setLimit(n);
-                toast.success('Limit güncellendi');
-              }}
-            >
-              Kaydet
-            </Button>
-            <Button variant="ghost" onClick={() => { reset(); toast.success('Sayaç sıfırlandı'); }}>
-              <RotateCcw className="w-4 h-4 mr-1" /> Sıfırla
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Varsayılan: 1000. Aksiyon başına tahmini maliyet aşağıda gösterilir.</p>
-        </div>
-
-        <div>
-          <div className="text-sm font-medium text-foreground mb-2">Aksiyon başına kredi</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-            {Object.entries(CREDIT_COSTS).map(([key, cost]) => (
-              <div key={key} className="flex justify-between px-3 py-2 rounded-md bg-secondary/40 border border-border/40">
-                <span className="capitalize text-muted-foreground">{key}</span>
-                <span className="font-medium tabular-nums text-foreground">{cost}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

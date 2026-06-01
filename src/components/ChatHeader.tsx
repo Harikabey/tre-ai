@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2, Zap } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useTreCredits } from '@/hooks/useTreCredits';
 import { getTranslations } from '@/utils/translations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
@@ -38,7 +37,6 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
-  const { percent, used, limit, isWarning, isExhausted } = useTreCredits();
   const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
 
   const handleSignOut = async () => {
@@ -80,23 +78,6 @@ export const ChatHeader = ({
       </div>
       
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Tre Credits badge */}
-        <Link to="/settings#credits">
-          <div
-            className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] sm:text-xs transition-colors ${
-              isExhausted
-                ? 'bg-destructive/15 border-destructive/40 text-destructive'
-                : isWarning
-                ? 'bg-yellow-500/15 border-yellow-500/40 text-yellow-500'
-                : 'bg-secondary/50 border-border/50 text-muted-foreground hover:text-primary'
-            }`}
-            title={`Tre Kredi: ${used}/${limit} (%${percent})`}
-          >
-            <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span className="font-medium tabular-nums">%{percent}</span>
-          </div>
-        </Link>
-
         {/* Learning mode - hidden on small screens */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
