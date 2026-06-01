@@ -738,6 +738,9 @@ const Settings = () => {
               ))}
             </CardContent>
           </Card>
+
+          {/* Tre Credits */}
+          <TreCreditsCard />
         </div>
       </div>
     </div>
