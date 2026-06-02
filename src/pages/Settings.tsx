@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
