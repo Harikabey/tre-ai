@@ -46,6 +46,7 @@ const Settings = () => {
   const [languageSearch, setLanguageSearch] = useState('');
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
+  const push = usePushNotifications();
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailConnecting, setEmailConnecting] = useState(false);
