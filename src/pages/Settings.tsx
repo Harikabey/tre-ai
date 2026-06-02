@@ -740,6 +740,65 @@ const Settings = () => {
               ))}
             </CardContent>
           </Card>
+
+          {/* Bildirim ile Sohbet */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Bildirim ile Sohbet
+              </CardTitle>
+              <CardDescription>
+                Uygulamayı açmadan, bildirimin içindeki cevap kutusundan Tre ile konuşabilirsin.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {push.blockedInPreview && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-xs text-yellow-200">
+                  ⚠️ Bu özellik Lovable önizlemesinde çalışmaz. Yayınlanmış sürümde
+                  (<span className="font-mono">tre-ai.lovable.app</span>) veya ana ekrana yüklenmiş PWA'da test et.
+                </div>
+              )}
+              {!push.supported && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive-foreground">
+                  Tarayıcın push bildirimlerini desteklemiyor.
+                </div>
+              )}
+              {push.supported && (
+                <>
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-foreground">Push bildirimleri</div>
+                      <div className="text-xs text-muted-foreground">
+                        Durum: {push.subscribed ? 'Aktif' : 'Kapalı'} • İzin: {push.permission}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={push.subscribed}
+                      disabled={push.loading || push.blockedInPreview}
+                      onCheckedChange={(c) => (c ? push.subscribe() : push.unsubscribe())}
+                    />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={!push.subscribed || push.loading}
+                    onClick={push.sendTest}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Test bildirimi gönder
+                  </Button>
+
+                  <div className="text-[11px] text-muted-foreground leading-relaxed space-y-1">
+                    <p>• <b>Android Chrome:</b> Bildirimde "Cevap yaz" kutusu çıkar, yazıp gönderirsin, Tre yine bildirim olarak cevaplar.</p>
+                    <p>• <b>iOS:</b> Bildirime tıklayınca uygulama açılır. Cevap kutusu iOS'ta desteklenmez. Ana ekrana yüklenmiş PWA gerekir.</p>
+                    <p>• <b>Masaüstü:</b> Sekme kapalı olsa da bildirim gelir.</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
