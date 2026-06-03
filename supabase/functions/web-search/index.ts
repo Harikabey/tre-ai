@@ -19,14 +19,12 @@ Deno.serve(async (req) => {
       });
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error("Auth error:", claimsError?.message);
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !user) {
+      console.error("Auth error:", userError?.message);
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
