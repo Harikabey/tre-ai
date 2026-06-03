@@ -48,6 +48,7 @@ const Settings = () => {
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const push = usePushNotifications();
+  const install = useInstallPrompt();
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailConnecting, setEmailConnecting] = useState(false);
