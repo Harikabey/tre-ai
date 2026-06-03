@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +48,7 @@ const Settings = () => {
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const push = usePushNotifications();
+  const install = useInstallPrompt();
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailConnecting, setEmailConnecting] = useState(false);
@@ -796,6 +798,39 @@ const Settings = () => {
                     <p>• <b>Masaüstü:</b> Sekme kapalı olsa da bildirim gelir.</p>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Uygulamayı Yükle (PWA) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-primary" />
+                Uygulamayı Yükle
+              </CardTitle>
+              <CardDescription>
+                Tre'yi telefonunun ana ekranına ekle, tam ekran ve hızlı erişim.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {install.installed ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+                  ✓ Uygulama yüklü olarak çalışıyor.
+                </div>
+              ) : install.canInstall ? (
+                <Button className="w-full" onClick={install.promptInstall}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Ana ekrana ekle
+                </Button>
+              ) : install.isIOS ? (
+                <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
+                  iOS'ta yüklemek için: Safari'de <b>Paylaş</b> butonuna dokun → <b>Ana Ekrana Ekle</b>.
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
+                  Tarayıcı menüsünden <b>"Ana ekrana ekle"</b> / <b>"Uygulamayı yükle"</b> seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde (tre-ai.lovable.app) görünür.
+                </div>
               )}
             </CardContent>
           </Card>
