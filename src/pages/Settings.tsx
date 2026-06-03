@@ -801,6 +801,39 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Uygulamayı Yükle (PWA) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-primary" />
+                Uygulamayı Yükle
+              </CardTitle>
+              <CardDescription>
+                Tre'yi telefonunun ana ekranına ekle, tam ekran ve hızlı erişim.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {install.installed ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+                  ✓ Uygulama yüklü olarak çalışıyor.
+                </div>
+              ) : install.canInstall ? (
+                <Button className="w-full" onClick={install.promptInstall}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Ana ekrana ekle
+                </Button>
+              ) : install.isIOS ? (
+                <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
+                  iOS'ta yüklemek için: Safari'de <b>Paylaş</b> butonuna dokun → <b>Ana Ekrana Ekle</b>.
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
+                  Tarayıcı menüsünden <b>"Ana ekrana ekle"</b> / <b>"Uygulamayı yükle"</b> seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde (tre-ai.lovable.app) görünür.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
