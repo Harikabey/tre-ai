@@ -422,6 +422,23 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
             )}
           </div>
         </div>
+
+        {/* Reaction emojis */}
+        {onReact && (
+          <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30 flex-wrap">
+            {['👍', '😢', '😡', '❤️', '😂', '😮'].map((emo) => (
+              <button
+                key={emo}
+                type="button"
+                onClick={() => onReact(message.id, emo)}
+                className="text-sm leading-none px-1.5 py-1 rounded-md hover:bg-secondary/60 active:scale-95 transition"
+                aria-label={`React ${emo}`}
+              >
+                {emo}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       
       {!isBot && (
