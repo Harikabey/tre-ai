@@ -41,6 +41,7 @@ const Index = () => {
     setIsLearningMode,
     setThinkingMode,
     sendMessage,
+    reactToMessage,
     clearMessages,
     deleteMessage,
     clearKnowledge,
@@ -183,10 +184,10 @@ const Index = () => {
                         messageId={message.id}
                         onDelete={() => deleteMessage(message.id)}
                       >
-                        <ChatMessage message={message} />
+                        <ChatMessage message={message} onReact={reactToMessage} />
                       </SwipeableMessage>
                     ) : (
-                      <ChatMessage key={message.id} message={message} />
+                      <ChatMessage key={message.id} message={message} onReact={reactToMessage} />
                     )
                   ))}
                   {isTyping && <TypingIndicator />}

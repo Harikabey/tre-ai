@@ -14,6 +14,7 @@ import { getLanguageByCode } from '@/types/language';
 
 interface ChatMessageProps {
   message: Message;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
@@ -56,7 +57,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
   }
 };
 
-export const ChatMessage = ({ message }: ChatMessageProps) => {
+export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
@@ -421,6 +422,23 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
             )}
           </div>
         </div>
+
+        {/* Reaction emojis */}
+        {onReact && (
+          <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30 flex-wrap">
+            {['👍', '😢', '😡', '❤️', '😂', '😮'].map((emo) => (
+              <button
+                key={emo}
+                type="button"
+                onClick={() => onReact(message.id, emo)}
+                className="text-sm leading-none px-1.5 py-1 rounded-md hover:bg-secondary/60 active:scale-95 transition"
+                aria-label={`React ${emo}`}
+              >
+                {emo}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       
       {!isBot && (

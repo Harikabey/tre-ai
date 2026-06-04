@@ -1061,6 +1061,49 @@ export const useChatbot = () => {
     return newItem;
   }, []);
 
+  const REACTION_REPLIES: Record<string, string> = {
+    '👍': 'Ne güzel, mutlu oldum 😊',
+    '😢': 'Anlıyorum, yanındayım. Konuşmak ister misin?',
+    '😡': 'Sakinleşmene yardım edebilirim. Birlikte derin nefes alalım.',
+    '❤️': 'Teşekkür ederim. Ben de seni önemsiyorum.',
+    '😂': 'Güldüğüne sevindim 😄',
+    '😮': 'Bu seni şaşırttı değil mi? Anlatmak ister misin?',
+  };
+
+  const reactToMessage = useCallback(async (_messageId: string, emoji: string) => {
+    const reply = REACTION_REPLIES[emoji];
+    if (!reply) return;
+
+    const convId = currentConversationId;
+    const userReactionContent = `[Tepki: ${emoji}]`;
+
+    const userMsg: Message = {
+      id: `react-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'user',
+      content: userReactionContent,
+      timestamp: new Date(),
+    };
+    const botMsg: Message = {
+      id: `react-bot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'bot',
+      content: reply,
+      timestamp: new Date(Date.now() + 1),
+    };
+
+    setMessages(prev => [...prev, userMsg, botMsg]);
+
+    if (convId) {
+      try {
+        await supabase.from('messages').insert([
+          { conversation_id: convId, role: 'user', content: userReactionContent },
+          { conversation_id: convId, role: 'bot', content: reply },
+        ]);
+      } catch (e) {
+        console.error('reaction save failed', e);
+      }
+    }
+  }, [currentConversationId]);
+
   return {
     messages,
     conversations,
@@ -1079,6 +1122,7 @@ export const useChatbot = () => {
     setIsLearningMode,
     setThinkingMode: updateThinkingMode,
     sendMessage,
+    reactToMessage,
     clearMessages,
     deleteMessage,
     clearKnowledge,
