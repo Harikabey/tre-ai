@@ -41,6 +41,7 @@ const Index = () => {
     setIsLearningMode,
     setThinkingMode,
     sendMessage,
+    reactToMessage,
     clearMessages,
     deleteMessage,
     clearKnowledge,
