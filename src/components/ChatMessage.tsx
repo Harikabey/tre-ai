@@ -14,6 +14,7 @@ import { getLanguageByCode } from '@/types/language';
 
 interface ChatMessageProps {
   message: Message;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
