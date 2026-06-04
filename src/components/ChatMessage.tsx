@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
@@ -420,25 +421,41 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
                 )}
               </Button>
             )}
+
+            {/* Reaction popover */}
+            {onReact && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 sm:h-6 sm:w-6"
+                    title="Tepki ver"
+                  >
+                    <Smile className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="end"
+                  className="w-auto p-1.5 flex items-center gap-0.5"
+                >
+                  {['👍', '😢', '😡', '❤️', '😂', '😮'].map((emo) => (
+                    <button
+                      key={emo}
+                      type="button"
+                      onClick={() => onReact(message.id, emo)}
+                      className="text-base leading-none px-1.5 py-1 rounded-md hover:bg-secondary/60 active:scale-95 transition"
+                      aria-label={`React ${emo}`}
+                    >
+                      {emo}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
-
-        {/* Reaction emojis */}
-        {onReact && (
-          <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30 flex-wrap">
-            {['👍', '😢', '😡', '❤️', '😂', '😮'].map((emo) => (
-              <button
-                key={emo}
-                type="button"
-                onClick={() => onReact(message.id, emo)}
-                className="text-sm leading-none px-1.5 py-1 rounded-md hover:bg-secondary/60 active:scale-95 transition"
-                aria-label={`React ${emo}`}
-              >
-                {emo}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
       
       {!isBot && (
