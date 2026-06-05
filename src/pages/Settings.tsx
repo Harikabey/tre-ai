@@ -793,10 +793,16 @@ const Settings = () => {
                   </Button>
 
                   <div className="text-[11px] text-muted-foreground leading-relaxed space-y-1">
-                    <p>• <b>Android Chrome:</b> Bildirimde "Cevap yaz" kutusu çıkar, yazıp gönderirsin, Tre yine bildirim olarak cevaplar.</p>
+                    <p>• <b>Android Chrome / Edge:</b> Bildirimi aşağı kaydırıp genişlet, "Cevap yaz" kutusu çıkar. Yazıp gönderdiğinde Tre yine bildirim olarak cevaplar.</p>
+                    <p>• <b>Android Firefox / Samsung Internet:</b> Bildirim gelir ama bildirim çubuğundan metin cevabı çoğunlukla desteklenmez. Bildirime dokun, uygulama açılsın, oradan cevap ver. (Tam destek için Chrome/Edge öneririz.)</p>
                     <p>• <b>iOS:</b> Bildirime tıklayınca uygulama açılır. Cevap kutusu iOS'ta desteklenmez. Ana ekrana yüklenmiş PWA gerekir.</p>
-                    <p>• <b>Masaüstü:</b> Sekme kapalı olsa da bildirim gelir.</p>
+                    <p>• <b>Masaüstü:</b> Sekme kapalı olsa da bildirim gelir; cevap kutusu tarayıcıya göre değişir.</p>
                   </div>
+                  {typeof navigator !== 'undefined' && /Firefox|FxiOS/i.test(navigator.userAgent) && (
+                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-[11px] text-yellow-200/90">
+                      Firefox kullandığını algıladık. Bildirim çubuğundan doğrudan cevap yazma özelliği Firefox'ta desteklenmiyor olabilir; bildirime dokunup uygulamadan cevap vermen gerekir.
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
