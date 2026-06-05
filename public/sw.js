@@ -52,7 +52,8 @@ self.addEventListener("push", (event) => {
       { action: "reply", type: "text", title: "Cevap yaz", placeholder: "Tre'ye yaz..." },
       { action: "open", title: "Aç" },
     ],
-    requireInteraction: false,
+    requireInteraction: true,
+    vibrate: [80, 40, 80],
   };
 
   event.waitUntil(self.registration.showNotification(payload.title || "Tre", options));
