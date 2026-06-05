@@ -66,30 +66,32 @@ self.addEventListener("notificationclick", (event) => {
 
   notif.close();
 
-  if (action === "reply" && replyText && replyText.trim()) {
-    event.waitUntil((async () => {
-      const token = await getUserToken();
-      if (!token) {
-        // No JWT — open app so user can sign in
-        return self.clients.openWindow("/");
-      }
-      try {
-        await fetch(`${SUPABASE_URL}/functions/v1/reply-to-tre`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "apikey": SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            conversationId: notif.data?.conversationId || null,
-            message: replyText.trim(),
-          }),
-        });
-      } catch (e) {
-        console.error("[sw] reply failed", e);
-      }
-    })());
+  if (action === "reply") {
+    if (replyText && replyText.trim()) {
+      event.waitUntil((async () => {
+        const token = await getUserToken();
+        if (!token) return self.clients.openWindow("/");
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/reply-to-tre`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+              "apikey": SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              conversationId: notif.data?.conversationId || null,
+              message: replyText.trim(),
+            }),
+          });
+        } catch (e) {
+          console.error("[sw] reply failed", e);
+        }
+      })());
+      return;
+    }
+    // Reply action tapped without text (browser doesn't support inline reply) → open app
+    event.waitUntil(self.clients.openWindow(notif.data?.url || "/"));
     return;
   }
 
