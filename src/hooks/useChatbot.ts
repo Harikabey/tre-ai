@@ -44,7 +44,11 @@ export const useChatbot = () => {
     recentMoods,
     currentMood,
     deleteMemory,
-    deleteInterest
+    deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   } = useUserMemory();
   
   const [messages, setMessages] = useState<Message[]>([]);
