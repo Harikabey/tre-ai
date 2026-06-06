@@ -246,6 +246,10 @@ const Index = () => {
         currentMood={currentMood}
         onDeleteMemory={deleteMemory}
         onDeleteInterest={deleteInterest}
+        onAddMemory={addMemory}
+        onUpdateMemory={updateMemory}
+        onAddInterest={addInterest}
+        onUpdateInterest={updateInterest}
       />
 
       {/* Live Camera View */}
