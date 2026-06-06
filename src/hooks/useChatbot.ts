@@ -1139,5 +1139,9 @@ export const useChatbot = () => {
     loadConversations,
     deleteMemory,
     deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   };
 };
