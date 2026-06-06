@@ -52,6 +52,10 @@ const Index = () => {
     renameConversation,
     deleteMemory,
     deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   } = useChatbot();
 
   const { images, addImage, deleteImage, clearImages } = useImageHistory();
