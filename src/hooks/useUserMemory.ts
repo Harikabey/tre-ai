@@ -293,6 +293,75 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     setInterests(prev => prev.filter(i => i.id !== interestId));
   }, []);
 
+  const addMemory = useCallback(async (
+    content: string,
+    memory_type: UserMemory['memory_type'] = 'fact',
+    category: string = 'genel',
+    importance: number = 5
+  ) => {
+    if (!user || !content.trim()) return;
+    const { data, error } = await supabase
+      .from('user_memories')
+      .insert({
+        user_id: user.id,
+        content: content.trim(),
+        memory_type,
+        category: category.trim() || 'genel',
+        importance,
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setMemories(prev => [data as UserMemory, ...prev]);
+    }
+  }, [user]);
+
+  const updateMemory = useCallback(async (
+    memoryId: string,
+    updates: Partial<Pick<UserMemory, 'content' | 'memory_type' | 'category' | 'importance'>>
+  ) => {
+    const { data, error } = await supabase
+      .from('user_memories')
+      .update(updates)
+      .eq('id', memoryId)
+      .select()
+      .single();
+    if (!error && data) {
+      setMemories(prev => prev.map(m => (m.id === memoryId ? { ...m, ...(data as UserMemory) } : m)));
+    }
+  }, []);
+
+  const addInterest = useCallback(async (interest: string, category: string = 'genel') => {
+    if (!user || !interest.trim()) return;
+    const { data, error } = await supabase
+      .from('user_interests')
+      .insert({
+        user_id: user.id,
+        interest: interest.trim(),
+        category: category.trim() || 'genel',
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setInterests(prev => [data as UserInterest, ...prev]);
+    }
+  }, [user]);
+
+  const updateInterest = useCallback(async (
+    interestId: string,
+    updates: Partial<Pick<UserInterest, 'interest' | 'category' | 'strength'>>
+  ) => {
+    const { data, error } = await supabase
+      .from('user_interests')
+      .update(updates)
+      .eq('id', interestId)
+      .select()
+      .single();
+    if (!error && data) {
+      setInterests(prev => prev.map(i => (i.id === interestId ? { ...i, ...(data as UserInterest) } : i)));
+    }
+  }, []);
+
   return {
     memories,
     interests,
@@ -303,6 +372,10 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     getMoodContext,
     deleteMemory,
     deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
     loadMemories,
     loadInterests,
   };
