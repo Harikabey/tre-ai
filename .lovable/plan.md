@@ -1,28 +1,26 @@
-## Plan
+## Plan: Logoyu her yerde değiştir
 
-1. **Sorunu doğru ele alacağım**
-   - Ekran görüntüsündeki bildirim Firefox üzerinden geliyor.
-   - Android’de web push inline text reply desteği Firefox’ta güvenilir/aktif değil; bu yüzden “Cevap yaz” kutusu görünmemesi beklenen bir platform sınırlaması olabilir.
-   - Kod tarafında bunu kullanıcıya yanlış vaat etmeyecek şekilde netleştireceğim.
+Yüklediğin minimalist gümüş/krom logo görselini uygulamadaki tüm logo/ikon noktalarında kullanacağım.
 
-2. **Bildirim ayarları ekranını güncelleyeceğim**
-   - “Android Chrome” ifadesini “Android Chrome/Edge” gibi desteklenen tarayıcılarla sınırlayacağım.
-   - Firefox için: “Bildirim gelir ama bildirim çubuğundan metin cevabı desteklenmeyebilir; bildirime dokunarak uygulamadan cevap ver” açıklaması eklenecek.
-   - Kullanıcı Firefox kullanıyorsa test butonu yanında kısa uyarı gösterilecek.
+### Yapılacaklar
 
-3. **Service worker davranışını daha sağlam yapacağım**
-   - Mevcut inline reply action korunacak.
-   - Eğer kullanıcı “reply” aksiyonundan boş/eksik cevapla gelirse uygulamayı ilgili sohbete açacak fallback eklenecek.
-   - Böylece desteklenmeyen tarayıcıda tamamen başarısız olmak yerine kullanıcı sohbet ekranına yönlendirilir.
+1. **Yeni logoyu projeye al**
+   - `user-uploads://...` görselini `src/assets/ai-logo.jpg` olarak (mevcut dosyanın yerine) kaydet. Böylece şu dosyalar otomatik yeni logoyu kullanır:
+     - `src/components/ChatHeader.tsx`
+     - `src/components/EmptyState.tsx`
+     - `src/components/VoicePulseAnimation.tsx`
+     - `src/pages/VoiceChat.tsx`
 
-4. **Test bildirimi deneyimini iyileştireceğim**
-   - Test bildirimi açıklamasını tarayıcıya göre uyarlayacağım:
-     - Chrome/Edge: “bildirimi genişletip cevap yazabilirsin”
-     - Firefox/iOS/diğer: “bildirime dokunup uygulamadan cevap verebilirsin”
+2. **PWA ikonları ve favicon**
+   - Görseli 512x512 ve 192x192 PNG'ye çevirip şunları değiştir:
+     - `public/icon-512.png`
+     - `public/icon-192.png`
+     - `public/favicon.ico` (yeni logodan üretilmiş .ico)
+   - `public/manifest.webmanifest` zaten bu dosyaları referansladığı için ek değişiklik gerekmiyor.
 
-## Teknik Notlar
+3. **index.html**
+   - `<link rel="icon">`, `apple-touch-icon` ve varsa `og:image` / `twitter:image` etiketlerinin yeni logoyu (favicon + icon-512) gösterdiğinden emin ol.
 
-- `public/sw.js` içinde notification click fallback’i güçlendirilecek.
-- `src/hooks/usePushNotifications.ts` içinde tarayıcı algılama ve test mesajı metni güncellenecek.
-- Ayarlar sayfasındaki bildirim metni ilgili dosyada bulunup sadece açıklama metinleri güncellenecek.
-- Bu değişiklik Firefox’a Android sisteminin desteklemediği inline text input’u zorla ekleyemez; desteklenmeyen yerde güvenli fallback sağlar.
+### Notlar
+- Görsel yatay (geniş) ve şeffaf değil; PWA ikonu kare olmak zorunda, bu yüzden logoyu beyaz/şeffaf kare zemin üzerine ortalayıp 512x512 üretilecek. Sohbet içindeki yuvarlak avatarlarda da ortalanmış şekilde görünecek.
+- `service worker` (sw.js) içindeki ikon referansları aynı `icon-192.png` dosyasını kullandığından bildirim ikonu da otomatik güncellenir.
