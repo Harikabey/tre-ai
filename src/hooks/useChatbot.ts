@@ -44,7 +44,11 @@ export const useChatbot = () => {
     recentMoods,
     currentMood,
     deleteMemory,
-    deleteInterest
+    deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   } = useUserMemory();
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1135,5 +1139,9 @@ export const useChatbot = () => {
     loadConversations,
     deleteMemory,
     deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   };
 };

@@ -52,6 +52,10 @@ const Index = () => {
     renameConversation,
     deleteMemory,
     deleteInterest,
+    addMemory,
+    updateMemory,
+    addInterest,
+    updateInterest,
   } = useChatbot();
 
   const { images, addImage, deleteImage, clearImages } = useImageHistory();
@@ -242,6 +246,10 @@ const Index = () => {
         currentMood={currentMood}
         onDeleteMemory={deleteMemory}
         onDeleteInterest={deleteInterest}
+        onAddMemory={addMemory}
+        onUpdateMemory={updateMemory}
+        onAddInterest={addInterest}
+        onUpdateInterest={updateInterest}
       />
 
       {/* Live Camera View */}
