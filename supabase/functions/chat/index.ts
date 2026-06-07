@@ -500,6 +500,23 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
       });
     }
 
+    // Final fallback: DeepSeek (OpenAI-compatible). Maps to deepseek-reasoner for deep/code, else deepseek-chat.
+    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
+    if (!response.ok && DEEPSEEK_API_KEY) {
+      console.warn("Primary providers failed with", response.status, "- falling back to DeepSeek");
+      const deepseekModel = (safeThinkingMode === "deep" || looksLikeCode) ? "deepseek-reasoner" : "deepseek-chat";
+      const deepseekBody: Record<string, unknown> = {
+        model: deepseekModel,
+        messages: requestBody.messages,
+        stream: true,
+      };
+      response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(deepseekBody),
+      });
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
