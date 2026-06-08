@@ -308,6 +308,7 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
           isBot ? (
             <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                   code({ node, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
@@ -326,12 +327,42 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
                   },
                   pre({ children }) {
                     return <>{children}</>;
-                  }
+                  },
+                  table({ children }) {
+                    return (
+                      <div className="my-3 w-full overflow-x-auto rounded-lg border border-border/60">
+                        <table className="w-full text-xs sm:text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    );
+                  },
+                  thead({ children }) {
+                    return <thead className="bg-secondary/60">{children}</thead>;
+                  },
+                  th({ children, style }) {
+                    return (
+                      <th style={style} className="px-3 py-2 text-left font-semibold text-foreground border-b border-border/60 whitespace-nowrap">
+                        {children}
+                      </th>
+                    );
+                  },
+                  td({ children, style }) {
+                    return (
+                      <td style={style} className="px-3 py-2 border-b border-border/30 text-foreground/90 align-top">
+                        {children}
+                      </td>
+                    );
+                  },
+                  tr({ children }) {
+                    return <tr className="even:bg-secondary/20 hover:bg-secondary/40 transition-colors">{children}</tr>;
+                  },
                 }}
               >
                 {displayContent}
               </ReactMarkdown>
             </div>
+          ) : (
           ) : (
             <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
               {displayContent}
