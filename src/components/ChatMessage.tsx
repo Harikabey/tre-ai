@@ -10,6 +10,7 @@ import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
 import { parseFileBlocks, FileDownloadBlock } from '@/components/FileDownloadBlock';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/types/language';
 
