@@ -363,7 +363,6 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
               </ReactMarkdown>
             </div>
           ) : (
-          ) : (
             <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
               {displayContent}
             </p>
