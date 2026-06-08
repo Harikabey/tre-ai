@@ -377,7 +377,7 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
               Çeviri
             </div>
             <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 break-words [word-break:break-word] [overflow-wrap:anywhere]">
-              <ReactMarkdown>{translatedContent}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{translatedContent}</ReactMarkdown>
             </div>
           </div>
         )}
