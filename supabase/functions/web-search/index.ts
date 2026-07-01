@@ -42,8 +42,41 @@ Deno.serve(async (req) => {
     // --- API Setup ---
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SERPAPI_API_KEY = Deno.env.get("SERPAPI_API_KEY");
 
     if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
+
+    // --- SerpAPI: fetch real Google results FIRST (primary search engine) ---
+    let serpResults: { title: string; url: string; snippet: string }[] = [];
+    let serpContext = "";
+    if (SERPAPI_API_KEY) {
+      try {
+        const serpUrl = new URL("https://serpapi.com/search.json");
+        serpUrl.searchParams.set("q", query);
+        serpUrl.searchParams.set("api_key", SERPAPI_API_KEY);
+        serpUrl.searchParams.set("engine", "google");
+        serpUrl.searchParams.set("num", "8");
+        serpUrl.searchParams.set("hl", "tr");
+        const serpRes = await fetch(serpUrl.toString());
+        if (serpRes.ok) {
+          const serpData = await serpRes.json();
+          const organic = Array.isArray(serpData.organic_results) ? serpData.organic_results : [];
+          serpResults = organic.slice(0, 8).map((r: any) => ({
+            title: String(r.title || "").slice(0, 200),
+            url: String(r.link || ""),
+            snippet: String(r.snippet || r.snippet_highlighted_words?.join(" ") || "").slice(0, 500),
+          })).filter((r: any) => r.url);
+          if (serpResults.length > 0) {
+            serpContext = "\n\nGERÇEK GOOGLE ARAMA SONUÇLARI (bu kaynakları kullan):\n" +
+              serpResults.map((r, i) => `[${i + 1}] ${r.title}\nURL: ${r.url}\nÖzet: ${r.snippet}`).join("\n\n");
+          }
+        } else {
+          console.error("SerpAPI error:", serpRes.status);
+        }
+      } catch (e) {
+        console.error("SerpAPI fetch failed:", e);
+      }
+    }
 
     const requestBody = JSON.stringify({
       model: "google/gemini-2.5-flash",
@@ -53,7 +86,7 @@ Deno.serve(async (req) => {
           content: `Sen bir araştırma asistanısın. Kullanıcının sorusuna güncel ve doğru bilgilerle yanıt ver.
 
 ÖNEMLİ KURALLAR:
-1. Her bilgi için güvenilir kaynak belirt
+1. ${serpResults.length > 0 ? "Aşağıdaki GERÇEK Google arama sonuçlarını temel al ve `sources` alanına bu URL'leri EKSİKSİZ ekle." : "Her bilgi için güvenilir kaynak belirt."}
 2. Yanıtını şu JSON formatında ver:
 {
   "answer": "Ana yanıt metni (markdown destekli)",
@@ -62,13 +95,14 @@ Deno.serve(async (req) => {
   "trending_topics": ["ilgili güncel konular"]
 }
 
-${safeInterests ? `Kullanıcının ilgi alanları: ${safeInterests}.` : ""}
+${safeInterests ? `Kullanıcının ilgi alanları: ${safeInterests}.` : ""}${serpContext}
 
 SADECE JSON döndür.`,
         },
         { role: "user", content: query },
       ],
     });
+
 
     let response: Response | null = null;
 
