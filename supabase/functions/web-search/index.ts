@@ -136,15 +136,19 @@ SADECE JSON döndür.`,
 
     try {
       const result = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
+      if ((!Array.isArray(result.sources) || result.sources.length === 0) && serpResults.length > 0) {
+        result.sources = serpResults;
+      }
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch {
       return new Response(
-        JSON.stringify({ answer: content, sources: [], confidence: 0.5, trending_topics: [] }),
+        JSON.stringify({ answer: content, sources: serpResults, confidence: 0.5, trending_topics: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
   } catch (error) {
     console.error("Web search error:", error);
     return new Response(
