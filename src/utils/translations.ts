@@ -70,7 +70,64 @@ export interface Translations {
   // Common
   test: string;
   error: string;
+  success: string;
+  // Auth
+  authTagline: string;
+  signInTab: string;
+  signUpTab: string;
+  emailLabel: string;
+  passwordLabel: string;
+  usernameLabel: string;
+  emailPlaceholder: string;
+  passwordPlaceholder: string;
+  usernamePlaceholder: string;
+  signInBtn: string;
+  signUpBtn: string;
+  signingInBtn: string;
+  signingUpBtn: string;
+  forgotPasswordLink: string;
+  termsPrefix: string;
+  termsLinkText: string;
+  termsSuffix: string;
+  termsRequiredTitle: string;
+  termsRequiredDesc: string;
+  welcomeBackTitle: string;
+  welcomeBackDesc: string;
+  accountCreatedTitle: string;
+  accountCreatedDesc: string;
+  validationErrorTitle: string;
+  invalidEmailMsg: string;
+  passwordTooShortMsg: string;
+  invalidCredentialsMsg: string;
+  emailNotConfirmedMsg: string;
+  signInFailedMsg: string;
+  emailAlreadyRegisteredMsg: string;
+  signUpFailedMsg: string;
+  selectLanguageLabel: string;
+  // Forgot password
+  forgotPasswordTitle: string;
+  forgotPasswordDesc: string;
+  forgotPasswordSentDesc: string;
+  checkEmailInstruction: string;
+  sendResetLinkBtn: string;
+  sendingBtn: string;
+  backToSignInBtn: string;
+  resetEmailSentTitle: string;
+  resetEmailSentDesc: string;
+  resetEmailErrorDesc: string;
+  // Reset password
+  newPasswordTitle: string;
+  newPasswordDesc: string;
+  invalidRecoveryLinkMsg: string;
+  newPasswordLabel: string;
+  confirmPasswordLabel: string;
+  updatePasswordBtn: string;
+  updatingBtn: string;
+  passwordsDontMatchMsg: string;
+  passwordUpdatedDesc: string;
+  passwordUpdateErrorDesc: string;
 }
+
 
 const tr: Translations = {
   settings: 'Ayarlar',
