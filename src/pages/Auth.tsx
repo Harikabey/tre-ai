@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { TermsOfServiceDialog } from '@/components/TermsOfServiceDialog';
 import { getTranslations } from '@/utils/translations';
-import { LANGUAGES } from '@/types/language';
+import { languages as LANGUAGES } from '@/types/language';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
