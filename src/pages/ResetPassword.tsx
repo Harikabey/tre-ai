@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getTranslations } from '@/utils/translations';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -15,9 +16,9 @@ const ResetPassword = () => {
   const [isValidSession, setIsValidSession] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
 
   useEffect(() => {
-    // Check if we have a recovery session from the URL hash
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
 
@@ -25,7 +26,6 @@ const ResetPassword = () => {
       setIsValidSession(true);
     }
 
-    // Also listen for auth state changes (recovery event)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsValidSession(true);
@@ -40,8 +40,8 @@ const ResetPassword = () => {
 
     if (password.length < 6) {
       toast({
-        title: 'Hata',
-        description: 'Şifre en az 6 karakter olmalı',
+        title: t.error,
+        description: t.passwordTooShortMsg,
         variant: 'destructive',
       });
       return;
@@ -49,8 +49,8 @@ const ResetPassword = () => {
 
     if (password !== confirmPassword) {
       toast({
-        title: 'Hata',
-        description: 'Şifreler eşleşmiyor',
+        title: t.error,
+        description: t.passwordsDontMatchMsg,
         variant: 'destructive',
       });
       return;
@@ -62,14 +62,14 @@ const ResetPassword = () => {
 
     if (error) {
       toast({
-        title: 'Hata',
-        description: 'Şifre güncellenemedi. Lütfen tekrar deneyin.',
+        title: t.error,
+        description: t.passwordUpdateErrorDesc,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Başarılı',
-        description: 'Şifreniz başarıyla güncellendi',
+        title: t.success,
+        description: t.passwordUpdatedDesc,
       });
       navigate('/');
     }
@@ -84,30 +84,30 @@ const ResetPassword = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
             <Bot className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Yeni Şifre Belirle</CardTitle>
-          <CardDescription>Hesabınız için yeni bir şifre oluşturun</CardDescription>
+          <CardTitle className="text-2xl">{t.newPasswordTitle}</CardTitle>
+          <CardDescription>{t.newPasswordDesc}</CardDescription>
         </CardHeader>
 
         <CardContent>
           {!isValidSession ? (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Geçersiz veya süresi dolmuş bağlantı. Lütfen yeni bir şifre sıfırlama isteği gönderin.
+                {t.invalidRecoveryLinkMsg}
               </p>
               <Button variant="outline" className="w-full" onClick={() => navigate('/forgot-password')}>
-                Şifremi Unuttum
+                {t.forgotPasswordLink}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-password">Yeni Şifre</Label>
+                <Label htmlFor="new-password">{t.newPasswordLabel}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="new-password"
                     type="password"
-                    placeholder="••••••"
+                    placeholder={t.passwordPlaceholder}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -117,13 +117,13 @@ const ResetPassword = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password">Şifreyi Onayla</Label>
+                <Label htmlFor="confirm-password">{t.confirmPasswordLabel}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm-password"
                     type="password"
-                    placeholder="••••••"
+                    placeholder={t.passwordPlaceholder}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
@@ -133,7 +133,7 @@ const ResetPassword = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
+                {isLoading ? t.updatingBtn : t.updatePasswordBtn}
               </Button>
             </form>
           )}

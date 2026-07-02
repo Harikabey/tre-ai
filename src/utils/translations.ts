@@ -70,7 +70,64 @@ export interface Translations {
   // Common
   test: string;
   error: string;
+  success: string;
+  // Auth
+  authTagline: string;
+  signInTab: string;
+  signUpTab: string;
+  emailLabel: string;
+  passwordLabel: string;
+  usernameLabel: string;
+  emailPlaceholder: string;
+  passwordPlaceholder: string;
+  usernamePlaceholder: string;
+  signInBtn: string;
+  signUpBtn: string;
+  signingInBtn: string;
+  signingUpBtn: string;
+  forgotPasswordLink: string;
+  termsPrefix: string;
+  termsLinkText: string;
+  termsSuffix: string;
+  termsRequiredTitle: string;
+  termsRequiredDesc: string;
+  welcomeBackTitle: string;
+  welcomeBackDesc: string;
+  accountCreatedTitle: string;
+  accountCreatedDesc: string;
+  validationErrorTitle: string;
+  invalidEmailMsg: string;
+  passwordTooShortMsg: string;
+  invalidCredentialsMsg: string;
+  emailNotConfirmedMsg: string;
+  signInFailedMsg: string;
+  emailAlreadyRegisteredMsg: string;
+  signUpFailedMsg: string;
+  selectLanguageLabel: string;
+  // Forgot password
+  forgotPasswordTitle: string;
+  forgotPasswordDesc: string;
+  forgotPasswordSentDesc: string;
+  checkEmailInstruction: string;
+  sendResetLinkBtn: string;
+  sendingBtn: string;
+  backToSignInBtn: string;
+  resetEmailSentTitle: string;
+  resetEmailSentDesc: string;
+  resetEmailErrorDesc: string;
+  // Reset password
+  newPasswordTitle: string;
+  newPasswordDesc: string;
+  invalidRecoveryLinkMsg: string;
+  newPasswordLabel: string;
+  confirmPasswordLabel: string;
+  updatePasswordBtn: string;
+  updatingBtn: string;
+  passwordsDontMatchMsg: string;
+  passwordUpdatedDesc: string;
+  passwordUpdateErrorDesc: string;
 }
+
 
 const tr: Translations = {
   settings: 'Ayarlar',
@@ -140,7 +197,61 @@ const tr: Translations = {
   emptyStateDesc: 'Soru sorun, fikir alın, görsel oluşturun — her konuda yanınızdayım.',
   test: 'Test',
   error: 'Hata',
+  success: 'Başarılı',
+  authTagline: 'Akıllı AI asistanınıza hoş geldiniz',
+  signInTab: 'Giriş Yap',
+  signUpTab: 'Kayıt Ol',
+  emailLabel: 'E-posta',
+  passwordLabel: 'Şifre',
+  usernameLabel: 'Kullanıcı Adı',
+  emailPlaceholder: 'ornek@email.com',
+  passwordPlaceholder: '••••••',
+  usernamePlaceholder: 'kullaniciadi',
+  signInBtn: 'Giriş Yap',
+  signUpBtn: 'Kayıt Ol',
+  signingInBtn: 'Giriş yapılıyor...',
+  signingUpBtn: 'Kayıt olunuyor...',
+  forgotPasswordLink: 'Şifremi Unuttum',
+  termsPrefix: '',
+  termsLinkText: 'Kullanım Sözleşmesi',
+  termsSuffix: "'ni okudum ve kabul ediyorum.",
+  termsRequiredTitle: 'Sözleşme Onayı Gerekli',
+  termsRequiredDesc: 'Kayıt olmak için Kullanım Sözleşmesini kabul etmeniz gerekmektedir.',
+  welcomeBackTitle: 'Hoş geldiniz!',
+  welcomeBackDesc: 'Başarıyla giriş yaptınız',
+  accountCreatedTitle: 'Hesap Oluşturuldu!',
+  accountCreatedDesc: 'Başarıyla kayıt oldunuz',
+  validationErrorTitle: 'Doğrulama Hatası',
+  invalidEmailMsg: 'Geçerli bir e-posta adresi girin',
+  passwordTooShortMsg: 'Şifre en az 6 karakter olmalı',
+  invalidCredentialsMsg: 'E-posta veya şifre hatalı',
+  emailNotConfirmedMsg: 'E-posta adresinizi onaylayın',
+  signInFailedMsg: 'Giriş yapılamadı',
+  emailAlreadyRegisteredMsg: 'Bu e-posta adresi zaten kayıtlı',
+  signUpFailedMsg: 'Kayıt olunamadı',
+  selectLanguageLabel: 'Dil seç',
+  forgotPasswordTitle: 'Şifremi Unuttum',
+  forgotPasswordDesc: 'E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim',
+  forgotPasswordSentDesc: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi',
+  checkEmailInstruction: 'E-postanızı kontrol edin ve şifre sıfırlama bağlantısına tıklayın.',
+  sendResetLinkBtn: 'Sıfırlama Bağlantısı Gönder',
+  sendingBtn: 'Gönderiliyor...',
+  backToSignInBtn: 'Giriş sayfasına dön',
+  resetEmailSentTitle: 'E-posta Gönderildi',
+  resetEmailSentDesc: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi',
+  resetEmailErrorDesc: 'Şifre sıfırlama e-postası gönderilemedi',
+  newPasswordTitle: 'Yeni Şifre Belirle',
+  newPasswordDesc: 'Hesabınız için yeni bir şifre oluşturun',
+  invalidRecoveryLinkMsg: 'Geçersiz veya süresi dolmuş bağlantı. Lütfen yeni bir şifre sıfırlama isteği gönderin.',
+  newPasswordLabel: 'Yeni Şifre',
+  confirmPasswordLabel: 'Şifreyi Onayla',
+  updatePasswordBtn: 'Şifreyi Güncelle',
+  updatingBtn: 'Güncelleniyor...',
+  passwordsDontMatchMsg: 'Şifreler eşleşmiyor',
+  passwordUpdatedDesc: 'Şifreniz başarıyla güncellendi',
+  passwordUpdateErrorDesc: 'Şifre güncellenemedi. Lütfen tekrar deneyin.',
 };
+
 
 const en: Translations = {
   settings: 'Settings',
@@ -210,7 +321,61 @@ const en: Translations = {
   emptyStateDesc: 'Ask questions, get ideas, generate images — I\'m here for everything.',
   test: 'Test',
   error: 'Error',
+  success: 'Success',
+  authTagline: 'Welcome to your smart AI assistant',
+  signInTab: 'Sign In',
+  signUpTab: 'Sign Up',
+  emailLabel: 'Email',
+  passwordLabel: 'Password',
+  usernameLabel: 'Username',
+  emailPlaceholder: 'example@email.com',
+  passwordPlaceholder: '••••••',
+  usernamePlaceholder: 'username',
+  signInBtn: 'Sign In',
+  signUpBtn: 'Sign Up',
+  signingInBtn: 'Signing in...',
+  signingUpBtn: 'Signing up...',
+  forgotPasswordLink: 'Forgot Password',
+  termsPrefix: 'I have read and accept the ',
+  termsLinkText: 'Terms of Service',
+  termsSuffix: '.',
+  termsRequiredTitle: 'Terms Approval Required',
+  termsRequiredDesc: 'You must accept the Terms of Service to sign up.',
+  welcomeBackTitle: 'Welcome!',
+  welcomeBackDesc: 'You have signed in successfully',
+  accountCreatedTitle: 'Account Created!',
+  accountCreatedDesc: 'You have signed up successfully',
+  validationErrorTitle: 'Validation Error',
+  invalidEmailMsg: 'Enter a valid email address',
+  passwordTooShortMsg: 'Password must be at least 6 characters',
+  invalidCredentialsMsg: 'Invalid email or password',
+  emailNotConfirmedMsg: 'Please confirm your email address',
+  signInFailedMsg: 'Could not sign in',
+  emailAlreadyRegisteredMsg: 'This email is already registered',
+  signUpFailedMsg: 'Could not sign up',
+  selectLanguageLabel: 'Select language',
+  forgotPasswordTitle: 'Forgot Password',
+  forgotPasswordDesc: 'Enter your email and we will send you a reset link',
+  forgotPasswordSentDesc: 'A password reset link has been sent to your email',
+  checkEmailInstruction: 'Check your email and click the password reset link.',
+  sendResetLinkBtn: 'Send Reset Link',
+  sendingBtn: 'Sending...',
+  backToSignInBtn: 'Back to sign in',
+  resetEmailSentTitle: 'Email Sent',
+  resetEmailSentDesc: 'A password reset link has been sent to your email',
+  resetEmailErrorDesc: 'Could not send password reset email',
+  newPasswordTitle: 'Set New Password',
+  newPasswordDesc: 'Create a new password for your account',
+  invalidRecoveryLinkMsg: 'Invalid or expired link. Please request a new password reset.',
+  newPasswordLabel: 'New Password',
+  confirmPasswordLabel: 'Confirm Password',
+  updatePasswordBtn: 'Update Password',
+  updatingBtn: 'Updating...',
+  passwordsDontMatchMsg: 'Passwords do not match',
+  passwordUpdatedDesc: 'Your password has been updated',
+  passwordUpdateErrorDesc: 'Could not update password. Please try again.',
 };
+
 
 const de: Translations = {
   settings: 'Einstellungen',
@@ -280,7 +445,61 @@ const de: Translations = {
   emptyStateDesc: 'Stellen Sie Fragen, holen Sie sich Ideen, erstellen Sie Bilder — ich bin für alles da.',
   test: 'Test',
   error: 'Fehler',
+  success: 'Erfolgreich',
+  authTagline: 'Willkommen bei Ihrem smarten KI-Assistenten',
+  signInTab: 'Anmelden',
+  signUpTab: 'Registrieren',
+  emailLabel: 'E-Mail',
+  passwordLabel: 'Passwort',
+  usernameLabel: 'Benutzername',
+  emailPlaceholder: 'beispiel@email.com',
+  passwordPlaceholder: '••••••',
+  usernamePlaceholder: 'benutzername',
+  signInBtn: 'Anmelden',
+  signUpBtn: 'Registrieren',
+  signingInBtn: 'Anmeldung läuft...',
+  signingUpBtn: 'Registrierung läuft...',
+  forgotPasswordLink: 'Passwort vergessen',
+  termsPrefix: 'Ich habe die ',
+  termsLinkText: 'Nutzungsbedingungen',
+  termsSuffix: ' gelesen und akzeptiert.',
+  termsRequiredTitle: 'Zustimmung erforderlich',
+  termsRequiredDesc: 'Sie müssen die Nutzungsbedingungen akzeptieren, um sich zu registrieren.',
+  welcomeBackTitle: 'Willkommen!',
+  welcomeBackDesc: 'Sie haben sich erfolgreich angemeldet',
+  accountCreatedTitle: 'Konto erstellt!',
+  accountCreatedDesc: 'Sie haben sich erfolgreich registriert',
+  validationErrorTitle: 'Validierungsfehler',
+  invalidEmailMsg: 'Geben Sie eine gültige E-Mail-Adresse ein',
+  passwordTooShortMsg: 'Das Passwort muss mindestens 6 Zeichen haben',
+  invalidCredentialsMsg: 'Ungültige E-Mail oder Passwort',
+  emailNotConfirmedMsg: 'Bitte bestätigen Sie Ihre E-Mail-Adresse',
+  signInFailedMsg: 'Anmeldung fehlgeschlagen',
+  emailAlreadyRegisteredMsg: 'Diese E-Mail ist bereits registriert',
+  signUpFailedMsg: 'Registrierung fehlgeschlagen',
+  selectLanguageLabel: 'Sprache wählen',
+  forgotPasswordTitle: 'Passwort vergessen',
+  forgotPasswordDesc: 'Geben Sie Ihre E-Mail ein und wir senden Ihnen einen Link zum Zurücksetzen',
+  forgotPasswordSentDesc: 'Ein Link zum Zurücksetzen wurde an Ihre E-Mail gesendet',
+  checkEmailInstruction: 'Überprüfen Sie Ihre E-Mail und klicken Sie auf den Link.',
+  sendResetLinkBtn: 'Link senden',
+  sendingBtn: 'Wird gesendet...',
+  backToSignInBtn: 'Zurück zur Anmeldung',
+  resetEmailSentTitle: 'E-Mail gesendet',
+  resetEmailSentDesc: 'Ein Link zum Zurücksetzen wurde an Ihre E-Mail gesendet',
+  resetEmailErrorDesc: 'Passwort-Reset-E-Mail konnte nicht gesendet werden',
+  newPasswordTitle: 'Neues Passwort festlegen',
+  newPasswordDesc: 'Erstellen Sie ein neues Passwort für Ihr Konto',
+  invalidRecoveryLinkMsg: 'Ungültiger oder abgelaufener Link. Bitte fordern Sie eine neue Zurücksetzung an.',
+  newPasswordLabel: 'Neues Passwort',
+  confirmPasswordLabel: 'Passwort bestätigen',
+  updatePasswordBtn: 'Passwort aktualisieren',
+  updatingBtn: 'Wird aktualisiert...',
+  passwordsDontMatchMsg: 'Passwörter stimmen nicht überein',
+  passwordUpdatedDesc: 'Ihr Passwort wurde aktualisiert',
+  passwordUpdateErrorDesc: 'Passwort konnte nicht aktualisiert werden. Bitte erneut versuchen.',
 };
+
 
 const fr: Translations = {
   settings: 'Paramètres',
@@ -350,7 +569,61 @@ const fr: Translations = {
   emptyStateDesc: "Posez des questions, obtenez des idées, générez des images — je suis là pour tout.",
   test: 'Test',
   error: 'Erreur',
+  success: 'Succès',
+  authTagline: 'Bienvenue chez votre assistant IA intelligent',
+  signInTab: 'Se connecter',
+  signUpTab: "S'inscrire",
+  emailLabel: 'E-mail',
+  passwordLabel: 'Mot de passe',
+  usernameLabel: "Nom d'utilisateur",
+  emailPlaceholder: 'exemple@email.com',
+  passwordPlaceholder: '••••••',
+  usernamePlaceholder: 'utilisateur',
+  signInBtn: 'Se connecter',
+  signUpBtn: "S'inscrire",
+  signingInBtn: 'Connexion...',
+  signingUpBtn: 'Inscription...',
+  forgotPasswordLink: 'Mot de passe oublié',
+  termsPrefix: "J'ai lu et j'accepte les ",
+  termsLinkText: "Conditions d'utilisation",
+  termsSuffix: '.',
+  termsRequiredTitle: 'Acceptation requise',
+  termsRequiredDesc: "Vous devez accepter les conditions d'utilisation pour vous inscrire.",
+  welcomeBackTitle: 'Bienvenue !',
+  welcomeBackDesc: 'Vous êtes connecté avec succès',
+  accountCreatedTitle: 'Compte créé !',
+  accountCreatedDesc: 'Vous êtes inscrit avec succès',
+  validationErrorTitle: 'Erreur de validation',
+  invalidEmailMsg: 'Entrez une adresse e-mail valide',
+  passwordTooShortMsg: 'Le mot de passe doit contenir au moins 6 caractères',
+  invalidCredentialsMsg: 'E-mail ou mot de passe incorrect',
+  emailNotConfirmedMsg: 'Veuillez confirmer votre adresse e-mail',
+  signInFailedMsg: 'Connexion impossible',
+  emailAlreadyRegisteredMsg: 'Cet e-mail est déjà enregistré',
+  signUpFailedMsg: 'Inscription impossible',
+  selectLanguageLabel: 'Choisir la langue',
+  forgotPasswordTitle: 'Mot de passe oublié',
+  forgotPasswordDesc: 'Entrez votre e-mail, nous vous enverrons un lien de réinitialisation',
+  forgotPasswordSentDesc: 'Un lien de réinitialisation a été envoyé à votre e-mail',
+  checkEmailInstruction: 'Consultez votre e-mail et cliquez sur le lien de réinitialisation.',
+  sendResetLinkBtn: 'Envoyer le lien',
+  sendingBtn: 'Envoi...',
+  backToSignInBtn: 'Retour à la connexion',
+  resetEmailSentTitle: 'E-mail envoyé',
+  resetEmailSentDesc: 'Un lien de réinitialisation a été envoyé à votre e-mail',
+  resetEmailErrorDesc: "Impossible d'envoyer l'e-mail de réinitialisation",
+  newPasswordTitle: 'Nouveau mot de passe',
+  newPasswordDesc: 'Créez un nouveau mot de passe pour votre compte',
+  invalidRecoveryLinkMsg: 'Lien invalide ou expiré. Veuillez demander une nouvelle réinitialisation.',
+  newPasswordLabel: 'Nouveau mot de passe',
+  confirmPasswordLabel: 'Confirmer le mot de passe',
+  updatePasswordBtn: 'Mettre à jour',
+  updatingBtn: 'Mise à jour...',
+  passwordsDontMatchMsg: 'Les mots de passe ne correspondent pas',
+  passwordUpdatedDesc: 'Votre mot de passe a été mis à jour',
+  passwordUpdateErrorDesc: 'Impossible de mettre à jour le mot de passe. Réessayez.',
 };
+
 
 const es: Translations = {
   settings: 'Configuración',
@@ -420,7 +693,61 @@ const es: Translations = {
   emptyStateDesc: 'Haz preguntas, obtén ideas, genera imágenes — estoy aquí para todo.',
   test: 'Test',
   error: 'Error',
+  success: 'Éxito',
+  authTagline: 'Bienvenido a tu asistente IA inteligente',
+  signInTab: 'Iniciar sesión',
+  signUpTab: 'Registrarse',
+  emailLabel: 'Correo electrónico',
+  passwordLabel: 'Contraseña',
+  usernameLabel: 'Nombre de usuario',
+  emailPlaceholder: 'ejemplo@email.com',
+  passwordPlaceholder: '••••••',
+  usernamePlaceholder: 'usuario',
+  signInBtn: 'Iniciar sesión',
+  signUpBtn: 'Registrarse',
+  signingInBtn: 'Iniciando sesión...',
+  signingUpBtn: 'Registrando...',
+  forgotPasswordLink: 'Olvidé mi contraseña',
+  termsPrefix: 'He leído y acepto los ',
+  termsLinkText: 'Términos de Servicio',
+  termsSuffix: '.',
+  termsRequiredTitle: 'Aceptación requerida',
+  termsRequiredDesc: 'Debes aceptar los Términos de Servicio para registrarte.',
+  welcomeBackTitle: '¡Bienvenido!',
+  welcomeBackDesc: 'Has iniciado sesión con éxito',
+  accountCreatedTitle: '¡Cuenta creada!',
+  accountCreatedDesc: 'Te has registrado con éxito',
+  validationErrorTitle: 'Error de validación',
+  invalidEmailMsg: 'Introduce un correo electrónico válido',
+  passwordTooShortMsg: 'La contraseña debe tener al menos 6 caracteres',
+  invalidCredentialsMsg: 'Correo o contraseña incorrectos',
+  emailNotConfirmedMsg: 'Por favor confirma tu correo electrónico',
+  signInFailedMsg: 'No se pudo iniciar sesión',
+  emailAlreadyRegisteredMsg: 'Este correo ya está registrado',
+  signUpFailedMsg: 'No se pudo registrar',
+  selectLanguageLabel: 'Elegir idioma',
+  forgotPasswordTitle: 'Olvidé mi contraseña',
+  forgotPasswordDesc: 'Introduce tu correo y te enviaremos un enlace para restablecerla',
+  forgotPasswordSentDesc: 'Se ha enviado un enlace de restablecimiento a tu correo',
+  checkEmailInstruction: 'Revisa tu correo y haz clic en el enlace de restablecimiento.',
+  sendResetLinkBtn: 'Enviar enlace',
+  sendingBtn: 'Enviando...',
+  backToSignInBtn: 'Volver a iniciar sesión',
+  resetEmailSentTitle: 'Correo enviado',
+  resetEmailSentDesc: 'Se ha enviado un enlace de restablecimiento a tu correo',
+  resetEmailErrorDesc: 'No se pudo enviar el correo de restablecimiento',
+  newPasswordTitle: 'Nueva contraseña',
+  newPasswordDesc: 'Crea una nueva contraseña para tu cuenta',
+  invalidRecoveryLinkMsg: 'Enlace inválido o expirado. Solicita un nuevo restablecimiento.',
+  newPasswordLabel: 'Nueva contraseña',
+  confirmPasswordLabel: 'Confirmar contraseña',
+  updatePasswordBtn: 'Actualizar contraseña',
+  updatingBtn: 'Actualizando...',
+  passwordsDontMatchMsg: 'Las contraseñas no coinciden',
+  passwordUpdatedDesc: 'Tu contraseña ha sido actualizada',
+  passwordUpdateErrorDesc: 'No se pudo actualizar la contraseña. Intenta de nuevo.',
 };
+
 
 // Hardcoded translations
 const hardcodedTranslations: Record<string, Translations> = {
