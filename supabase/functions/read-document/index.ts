@@ -109,6 +109,27 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // SSRF protection: only allow Supabase Storage URLs
+    try {
+      const parsed = new URL(fileUrl);
+      const supaHost = new URL(Deno.env.get("SUPABASE_URL") ?? "https://x").hostname;
+      const host = parsed.hostname.toLowerCase();
+      const isSupabase =
+        host === supaHost ||
+        host.endsWith(".supabase.co") ||
+        host.endsWith(".supabase.in");
+      if (!isSupabase) {
+        return new Response(JSON.stringify({ error: "Unauthorized URL host" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid fileUrl" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const safeFileName = typeof fileName === "string" ? fileName.slice(0, 255) : "unknown";
     const safeMimeType = typeof mimeType === "string" ? mimeType.slice(0, 100) : "";
 

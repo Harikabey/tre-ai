@@ -85,7 +85,7 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.text();
-          throw new Error(`Gmail API error [${resp.status}]: ${err}`);
+          console.error(`Gmail API error [${resp.status}]:`, err); throw new Error("Gmail request failed. Please try again.");
         }
         result = await resp.json();
         break;
@@ -99,7 +99,7 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.text();
-          throw new Error(`Gmail API error [${resp.status}]: ${err}`);
+          console.error(`Gmail API error [${resp.status}]:`, err); throw new Error("Gmail request failed. Please try again.");
         }
         result = await resp.json();
         break;
@@ -114,7 +114,7 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.text();
-          throw new Error(`Drive API error [${resp.status}]: ${err}`);
+          console.error(`Drive API error [${resp.status}]:`, err); throw new Error("Drive request failed. Please try again.");
         }
         result = await resp.json();
         break;
@@ -129,7 +129,7 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.text();
-          throw new Error(`Calendar API error [${resp.status}]: ${err}`);
+          console.error(`Calendar API error [${resp.status}]:`, err); throw new Error("Calendar request failed. Please try again.");
         }
         result = await resp.json();
         break;
@@ -153,7 +153,7 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.text();
-          throw new Error(`Calendar API error [${resp.status}]: ${err}`);
+          console.error(`Calendar API error [${resp.status}]:`, err); throw new Error("Calendar request failed. Please try again.");
         }
         result = await resp.json();
         break;
