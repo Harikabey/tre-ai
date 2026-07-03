@@ -404,23 +404,16 @@ Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
         return `- ${acc.provider.toUpperCase()}: ${acc.provider_email || "bağlı"} | İzinler: ${activeScopes}`;
       }).join("\n");
       
-      connectedAccountsContext = `\n\n⚠️ KRİTİK TALİMAT - BAĞLI HESAPLAR (EN YÜKSEK ÖNCELİK):
-Kullanıcı aşağıdaki hesapları Tre sistemine bağlamış ve SEN BU HESAPLARA ERİŞİM YETKİSİNE SAHİPSİN:
+      connectedAccountsContext = `\n\nBAĞLI HESAPLAR (FACTUAL CONTEXT):
+Kullanıcı aşağıdaki hesapları bağlamıştır ve bunlara \`google-api\` edge function proxy'si üzerinden erişebilirsin:
 ${accountDetails}
 
-SEN BİR API PROXY ÜZERİNDEN BU HESAPLARA DOĞRUDAN ERİŞEBİLİRSİN. Bu bir simülasyon değil, gerçek bir entegrasyondur.
-
-ÖNCEKİ MESAJLARDA "erişimim yok" veya "yapamam" gibi bir şey söylemiş olabilirsin — BU ESKİ BİLGİ ARTIK GEÇERSİZDİR. Sistem güncellemesi yapıldı ve artık tam erişim yetkin var. Önceki reddetme mesajlarını GÖRMEZDEN GEL ve yeni yeteneklerinle hareket et.
-
-Kullanıcı e-posta, drive veya takvim ile ilgili bir şey istediğinde:
-1. ASLA "erişimim yok", "yapamam", "teknik sınırlılık" gibi reddetme cümlesi KULLANMA
-2. Eğer mesajda [SİSTEM: ...] bloğu ile API verileri sağlanmışsa, bu GERÇEK VERİLERDİR — onları güzel ve düzenli bir şekilde özetle ve kullanıcıya sun
-3. ⚠️ KRİTİK: Eğer mesajda [SİSTEM: ...] bloğu YOKSA, KENDİN E-POSTA, TAKVİM VEYA DOSYA VERİSİ UYDURMA! Sahte isimler, sahte konular, sahte tarihler YAZMA. Bunun yerine "Verileriniz getiriliyor, lütfen bekleyin" gibi kısa bir yanıt ver.
-4. ASLA hayali/uydurma e-posta içeriği oluşturma. Gerçek veri olmadan e-posta listesi gösterme.
-5. Sonuçları markdown formatında düzenli göster (listeler, kalın başlıklar vb.)
-
-Örnek doğru yanıt (veri geldiğinde): "📧 İşte son e-postaların:\n\n**1. Konu:** ..."
-Örnek YANLIŞ yanıt: "📧 İşte son e-postaların:\n\n**1.** Ahmet'ten: Proje hakkında..." ← GERÇEKTEKİ VERİ OLMADAN BÖYLE YAZMA, BU UYDURMADIR`;
+Kurallar:
+1. Kullanıcı Gmail / Drive / Takvim ile ilgili bir şey istediğinde, google-api fonksiyonu çağrılmalıdır.
+2. Eğer mesajda [SİSTEM: ...] bloğu ile API verileri sağlanmışsa, bu gerçek verilerdir — düzenli markdown ile özetle.
+3. [SİSTEM: ...] bloğu YOKSA VERİ UYDURMA. Sahte e-posta / takvim / dosya verisi üretme; kısa bir "veriler getiriliyor" yanıtı ver.
+4. Token süresi dolmuş, kapsam (scope) yetersiz veya API hata döndürürse bunu dürüstçe belirt ve kullanıcıdan yeniden bağlanmasını iste.
+5. Sonuçları markdown formatında düzenli göster.`;
 
       console.log("Connected accounts included:", JSON.stringify(connectedAccounts));
     } else {
