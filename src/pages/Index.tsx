@@ -16,6 +16,8 @@ import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
 import { LiveScreenShareView } from '@/components/LiveScreenShareView';
+import { useWakeWord } from '@/hooks/useWakeWord';
+import { toast } from 'sonner';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
@@ -80,6 +82,12 @@ const Index = () => {
     window.addEventListener('resize', checkWidth);
     return () => window.removeEventListener('resize', checkWidth);
   }, []);
+
+  // Wake word: "Hey Tre" -> open voice chat
+  useWakeWord(() => {
+    toast.success('Seni duyuyorum...');
+    navigate('/voice-chat');
+  });
 
   // Redirect to auth if not logged in
   useEffect(() => {
