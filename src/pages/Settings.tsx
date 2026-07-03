@@ -46,6 +46,7 @@ const Settings = () => {
   const { preferences, updatePreference } = useUserPreferences();
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
+  const [wakeWord, setWakeWord] = useState<boolean>(() => isWakeWordEnabled());
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const push = usePushNotifications();
@@ -579,6 +580,47 @@ const Settings = () => {
                 <Switch
                   checked={preferences.screen_share_enabled}
                   onCheckedChange={handleScreenShareToggle}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Wake Word "Hey Tre" */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                "Hey Tre" Uyandırma
+              </CardTitle>
+              <CardDescription>
+                Aktifken mikrofon sürekli dinler; "Hey Tre" dediğinde sesli sohbet otomatik açılır.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Sesle Uyandırmayı Etkinleştir</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Mikrofon izni gereklidir. Tarayıcı sekmesi açık olmalıdır.
+                  </div>
+                </div>
+                <Switch
+                  checked={wakeWord}
+                  onCheckedChange={async (v) => {
+                    if (v) {
+                      try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach((t) => t.stop());
+                      } catch {
+                        toast.error('Mikrofon izni reddedildi');
+                        return;
+                      }
+                    }
+                    setWakeWord(v);
+                    setWakeWordEnabled(v);
+                    toast.success(v ? '"Hey Tre" dinleniyor' : 'Uyandırma kapatıldı');
+                  }}
                   className="data-[state=checked]:bg-primary"
                 />
               </div>
