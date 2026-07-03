@@ -15,6 +15,7 @@ import { languages, Language } from '@/types/language';
 import { useVoice } from '@/hooks/useVoice';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { isWakeWordEnabled, setWakeWordEnabled } from '@/hooks/useWakeWord';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
