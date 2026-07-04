@@ -21,6 +21,8 @@ const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-a
 const GENERATE_PWA_SITE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pwa-site`;
 const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
 const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
+const CREATE_REMINDER_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-reminder`;
+const REMINDERS_ENABLED_KEY = 'ai_chatbot_reminders_enabled';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
