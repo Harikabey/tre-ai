@@ -777,6 +777,40 @@ export const useChatbot = () => {
           updateLastBotMessage(errorContent);
           await saveMessage(conversationId, 'assistant', errorContent);
         }
+      } else if (/\b(hatırlat|hatirlat|hatırlatıcı|hatirlatici|remind me|reminder|set a reminder|remind|erinnere mich|rappelle-moi|recuérdame|recuerdame)\b/i.test(trimmedInput)) {
+        // Reminder intent
+        const enabled = localStorage.getItem(REMINDERS_ENABLED_KEY) === 'true';
+        if (!enabled) {
+          const msg = '🔔 Hatırlatıcı özelliği kapalı. Açmak için: Ayarlar → "Hatırlatıcılar" iznini etkinleştir. Ayrıca bildirimlerin de açık olması gerekir.';
+          updateLastBotMessage(msg);
+          await saveMessage(conversationId, 'assistant', msg);
+        } else {
+          updateLastBotMessage('⏰ Hatırlatıcı ayarlanıyor...');
+          try {
+            const { data: { session: s } } = await supabase.auth.getSession();
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            const resp = await fetch(CREATE_REMINDER_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${s?.access_token}`,
+              },
+              body: JSON.stringify({ text: trimmedInput, timezone: tz, conversationId }),
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data?.reminder) throw new Error(data?.error || 'Hata');
+            const when = new Date(data.reminder.remind_at).toLocaleString('tr-TR', { timeZone: tz });
+            const bodyLine = data.reminder.body ? `\n\n📝 ${data.reminder.body}` : '';
+            const msg = `✅ Hatırlatıcı kuruldu: **${data.reminder.title}**\n\n🕒 ${when}${bodyLine}\n\nZamanı geldiğinde bildirim ile hatırlatacağım.`;
+            updateLastBotMessage(msg);
+            await saveMessage(conversationId, 'assistant', msg);
+          } catch (e) {
+            const err = e instanceof Error ? e.message : 'Bilinmeyen hata';
+            const msg = `❌ Hatırlatıcı kurulamadı: ${err}`;
+            updateLastBotMessage(msg);
+            await saveMessage(conversationId, 'assistant', msg);
+          }
+        }
       } else if (/\b(mp3|seslendir|ses dosyası|seslendirme|tts|metni oku|sesli oku)\b/i.test(trimmedInput) || /\b(müzik|melodi|şarkı|beste|jingle|enstrümantal|ses efekti|sfx)\b/i.test(trimmedInput) && /\b(oluştur|üret|yap|hazırla|yarat|ver)\b/i.test(trimmedInput)) {
         // MP3 generation: detect music vs TTS
         const isMusic = /\b(müzik|melodi|şarkı|beste|jingle|enstrümantal|ses efekti|sfx|music|song|melody)\b/i.test(trimmedInput);
