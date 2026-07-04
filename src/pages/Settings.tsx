@@ -47,6 +47,7 @@ const Settings = () => {
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
   const [wakeWord, setWakeWord] = useState<boolean>(() => isWakeWordEnabled());
+  const [reminders, setReminders] = useState<boolean>(() => localStorage.getItem('ai_chatbot_reminders_enabled') === 'true');
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const push = usePushNotifications();
