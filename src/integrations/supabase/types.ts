@@ -217,6 +217,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reminders: {
+        Row: {
+          body: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          remind_at: string
+          sent: boolean
+          sent_at: string | null
+          timezone: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          remind_at: string
+          sent?: boolean
+          sent_at?: string | null
+          timezone?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          remind_at?: string
+          sent?: boolean
+          sent_at?: string | null
+          timezone?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_interests: {
         Row: {
           category: string
