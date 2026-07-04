@@ -628,6 +628,42 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Reminders */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Hatırlatıcılar
+              </CardTitle>
+              <CardDescription>
+                Aktifken Tre sohbette hatırlatıcı kurabilir ve zamanı geldiğinde bildirim gönderir. Bildirimlerin de açık olması gerekir.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
+                <div>
+                  <div className="font-medium text-foreground text-sm">Hatırlatıcı iznini etkinleştir</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Örn: "Yarın 09:00'da toplantıyı hatırlat" dediğinde Tre hatırlatıcı kurar.
+                  </div>
+                </div>
+                <Switch
+                  checked={reminders}
+                  onCheckedChange={(v) => {
+                    setReminders(v);
+                    localStorage.setItem('ai_chatbot_reminders_enabled', String(v));
+                    if (v && !push.subscribed) {
+                      toast.info('Hatırlatıcılar açıldı. Bildirim almak için "Bildirim ile Sohbet" bölümünden push bildirimlerini de aç.');
+                    } else {
+                      toast.success(v ? 'Hatırlatıcılar aktif' : 'Hatırlatıcılar kapatıldı');
+                    }
+                  }}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Email Access Authorization */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
