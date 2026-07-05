@@ -1,38 +1,31 @@
-## Amaç
-Giriş (Sign In) ve Kayıt (Sign Up) ekranlarındaki tüm metinleri, uygulamada zaten kullanılan çeviri sistemine bağlayarak dil desteği eklemek. Ayrıca ekranın üstüne küçük bir dil seçici koyarak kullanıcı, giriş yapmadan önce arayüz dilini değiştirebilsin.
+## Hatırlatıcı Sistemini Test Etme Planı
 
-## Kapsam
-Sadece `src/pages/Auth.tsx`, `src/pages/ForgotPassword.tsx`, `src/pages/ResetPassword.tsx` ve `src/utils/translations.ts`. Backend / auth mantığı değişmez, sadece görünen metinler.
+Hatırlatıcı akışının uçtan uca çalıştığını doğrulamak için aşağıdaki adımları uygulayacağım:
 
-## Yapılacaklar
+### 1. Ön Kontroller
+- `reminders` tablosunun yapısını ve RLS politikalarını doğrula (`supabase--read_query`)
+- Cron job'ın (`pg_cron`) `dispatch-reminders` fonksiyonunu her dakika çağıracak şekilde kurulu olup olmadığını kontrol et; kurulu değilse kur
+- Kullanıcının aktif bir `push_subscriptions` kaydı var mı bak (yoksa test bildirimi ulaşmaz)
 
-1. **Çeviri anahtarları ekle** (`src/utils/translations.ts`)
-   - `Translations` interface'ine auth ile ilgili anahtarlar eklenecek:
-     - `signIn`, `signUp`, `email`, `password`, `usernameLabel`, `usernamePlaceholder`, `emailPlaceholder`, `passwordPlaceholder`
-     - `signingIn`, `signingUp`, `welcomeBack`, `signInSuccess`, `accountCreated`, `signUpSuccess`
-     - `forgotPassword`, `authTagline` ("Akıllı AI asistanınıza hoş geldiniz")
-     - `termsAcceptRequired`, `termsAcceptDesc` (checkbox etrafındaki metin, `{terms}` placeholder ile)
-     - `termsLinkText` ("Kullanım Sözleşmesi")
-     - Hata mesajları: `invalidEmail`, `passwordTooShort`, `invalidCredentials`, `emailNotConfirmed`, `emailAlreadyRegistered`, `signInFailed`, `signUpFailed`, `validationError`
-     - ForgotPassword/ResetPassword: `resetPasswordTitle`, `resetPasswordDesc`, `sendResetLink`, `resetLinkSent`, `newPassword`, `confirmPassword`, `updatePassword`, `passwordUpdated`, `passwordsDontMatch`, `backToSignIn`
-   - Aynı anahtarlar `tr`, `en`, `de`, `fr`, `es` sabitlerine eklenecek. Dinamik diller zaten `translateUIStrings` üzerinden otomatik çevrildiği için ek çalışma gerekmez.
+### 2. `create-reminder` Fonksiyonunu Test Et
+- `supabase--curl_edge_functions` ile giriş yapmış kullanıcı token'ıyla çağır
+- Örnek payload: `{ text: "1 dakika sonra test hatırlatıcısı", timezone: "Europe/Istanbul" }`
+- Dönen `remind_at` alanının yaklaşık +1 dk sonrasını gösterdiğini ve DB'ye satırın düştüğünü `read_query` ile doğrula
+- Edge function loglarını kontrol et (AI extract adımı hatasız mı)
 
-2. **`Auth.tsx` güncelle**
-   - `getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr')` ile `t` alınacak.
-   - Tüm sabit Türkçe metinler `t.*` ile değiştirilecek (başlık, açıklama, tab isimleri, input label/placeholder, buton metinleri, toast mesajları, terms checkbox).
-   - Zod hata mesajları da `t.invalidEmail` / `t.passwordTooShort` kullanacak.
-   - Sağ üst köşeye küçük bir dil seçici `Select` eklenecek (mevcut Settings'teki dil listesinden ilk ~10-15 popüler dil): seçim `localStorage`'a yazılır ve sayfa `window.location.reload()` ile yenilenir. Böylece giriş öncesi dil değiştirilebilir.
+### 3. `dispatch-reminders` Fonksiyonunu Test Et
+- Zamanı geçmiş reminder oluştuktan sonra elle bir kez tetikle (`curl_edge_functions`)
+- Dönen `dispatched` sayısını kontrol et
+- DB'de ilgili satırın `sent=true`, `sent_at` dolu olduğunu doğrula
+- `send-push` loglarında başarılı gönderim veya (abonelik yoksa) `sent: 0` mesajı görünmeli
 
-3. **`ForgotPassword.tsx` ve `ResetPassword.tsx` güncelle**
-   - Aynı `getTranslations` deseni ile tüm metinler ve toast'lar çevrilecek. Dil seçici eklenmez (Auth sayfasındaki seçim burada da geçerli olur, çünkü aynı localStorage anahtarı).
+### 4. Uçtan Uca (Gerçek Bildirim)
+- Kullanıcının push aboneliği varsa: yeni bir "2 dakika sonra" hatırlatıcı oluştur, cron'un tetiklemesini bekle, cihazda bildirimin geldiğini kullanıcı teyit etsin
+- Yoksa: kullanıcıya Ayarlar > Bildirimler'i açması ve yayınlanmış URL'de (`tre-ai.lovable.app`) test etmesi hatırlatılır (preview'da web push çalışmıyor)
 
-## Teknik Notlar
-- `getTranslations` bilinmeyen dil kodunda `tr`'ye düşer, bu yüzden dinamik dillerde bile en azından Türkçe fallback çalışır. Dinamik diller için önceden cache'lenmiş `ui_translations_cache_*` varsa otomatik kullanılır (mevcut davranış, dokunulmaz).
-- Toast mesaj başlıkları da (`Hoş geldiniz!`, `Hata`, `Hesap Oluşturuldu!`) çevrilecek — yeni anahtarlarla.
-- Terms checkbox metni JSX içinde `t.termsAcceptDesc` bir cümle + tıklanabilir link olarak bölünecek: `{prefix}<button>{t.termsLinkText}</button>{suffix}` formatı; iki ayrı anahtar (`termsAcceptPrefix`, `termsAcceptSuffix`) kullanılacak.
-- Backend, Supabase auth çağrıları, yönlendirmeler, validation kuralları değişmez.
+### 5. Sonuç Raporu
+- Her adımın çıktısını (DB satırı, function log, dispatched sayısı) kısa bir özet olarak sunacağım
+- Bulunan hata varsa ayrı bir düzeltme planı önereceğim
 
-## Dokunulmayacaklar
-- `useAuth` hook'u
-- Supabase client ve auth akışı
-- `TermsOfServiceDialog` içeriği (kendi içinde ayrı bir görev)
+### Teknik Detay
+Kod değişikliği yapılmayacak — yalnızca test/gözlem araçları (`supabase--read_query`, `curl_edge_functions`, `edge_function_logs`, gerekirse `supabase--insert` ile cron kurulumu) kullanılacak.
