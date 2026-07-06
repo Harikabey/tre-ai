@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2 } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2, FileDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslations } from '@/utils/translations';
@@ -20,6 +20,7 @@ interface ChatHeaderProps {
   onToggleMemoryPanel?: () => void;
   memoryCount?: number;
   onToggleConnectedAccounts?: () => void;
+  onExportPdf?: () => void;
 }
 
 export const ChatHeader = ({
@@ -34,6 +35,7 @@ export const ChatHeader = ({
   onToggleMemoryPanel,
   memoryCount = 0,
   onToggleConnectedAccounts,
+  onExportPdf,
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
@@ -147,6 +149,19 @@ export const ChatHeader = ({
             <Settings className="w-4 h-4" />
           </Button>
         </Link>
+
+        {onExportPdf && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onExportPdf}
+            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
+            title="Sohbeti PDF olarak indir"
+          >
+            <FileDown className="w-4 h-4" />
+          </Button>
+        )}
+        
         
         <Button
           variant="ghost"

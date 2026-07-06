@@ -17,6 +17,7 @@ import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
 import { LiveScreenShareView } from '@/components/LiveScreenShareView';
 import { useWakeWord } from '@/hooks/useWakeWord';
+import { exportChatToPdf } from '@/utils/exportChatPdf';
 import { toast } from 'sonner';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -181,6 +182,21 @@ const Index = () => {
             onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
             memoryCount={memories.length + interests.length}
             onToggleConnectedAccounts={() => setIsAccountsPanelOpen(!isAccountsPanelOpen)}
+            onExportPdf={async () => {
+              if (!messages.length) {
+                toast.info('Dışa aktarılacak mesaj yok');
+                return;
+              }
+              const t = toast.loading('PDF hazırlanıyor...');
+              try {
+                const title = conversations.find(c => c.id === currentConversationId)?.title || 'Tre Sohbet';
+                await exportChatToPdf(messages, title);
+                toast.success('PDF indirildi', { id: t });
+              } catch (e) {
+                console.error(e);
+                toast.error('PDF oluşturulamadı', { id: t });
+              }
+            }}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
