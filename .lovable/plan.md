@@ -1,31 +1,38 @@
-## Hatırlatıcı Sistemini Test Etme Planı
+# Plan: Tre'nin Yetenek Farkındalığı + Sözleşme Güncellemesi
 
-Hatırlatıcı akışının uçtan uca çalıştığını doğrulamak için aşağıdaki adımları uygulayacağım:
+## 1. Tre'nin tüm yeteneklerini bilmesi
 
-### 1. Ön Kontroller
-- `reminders` tablosunun yapısını ve RLS politikalarını doğrula (`supabase--read_query`)
-- Cron job'ın (`pg_cron`) `dispatch-reminders` fonksiyonunu her dakika çağıracak şekilde kurulu olup olmadığını kontrol et; kurulu değilse kur
-- Kullanıcının aktif bir `push_subscriptions` kaydı var mı bak (yoksa test bildirimi ulaşmaz)
+`supabase/functions/chat/index.ts` içindeki sistem prompt'una **"Yetenekler Kataloğu"** bloğu ekle. Tre, kendisine "neler yapabilirsin?" diye sorulduğunda ya da uygun bağlamda özelliklerini net biçimde tanıtabilecek.
 
-### 2. `create-reminder` Fonksiyonunu Test Et
-- `supabase--curl_edge_functions` ile giriş yapmış kullanıcı token'ıyla çağır
-- Örnek payload: `{ text: "1 dakika sonra test hatırlatıcısı", timezone: "Europe/Istanbul" }`
-- Dönen `remind_at` alanının yaklaşık +1 dk sonrasını gösterdiğini ve DB'ye satırın düştüğünü `read_query` ile doğrula
-- Edge function loglarını kontrol et (AI extract adımı hatasız mı)
+Kataloğa dahil edilecekler (koddaki mevcut özelliklerden derlenmiştir):
+- Sohbet: 6 kişilik (Arkadaş, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna)
+- Düşünme modları: Hızlı / Derin (Gemini 2.5 Pro)
+- Görsel üretme, GIF üretme, görsel analiz, canlı kamera analizi, ekran paylaşımı analizi
+- Belge okuma (PDF/70+ format), web arama + kaynak gösterme, çeviri (114 dil)
+- Sesli sohbet (STT/TTS), fullscreen /voice-chat, wake word "Hey Tre"
+- Hatırlatıcılar (bildirim ile), push bildirim üzerinden yanıtlama
+- Google (Gmail/Drive) bağlantısı, kullanıcı hafızası, duygu analizi ve iyileştirme modu
+- Dosya üretme (APK, ISO, PPTX, ses), **sohbeti PDF olarak dışa aktarma**
+- Erişilebilirlik ayarları, tema, çoklu dil UI
 
-### 3. `dispatch-reminders` Fonksiyonunu Test Et
-- Zamanı geçmiş reminder oluştuktan sonra elle bir kez tetikle (`curl_edge_functions`)
-- Dönen `dispatched` sayısını kontrol et
-- DB'de ilgili satırın `sent=true`, `sent_at` dolu olduğunu doğrula
-- `send-push` loglarında başarılı gönderim veya (abonelik yoksa) `sent: 0` mesajı görünmeli
+Kurallar:
+- Katalog Türkçe, kısa maddeler; her özellik tek satır.
+- "Neler yapabilirsin?" sorusunda özet + kategorize liste sun; başka sorularda gereksiz reklam yapma.
+- Kullanıcı bir işi isteyince önce ilgili yeteneğin nasıl tetikleneceğini kısaca söyle (ör. "Ayarlar > Bildirimler'i aç").
 
-### 4. Uçtan Uca (Gerçek Bildirim)
-- Kullanıcının push aboneliği varsa: yeni bir "2 dakika sonra" hatırlatıcı oluştur, cron'un tetiklemesini bekle, cihazda bildirimin geldiğini kullanıcı teyit etsin
-- Yoksa: kullanıcıya Ayarlar > Bildirimler'i açması ve yayınlanmış URL'de (`tre-ai.lovable.app`) test etmesi hatırlatılır (preview'da web push çalışmıyor)
+## 2. Kullanım Sözleşmesi güncellemesi
 
-### 5. Sonuç Raporu
-- Her adımın çıktısını (DB satırı, function log, dispatched sayısı) kısa bir özet olarak sunacağım
-- Bulunan hata varsa ayrı bir düzeltme planı önereceğim
+`src/components/TermsOfServiceDialog.tsx`:
+- "Son güncelleme" tarihini **7 Temmuz 2026** yap.
+- **Madde 2 (Hizmet Tanımı)** metnini genişlet: yukarıdaki tüm yetenekleri özetleyen bir cümle listesi.
+- Yeni maddeler ekle:
+  - **17. Bildirimler ve Hatırlatıcılar** — push izni, hatırlatıcı kurma, cihaz aboneliğinin iptali.
+  - **18. Sesli Etkileşim ve Uyandırma Sözcüğü** — mikrofon izni, "Hey Tre" wake word yalnızca kullanıcı ayardan etkinleştirdiğinde çalışır, ses lokal işlenir.
+  - **19. Canlı Kamera ve Ekran Paylaşımı** — yalnızca kullanıcı başlatınca, akış kaydedilmez, sadece analiz için kare işlenir.
+  - **20. Dosya Üretimi ve Dışa Aktarma** — üretilen APK/ISO/PPTX/PDF içeriğinin sorumluluğu kullanıcıda; PDF dışa aktarımı istemcide oluşturulur.
+- Mevcut madde numaralarını koru; yeni maddeler sona eklenir.
 
-### Teknik Detay
-Kod değişikliği yapılmayacak — yalnızca test/gözlem araçları (`supabase--read_query`, `curl_edge_functions`, `edge_function_logs`, gerekirse `supabase--insert` ile cron kurulumu) kullanılacak.
+## Teknik Notlar
+- Sadece iki dosya değişecek: `supabase/functions/chat/index.ts` (system prompt katalog bloğu), `src/components/TermsOfServiceDialog.tsx` (metin).
+- Chat fonksiyonundaki mevcut kişilik/tarih enjeksiyon akışı korunur; katalog ondan önce sabit blok olarak eklenir.
+- Sözleşme UI/tasarımı aynı kalır, yalnızca içerik güncellenir.

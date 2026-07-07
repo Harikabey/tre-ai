@@ -19,7 +19,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">Tre Kullanım Sözleşmesi</DialogTitle>
-          <DialogDescription>Son güncelleme: 8 Mart 2026</DialogDescription>
+          <DialogDescription>Son güncelleme: 7 Temmuz 2026</DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
@@ -33,8 +33,24 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">2. Hizmet Tanımı</h3>
               <p>
-                TreFriend, Treasure şirketi tarafından geliştirilen yapay zeka destekli bir sohbet asistanıdır. Hizmet; metin tabanlı sohbet, görsel analiz, görsel oluşturma, sesli iletişim, canlı kamera analizi, belge okuma ve duygu analizi gibi özellikler sunar. Hizmet "olduğu gibi" sunulmakta olup herhangi bir garanti verilmemektedir.
+                Tre, Treasure tarafından geliştirilen yapay zeka destekli çok yönlü bir asistandır. Hizmet aşağıdaki başlıca özellikleri sunar:
               </p>
+              <ul className="list-disc list-inside space-y-1 mt-2 ml-2">
+                <li>Metin tabanlı sohbet ve 6 farklı kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna),</li>
+                <li>Hızlı ve Derin düşünme modları,</li>
+                <li>Görsel üretme, GIF üretme, görsel/PDF/video analizi,</li>
+                <li>Canlı kamera analizi ve ekran paylaşımı analizi,</li>
+                <li>70+ formatta belge okuma, özetleme ve soru-cevap,</li>
+                <li>Web arama ve kaynak (citation) gösterimi,</li>
+                <li>114 dil desteği ve mesaj bazında çeviri,</li>
+                <li>Sesli sohbet (STT/TTS), tam ekran sesli mod ve "Hey Tre" uyandırma sözcüğü,</li>
+                <li>Doğal dille hatırlatıcı kurma ve push bildirimle hatırlatma,</li>
+                <li>Google (Gmail/Drive) gibi üçüncü taraf hesap bağlantıları,</li>
+                <li>Kişisel hafıza, duygu analizi ve iyileştirme modu,</li>
+                <li>APK, ISO, PPTX, ses dosyası üretimi ve sohbeti PDF olarak dışa aktarma,</li>
+                <li>Tema, yazı ölçeği, yüksek kontrast, animasyon azaltma ve çoklu dil arayüz.</li>
+              </ul>
+              <p className="mt-2">Hizmet "olduğu gibi" sunulmakta olup herhangi bir garanti verilmemektedir.</p>
             </section>
 
             <section>
@@ -139,6 +155,34 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               <h3 className="text-base font-semibold text-foreground mb-2">16. İletişim</h3>
               <p>
                 Bu Sözleşme veya Hizmet ile ilgili sorularınız için bizimle iletişime geçebilirsiniz.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">17. Bildirimler ve Hatırlatıcılar</h3>
+              <p>
+                Kullanıcı, Ayarlar &gt; Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Treasure, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">18. Sesli Etkileşim ve "Hey Tre" Uyandırma Sözcüğü</h3>
+              <p>
+                Sesli sohbet, tam ekran sesli mod ve "Hey Tre" uyandırma sözcüğü özellikleri yalnızca kullanıcı mikrofon iznini verdiğinde ve ilgili ayarı etkinleştirdiğinde çalışır. Uyandırma sözcüğü algılama işlemi cihaz üzerinde yerel olarak yürütülür; kullanıcı komut vermediği sürece ses kaydı sunucuya iletilmez. Kullanıcı bu özellikleri istediği zaman ayarlardan kapatabilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">19. Canlı Kamera ve Ekran Paylaşımı</h3>
+              <p>
+                Canlı kamera analizi ve ekran paylaşımı analizi yalnızca kullanıcı tarafından açıkça başlatıldığında çalışır. Bu akışlar kaydedilmez; yalnızca analiz için düzenli aralıklarla kare (frame) alınır ve işlendikten sonra silinir. Kullanıcı, akışı istediği an durdurabilir ve tarayıcı üzerinden kamera/ekran iznini geri çekebilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">20. Dosya Üretimi ve Dışa Aktarma</h3>
+              <p>
+                Tre; APK, ISO, PPTX, ses dosyası üretebilir ve sohbet geçmişini (kod ve görseller dahil) PDF olarak dışa aktarabilir. PDF dışa aktarma işlemi tamamen kullanıcı cihazında (istemci tarafında) gerçekleştirilir. Üretilen dosyaların içeriği, kullanım amacı ve üçüncü şahıslarla paylaşımı kullanıcının sorumluluğundadır. Kullanıcı, yasa dışı, zararlı veya üçüncü şahısların haklarını ihlal eden dosyalar üretmek için Hizmeti kullanmamayı kabul eder.
               </p>
             </section>
 
