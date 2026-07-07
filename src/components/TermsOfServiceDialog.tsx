@@ -158,6 +158,34 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               </p>
             </section>
 
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">17. Bildirimler ve Hatırlatıcılar</h3>
+              <p>
+                Kullanıcı, Ayarlar > Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Treasure, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">18. Sesli Etkileşim ve "Hey Tre" Uyandırma Sözcüğü</h3>
+              <p>
+                Sesli sohbet, tam ekran sesli mod ve "Hey Tre" uyandırma sözcüğü özellikleri yalnızca kullanıcı mikrofon iznini verdiğinde ve ilgili ayarı etkinleştirdiğinde çalışır. Uyandırma sözcüğü algılama işlemi cihaz üzerinde yerel olarak yürütülür; kullanıcı komut vermediği sürece ses kaydı sunucuya iletilmez. Kullanıcı bu özellikleri istediği zaman ayarlardan kapatabilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">19. Canlı Kamera ve Ekran Paylaşımı</h3>
+              <p>
+                Canlı kamera analizi ve ekran paylaşımı analizi yalnızca kullanıcı tarafından açıkça başlatıldığında çalışır. Bu akışlar kaydedilmez; yalnızca analiz için düzenli aralıklarla kare (frame) alınır ve işlendikten sonra silinir. Kullanıcı, akışı istediği an durdurabilir ve tarayıcı üzerinden kamera/ekran iznini geri çekebilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">20. Dosya Üretimi ve Dışa Aktarma</h3>
+              <p>
+                Tre; APK, ISO, PPTX, ses dosyası üretebilir ve sohbet geçmişini (kod ve görseller dahil) PDF olarak dışa aktarabilir. PDF dışa aktarma işlemi tamamen kullanıcı cihazında (istemci tarafında) gerçekleştirilir. Üretilen dosyaların içeriği, kullanım amacı ve üçüncü şahıslarla paylaşımı kullanıcının sorumluluğundadır. Kullanıcı, yasa dışı, zararlı veya üçüncü şahısların haklarını ihlal eden dosyalar üretmek için Hizmeti kullanmamayı kabul eder.
+              </p>
+            </section>
+
             <section className="border-t border-border pt-4 mt-4">
               <p className="text-xs text-muted-foreground">
                 Bu Sözleşme, kullanıcı ile Treasure şirketi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.
