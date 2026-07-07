@@ -161,7 +161,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">17. Bildirimler ve Hatırlatıcılar</h3>
               <p>
-                Kullanıcı, Ayarlar > Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Treasure, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
+                Kullanıcı, Ayarlar &gt; Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Treasure, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
               </p>
             </section>
 
