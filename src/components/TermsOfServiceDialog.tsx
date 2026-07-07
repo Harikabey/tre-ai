@@ -33,8 +33,24 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">2. Hizmet Tanımı</h3>
               <p>
-                TreFriend, Treasure şirketi tarafından geliştirilen yapay zeka destekli bir sohbet asistanıdır. Hizmet; metin tabanlı sohbet, görsel analiz, görsel oluşturma, sesli iletişim, canlı kamera analizi, belge okuma ve duygu analizi gibi özellikler sunar. Hizmet "olduğu gibi" sunulmakta olup herhangi bir garanti verilmemektedir.
+                Tre, Treasure tarafından geliştirilen yapay zeka destekli çok yönlü bir asistandır. Hizmet aşağıdaki başlıca özellikleri sunar:
               </p>
+              <ul className="list-disc list-inside space-y-1 mt-2 ml-2">
+                <li>Metin tabanlı sohbet ve 6 farklı kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna),</li>
+                <li>Hızlı ve Derin düşünme modları,</li>
+                <li>Görsel üretme, GIF üretme, görsel/PDF/video analizi,</li>
+                <li>Canlı kamera analizi ve ekran paylaşımı analizi,</li>
+                <li>70+ formatta belge okuma, özetleme ve soru-cevap,</li>
+                <li>Web arama ve kaynak (citation) gösterimi,</li>
+                <li>114 dil desteği ve mesaj bazında çeviri,</li>
+                <li>Sesli sohbet (STT/TTS), tam ekran sesli mod ve "Hey Tre" uyandırma sözcüğü,</li>
+                <li>Doğal dille hatırlatıcı kurma ve push bildirimle hatırlatma,</li>
+                <li>Google (Gmail/Drive) gibi üçüncü taraf hesap bağlantıları,</li>
+                <li>Kişisel hafıza, duygu analizi ve iyileştirme modu,</li>
+                <li>APK, ISO, PPTX, ses dosyası üretimi ve sohbeti PDF olarak dışa aktarma,</li>
+                <li>Tema, yazı ölçeği, yüksek kontrast, animasyon azaltma ve çoklu dil arayüz.</li>
+              </ul>
+              <p className="mt-2">Hizmet "olduğu gibi" sunulmakta olup herhangi bir garanti verilmemektedir.</p>
             </section>
 
             <section>
