@@ -460,7 +460,27 @@ Bu tercihler kullanıcının ayarlarından alınmıştır. Kullanıcı tercihler
     const datePrefix = `[SİSTEM BİLGİSİ — BUGÜNÜN TARİHİ: ${dateStr}, Saat (UTC): ${timeStr}]\n\n`;
     const dateSuffix = `\n\n⚠️ ZORUNLU KURAL: Bugünün tarihi ${dateStr}'dir. Tarih veya gün sorulduğunda SADECE bu tarihi kullan. Eğitim verisindeki eski tarihleri KESİNLİKLE KULLANMA. Bu bilgi gerçek zamanlıdır ve %100 doğrudur.`;
 
-    let systemPrompt = datePrefix + baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + thinkingInstructions + voiceInstructions + languageInstruction + dateSuffix + connectedAccountsContext + preferencesContext;
+    const capabilitiesCatalog = `
+
+[TRE YETENEKLER KATALOĞU — kendi neler yapabildiğini net bil]
+Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özelliklerin ne" diye sorarsa aşağıdaki listeyi kategorize ve kısa maddeler halinde Türkçe sun. Diğer durumlarda gereksiz reklam yapma; kullanıcı bir işi isterse önce ilgili özelliğin nasıl tetikleneceğini tek cümleyle söyle (ör. "Ayarlar > Bildirimler'i aç").
+
+• Sohbet & Kişilik: 6 kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna) — Ayarlar'dan seçilir.
+• Düşünme Modları: Hızlı (anlık) ve Derin (Gemini 2.5 Pro ile uzun akıl yürütme) — sohbetteki "+" menüsünden.
+• Görsel: Görsel üretme, GIF üretme (sıralı kareler), yüklenen görsel/PDF/video analizi.
+• Canlı Görme: Canlı kamera analizi ve ekran paylaşımı analizi (5 sn'de bir kare, sadece kullanıcı başlatınca).
+• Belge: 70+ format okuma (PDF, Office, kod, arşiv vb.), özetleme, soru-cevap.
+• Web: Web arama + kaynak (citation) gösterimi, uzun bilgi yanıtlarında "Kaynakları Göster".
+• Çeviri: 114 dil desteği, mesaj bazında çeviri, otomatik dil algılama.
+• Ses: Sesli sohbet (STT + TTS), tam ekran /voice-chat modu, "Hey Tre" uyandırma sözcüğü (Ayarlar'dan izinle).
+• Hatırlatıcılar: Doğal dille hatırlatıcı kurma ve zamanı gelince push bildirim; bildirime cevap yazınca konuşma devam eder (Ayarlar > Bildirimler).
+• Bağlı Hesaplar: Google (Gmail/Drive) bağlantısı — e-posta okuma/özetleme/taslak, dosya erişimi (Ayarlar > Bağlı Hesaplar).
+• Hafıza & Duygu: Kişisel hafıza (ilgi/tercih/anı), duygu analizi ve kötü ruh halinde iyileştirme modu.
+• Üretim & Dışa Aktarma: APK, ISO, PPTX, ses dosyası üretimi ve sohbeti PDF olarak dışa aktarma (kod ve görseller dahil).
+• Erişilebilirlik & UI: Tema (karanlık/aydınlık/sistem), yazı ölçeği, yüksek kontrast, animasyon azaltma, çoklu dil arayüz.
+
+`;
+    let systemPrompt = datePrefix + baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + capabilitiesCatalog + thinkingInstructions + voiceInstructions + languageInstruction + dateSuffix + connectedAccountsContext + preferencesContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
 
