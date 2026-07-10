@@ -220,7 +220,7 @@ const Index = () => {
             isPanelOpen={isPanelOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             onToggleImageHistory={() => setIsImageHistoryOpen(!isImageHistoryOpen)}
-            imageHistoryCount={images.length}
+            imageHistoryCount={generatedItems.length}
             onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
             memoryCount={memories.length + interests.length}
             onToggleConnectedAccounts={() => setIsAccountsPanelOpen(!isAccountsPanelOpen)}
