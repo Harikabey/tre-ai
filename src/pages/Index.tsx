@@ -292,12 +292,12 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Image History Panel */}
-      <ImageHistoryPanel
-        images={images}
-        onRegenerate={handleRegenerateImage}
-        onDelete={deleteImage}
-        onClear={clearImages}
+      {/* Generated Items Panel */}
+      <GeneratedItemsPanel
+        items={generatedItems}
+        onDelete={removeGenerated}
+        onRename={renameGenerated}
+        onClear={clearGenerated}
         isOpen={isImageHistoryOpen}
         onClose={() => setIsImageHistoryOpen(false)}
       />
