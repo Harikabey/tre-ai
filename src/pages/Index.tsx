@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { useImageHistory } from '@/hooks/useImageHistory';
+import { useGeneratedItems } from '@/hooks/useGeneratedItems';
 import { ChatHeader } from '@/components/ChatHeader';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
@@ -11,7 +11,7 @@ import { TypingIndicator } from '@/components/TypingIndicator';
 import { KnowledgePanel } from '@/components/KnowledgePanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ConversationSidebar } from '@/components/ConversationSidebar';
-import { ImageHistoryPanel } from '@/components/ImageHistoryPanel';
+import { GeneratedItemsPanel } from '@/components/GeneratedItemsPanel';
 import { UserMemoryPanel } from '@/components/UserMemoryPanel';
 import { SwipeableMessage } from '@/components/SwipeableMessage';
 import { LiveCameraView } from '@/components/LiveCameraView';
@@ -61,7 +61,15 @@ const Index = () => {
     updateInterest,
   } = useChatbot();
 
-  const { images, addImage, deleteImage, clearImages } = useImageHistory();
+  const {
+    items: generatedItems,
+    addFromUrl: addGeneratedUrl,
+    addFromText: addGeneratedText,
+    addFromBlob: addGeneratedBlob,
+    remove: removeGenerated,
+    rename: renameGenerated,
+    clear: clearGenerated,
+  } = useGeneratedItems();
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -107,25 +115,59 @@ const Index = () => {
     }
   }, [messages, isTyping]);
 
-  // Track generated images from messages
+  // Track processed message IDs to avoid re-saving items on each render
+  const processedIdsRef = useRef<Set<string>>(new Set());
+
+  // Track all bot-generated items (images, GIFs, code files, audio, video, docs) → IndexedDB
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'bot') {
-      const imageMatch = lastMessage.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
-      const promptMatch = lastMessage.content.match(/\*"([^"]+)"\*/);
-      
-      if (imageMatch && promptMatch) {
-        const imageUrl = imageMatch[2];
-        const prompt = promptMatch[1];
-        
-        // Check if this image is already in history
-        const exists = images.some(img => img.url === imageUrl);
-        if (!exists) {
-          addImage(imageUrl, prompt);
-        }
-      }
+    if (!lastMessage || lastMessage.role !== 'bot') return;
+    if (processedIdsRef.current.has(lastMessage.id)) return;
+    processedIdsRef.current.add(lastMessage.id);
+
+    const content = lastMessage.content;
+    const promptMatch = content.match(/\*"([^"]+)"\*/);
+    const prompt = promptMatch?.[1];
+
+    // 1) Generated images (markdown ![]() with data: or http url)
+    const imageRegex = /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|webp|gif)[^\s)]*)\)/gi;
+    let m: RegExpExecArray | null;
+    let imgIdx = 0;
+    while ((m = imageRegex.exec(content)) !== null) {
+      const url = m[2];
+      const alt = m[1] || prompt || `image-${Date.now()}`;
+      const isGif = url.toLowerCase().includes('.gif') || url.startsWith('data:image/gif');
+      const ext = isGif ? 'gif' : (url.match(/\.(png|jpg|jpeg|webp)/i)?.[1] || 'png');
+      const safeName = `${alt.slice(0, 40).replace(/[^a-zA-Z0-9-_ ]/g, '_') || 'image'}${imgIdx > 0 ? `-${imgIdx}` : ''}.${ext}`;
+      addGeneratedUrl({ url, name: safeName, prompt, kind: isGif ? 'gif' : 'image' });
+      imgIdx++;
     }
-  }, [messages, addImage, images]);
+
+    // 2) Animated frames block → save as JSON (GIF-like sequence)
+    const framesMatch = content.match(/\[ANIMATED_FRAMES\]([\s\S]*?)\[\/ANIMATED_FRAMES\]/);
+    if (framesMatch) {
+      addGeneratedText({
+        name: `animation-${Date.now()}.json`,
+        content: framesMatch[1].trim(),
+        mimeType: 'application/json',
+        prompt,
+      });
+    }
+
+    // 3) File blocks: [FILE:name]...[/FILE] (code, docs, etc.)
+    const fileRegex = /\[FILE:([^\]]+)\]\n([\s\S]*?)\n\[\/FILE\]/g;
+    let fm: RegExpExecArray | null;
+    while ((fm = fileRegex.exec(content)) !== null) {
+      addGeneratedText({ name: fm[1].trim(), content: fm[2], prompt });
+    }
+
+    // 4) Audio / video / apk / iso / pptx / pdf / word / excel via [Ek dosya: name](url)
+    const attachRegex = /\[(?:Ek dosya|İndir|Dosya):\s*([^\]]+)\]\((https?:\/\/[^\s)]+|data:[^)]+)\)/gi;
+    let am: RegExpExecArray | null;
+    while ((am = attachRegex.exec(content)) !== null) {
+      addGeneratedUrl({ name: am[1].trim(), url: am[2], prompt });
+    }
+  }, [messages, addGeneratedUrl, addGeneratedText]);
 
   const handleRegenerateImage = (prompt: string) => {
     setIsImageHistoryOpen(false);
@@ -178,7 +220,7 @@ const Index = () => {
             isPanelOpen={isPanelOpen}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             onToggleImageHistory={() => setIsImageHistoryOpen(!isImageHistoryOpen)}
-            imageHistoryCount={images.length}
+            imageHistoryCount={generatedItems.length}
             onToggleMemoryPanel={() => setIsMemoryPanelOpen(!isMemoryPanelOpen)}
             memoryCount={memories.length + interests.length}
             onToggleConnectedAccounts={() => setIsAccountsPanelOpen(!isAccountsPanelOpen)}
@@ -250,12 +292,12 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Image History Panel */}
-      <ImageHistoryPanel
-        images={images}
-        onRegenerate={handleRegenerateImage}
-        onDelete={deleteImage}
-        onClear={clearImages}
+      {/* Generated Items Panel */}
+      <GeneratedItemsPanel
+        items={generatedItems}
+        onDelete={removeGenerated}
+        onRename={renameGenerated}
+        onClear={clearGenerated}
         isOpen={isImageHistoryOpen}
         onClose={() => setIsImageHistoryOpen(false)}
       />
