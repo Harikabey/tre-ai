@@ -61,7 +61,15 @@ const Index = () => {
     updateInterest,
   } = useChatbot();
 
-  const { images, addImage, deleteImage, clearImages } = useImageHistory();
+  const {
+    items: generatedItems,
+    addFromUrl: addGeneratedUrl,
+    addFromText: addGeneratedText,
+    addFromBlob: addGeneratedBlob,
+    remove: removeGenerated,
+    rename: renameGenerated,
+    clear: clearGenerated,
+  } = useGeneratedItems();
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
