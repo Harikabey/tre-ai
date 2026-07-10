@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, Image, Brain, Link2, FileDown } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, FolderOpen, Brain, Link2, FileDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslations } from '@/utils/translations';
@@ -109,16 +109,16 @@ export const ChatHeader = ({
           </Button>
         )}
 
-        {/* Image History button */}
+        {/* Generated Items button */}
         {onToggleImageHistory && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleImageHistory}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9 relative"
-            title="Görsel Geçmişi"
+            title="Üretilen Dosyalar"
           >
-            <Image className="w-4 h-4" />
+            <FolderOpen className="w-4 h-4" />
             {imageHistoryCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
                 {imageHistoryCount > 9 ? '9+' : imageHistoryCount}
