@@ -920,7 +920,24 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Geri Bildirim */}
+          <Button
+            asChild
+            variant="outline"
+            className="w-full border-border/50"
+          >
+            <a
+              href="https://forms.gle/csci2Ad2BPNy5pfA6"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Geri Bildirim Gönder
+            </a>
+          </Button>
         </div>
+
       </div>
     </div>
   );
