@@ -54,6 +54,7 @@ const App = () => (
           <Route path="/voice-chat" element={<VoiceChat />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/extension" element={<ExtensionFeaturePreview />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
