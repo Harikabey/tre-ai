@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VoiceChat from "./pages/VoiceChat";
 import NotFound from "./pages/NotFound";
+import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
