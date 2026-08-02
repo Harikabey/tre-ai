@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VoiceChat from "./pages/VoiceChat";
 import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
+import ShareTargetFeaturePreview from "./components/ShareTargetFeaturePreview";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/extension" element={<ExtensionFeaturePreview />} />
+          <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
