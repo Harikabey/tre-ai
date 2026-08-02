@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -27,6 +27,7 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const {
     messages,
@@ -104,6 +105,17 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Shared content from PWA Share Target (/share-target)
+  const sharedHandledRef = useRef(false);
+  useEffect(() => {
+    const sharedText = (location.state as { sharedText?: string } | null)?.sharedText;
+    if (!sharedText || sharedHandledRef.current || !user) return;
+    sharedHandledRef.current = true;
+    window.history.replaceState({}, '');
+    sendMessage(sharedText);
+  }, [location.state, user, sendMessage]);
+
 
   // Auto-scroll to bottom
   useEffect(() => {
