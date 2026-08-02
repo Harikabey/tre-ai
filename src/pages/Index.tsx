@@ -106,6 +106,17 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Shared content from PWA Share Target (/share-target)
+  const sharedHandledRef = useRef(false);
+  useEffect(() => {
+    const sharedText = (location.state as { sharedText?: string } | null)?.sharedText;
+    if (!sharedText || sharedHandledRef.current || !user) return;
+    sharedHandledRef.current = true;
+    window.history.replaceState({}, '');
+    sendMessage(sharedText);
+  }, [location.state, user, sendMessage]);
+
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
