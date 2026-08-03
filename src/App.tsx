@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VoiceChat from "./pages/VoiceChat";
+import Capabilities from "./pages/Capabilities";
 import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
 import ShareTargetFeaturePreview from "./components/ShareTargetFeaturePreview";
@@ -52,6 +53,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/capabilities" element={<Capabilities />} />
           <Route path="/voice-chat" element={<VoiceChat />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
