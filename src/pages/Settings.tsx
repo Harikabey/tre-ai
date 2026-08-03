@@ -921,6 +921,21 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Tre Ne Yapabilir? */}
+          <Button
+            asChild
+            variant="outline"
+            className="w-full justify-between border-border/50 h-auto py-3"
+          >
+            <Link to="/capabilities">
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Tre Ne Yapabilir?
+              </span>
+              <span className="text-xs text-muted-foreground">Tüm yetenekler →</span>
+            </Link>
+          </Button>
+
           {/* Geri Bildirim */}
           <Button
             asChild
