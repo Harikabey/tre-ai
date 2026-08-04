@@ -17,6 +17,17 @@
       "url": "url"
     }
   },
+  "file_handlers": [
+    {
+      "action": "/file-handler",
+      "accept": {
+        "text/plain": [".txt"],
+        "text/markdown": [".md"],
+        "application/pdf": [".pdf"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"]
+      }
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
