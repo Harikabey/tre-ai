@@ -52,7 +52,6 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: 'Herhangi bir sayfada metin seçip Tre’ye sor.', to: '/extension', badge: 'Önizleme' },
       { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: 'Başka uygulamalardan Tre’ye içerik paylaş.', to: '/share-target' },
       { icon: Bell, title: 'Bildirimden Yanıt', desc: 'Uygulamayı açmadan bildirim üzerinden yaz.', to: '/settings' },
-      { icon: Mic, title: 'Ana Ekran Widget’ı & Sesli Komut', desc: 'Tek dokunuşla sesli sor, yanıt bildirimle gelsin.', to: '/widget-preview', badge: 'Önizleme' },
       { icon: Clock, title: 'Hatırlatıcılar', desc: '"Yarın 9’da hatırlat" de, zamanında bildirsin.', to: '/settings' },
     ],
   },
