@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
 import ShareTargetFeaturePreview from "./components/ShareTargetFeaturePreview";
 import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
+import WidgetFeaturePreview from "./components/WidgetFeaturePreview";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
           <Route path="/extension" element={<ExtensionFeaturePreview />} />
           <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
           <Route path="/file-handler" element={<FileHandlerFeaturePreview />} />
+          <Route path="/widget-preview" element={<WidgetFeaturePreview />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
