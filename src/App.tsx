@@ -61,6 +61,7 @@ const App = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/extension" element={<ExtensionFeaturePreview />} />
           <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
+          <Route path="/widget-preview" element={<WidgetPreview />} />
           <Route path="/file-handler" element={<FileHandlerFeaturePreview />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
