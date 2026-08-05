@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Puzzle, Share2, Bell, Mic, Image as ImageIcon, Film, Brain, Search,
   FileDown, Languages, Camera, ScreenShare, FileText, Smartphone, Package,
-  Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LucideIcon
+  Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput, LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -53,6 +53,8 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: 'Başka uygulamalardan Tre’ye içerik paylaş.', to: '/share-target' },
       { icon: Bell, title: 'Bildirimden Yanıt', desc: 'Uygulamayı açmadan bildirim üzerinden yaz.', to: '/settings' },
       { icon: Clock, title: 'Hatırlatıcılar', desc: '"Yarın 9’da hatırlat" de, zamanında bildirsin.', to: '/settings' },
+      { icon: LayoutGrid, title: 'Ana Ekran Widget’ı', desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
+      { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
     ],
   },
   {
