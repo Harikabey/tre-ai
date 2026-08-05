@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
 import ShareTargetFeaturePreview from "./components/ShareTargetFeaturePreview";
 import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
+import WidgetPreview from "./components/WidgetPreview";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
