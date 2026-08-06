@@ -28,6 +28,20 @@
       }
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Sesli Komut",
+      "short_name": "Sesli Komut",
+      "url": "/widget-preview?action=voice",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Hızlı Sohbet",
+      "short_name": "Sohbet",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
