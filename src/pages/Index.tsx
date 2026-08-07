@@ -21,7 +21,57 @@ import { exportChatToPdf } from '@/utils/exportChatPdf';
 import { toast } from 'sonner';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+/* ---------- Chat lock: local-only IndexedDB storage ---------- */
+const LOCK_DB = 'tre_chat_locks';
+const LOCK_STORE = 'locks';
+
+const openLockDb = () =>
+  new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open(LOCK_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(LOCK_STORE)) db.createObjectStore(LOCK_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+const listLocks = async (): Promise<{ id: string; hash: string }[]> => {
+  const db = await openLockDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(LOCK_STORE, 'readonly').objectStore(LOCK_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+const putLock = async (id: string, hash: string) => {
+  const db = await openLockDb();
+  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).put({ id, hash });
+};
+
+const removeLock = async (id: string) => {
+  const db = await openLockDb();
+  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).delete(id);
+};
+
+const hashPassword = async (pw: string) => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
