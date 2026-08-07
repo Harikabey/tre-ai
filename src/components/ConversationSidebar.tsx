@@ -294,7 +294,8 @@ export const ConversationSidebar = ({
                       key={conv.id}
                       conv={conv}
                       isActive={currentConversationId === conv.id}
-                      onSelect={() => { onSelectConversation(conv.id); if (window.innerWidth < 1024) onToggle(); }}
+                      isLocked={lockedIds.includes(conv.id)}
+                      onSelect={() => { onSelectConversation(conv.id); if (window.innerWidth < 1024 && !lockedIds.includes(conv.id)) onToggle(); }}
                       onDelete={() => setDeleteId(conv.id)}
                       onRename={onRenameConversation ? (t) => onRenameConversation(conv.id, t) : undefined}
                     />
