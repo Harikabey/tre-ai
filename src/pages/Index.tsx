@@ -426,7 +426,7 @@ const Index = () => {
           
           <ChatInput
             onSend={(msg, fileUrl, genType) => sendMessage(msg, fileUrl, genType)}
-            disabled={isTyping}
+            disabled={isTyping || isCurrentHidden}
             pendingQuestion={pendingQuestion}
             thinkingMode={thinkingMode}
             onThinkingModeChange={setThinkingMode}
@@ -495,6 +495,39 @@ const Index = () => {
         isOpen={isAccountsPanelOpen}
         onClose={() => setIsAccountsPanelOpen(false)}
       />
+
+      {/* Chat lock dialog */}
+      <Dialog open={!!lockDialog} onOpenChange={(o) => !o && setLockDialog(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              {lockDialog?.mode === 'set' ? 'Şifre Belirle' : 'Şifreyi Gir'}
+            </DialogTitle>
+            <DialogDescription>
+              {lockDialog?.mode === 'set'
+                ? 'En az 4 karakterli bir şifre belirleyin. Şifre yalnızca bu cihazda saklanır.'
+                : 'Sohbeti açmak için şifrenizi girin.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            type="password"
+            inputMode="numeric"
+            autoFocus
+            value={pwInput}
+            onChange={(e) => { setPwInput(e.target.value); setPwError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitLockDialog(); }}
+            placeholder="••••"
+          />
+          {pwError && <p className="text-xs text-destructive">{pwError}</p>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setLockDialog(null)}>İptal</Button>
+            <Button onClick={submitLockDialog}>
+              {lockDialog?.mode === 'set' ? 'Kilitle' : 'Aç'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
