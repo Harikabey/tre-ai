@@ -347,7 +347,8 @@ const Index = () => {
           currentConversationId={currentConversationId}
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectConversation={selectConversation}
+          onSelectConversation={handleSelectConversation}
+          lockedIds={lockedIds}
           onNewConversation={createNewConversation}
           onDeleteConversation={deleteConversation}
           onRenameConversation={renameConversation}
@@ -382,10 +383,23 @@ const Index = () => {
                 toast.error('PDF oluşturulamadı', { id: t });
               }
             }}
+            isChatLocked={isCurrentLocked}
+            onToggleLock={handleToggleLock}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
-            {messages.length === 0 ? (
+            {isCurrentHidden ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
+                  <Lock className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Bu sohbet kilitli</h2>
+                  <p className="text-sm text-muted-foreground mt-1">İçeriği görmek için şifreyi girin</p>
+                </div>
+                <Button onClick={() => openLockDialog('enter', currentConversationId!, true)}>Şifreyi Gir</Button>
+              </div>
+            ) : messages.length === 0 ? (
               <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
             ) : (
               <ScrollArea className="h-full">
@@ -408,6 +422,7 @@ const Index = () => {
               </ScrollArea>
             )}
           </div>
+
           
           <ChatInput
             onSend={(msg, fileUrl, genType) => sendMessage(msg, fileUrl, genType)}
