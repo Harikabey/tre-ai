@@ -21,7 +21,57 @@ import { exportChatToPdf } from '@/utils/exportChatPdf';
 import { toast } from 'sonner';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+/* ---------- Chat lock: local-only IndexedDB storage ---------- */
+const LOCK_DB = 'tre_chat_locks';
+const LOCK_STORE = 'locks';
+
+const openLockDb = () =>
+  new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open(LOCK_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(LOCK_STORE)) db.createObjectStore(LOCK_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+const listLocks = async (): Promise<{ id: string; hash: string }[]> => {
+  const db = await openLockDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(LOCK_STORE, 'readonly').objectStore(LOCK_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+const putLock = async (id: string, hash: string) => {
+  const db = await openLockDb();
+  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).put({ id, hash });
+};
+
+const removeLock = async (id: string) => {
+  const db = await openLockDb();
+  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).delete(id);
+};
+
+const hashPassword = async (pw: string) => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -80,6 +130,87 @@ const Index = () => {
   const [isScreenShareOpen, setIsScreenShareOpen] = useState(false);
   const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /* ---------- Chat lock state ---------- */
+  const [locks, setLocks] = useState<{ id: string; hash: string }[]>([]);
+  const [unlockedIds, setUnlockedIds] = useState<string[]>([]); // session only
+  const [lockDialog, setLockDialog] = useState<null | { mode: 'set' | 'enter'; convId: string; openAfter?: boolean }>(null);
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState('');
+
+  const lockedIds = locks.map((l) => l.id);
+  const isCurrentLocked = !!currentConversationId && lockedIds.includes(currentConversationId);
+  const isCurrentHidden = isCurrentLocked && !unlockedIds.includes(currentConversationId!);
+
+  useEffect(() => {
+    listLocks().then(setLocks).catch(() => {});
+  }, []);
+
+  // Auto-lock when leaving the app / tab or unmounting
+  useEffect(() => {
+    const relock = () => setUnlockedIds([]);
+    const onVisibility = () => { if (document.visibilityState === 'hidden') relock(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', relock);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', relock);
+      relock();
+    };
+  }, []);
+
+  const openLockDialog = (mode: 'set' | 'enter', convId: string, openAfter = false) => {
+    setPwInput('');
+    setPwError('');
+    setLockDialog({ mode, convId, openAfter });
+  };
+
+  const handleToggleLock = () => {
+    if (!currentConversationId) {
+      toast.info('Önce bir sohbet seçin');
+      return;
+    }
+    openLockDialog(isCurrentLocked ? 'enter' : 'set', currentConversationId);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    if (lockedIds.includes(id) && !unlockedIds.includes(id)) {
+      openLockDialog('enter', id, true);
+      return;
+    }
+    selectConversation(id);
+  };
+
+  const submitLockDialog = async () => {
+    if (!lockDialog) return;
+    const pw = pwInput.trim();
+    if (lockDialog.mode === 'set') {
+      if (pw.length < 4) { setPwError('Şifre en az 4 karakter olmalı'); return; }
+      const hash = await hashPassword(pw);
+      await putLock(lockDialog.convId, hash);
+      setLocks((prev) => [...prev.filter((l) => l.id !== lockDialog.convId), { id: lockDialog.convId, hash }]);
+      setUnlockedIds((prev) => prev.filter((i) => i !== lockDialog.convId));
+      setLockDialog(null);
+      toast.success('Sohbet kilitlendi 🔒');
+      return;
+    }
+    const hash = await hashPassword(pw);
+    const lock = locks.find((l) => l.id === lockDialog.convId);
+    if (!lock || lock.hash !== hash) { setPwError('Şifre hatalı'); return; }
+    if (lockDialog.openAfter) {
+      setUnlockedIds((prev) => [...prev, lockDialog.convId]);
+      selectConversation(lockDialog.convId);
+      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+      toast.success('Sohbet açıldı 🔓');
+    } else {
+      await removeLock(lockDialog.convId);
+      setLocks((prev) => prev.filter((l) => l.id !== lockDialog.convId));
+      setUnlockedIds((prev) => [...prev, lockDialog.convId]);
+      toast.success('Kilit kaldırıldı 🔓');
+    }
+    setLockDialog(null);
+  };
+
 
   // Open sidebar on desktop by default
   useEffect(() => {
@@ -216,7 +347,8 @@ const Index = () => {
           currentConversationId={currentConversationId}
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectConversation={selectConversation}
+          onSelectConversation={handleSelectConversation}
+          lockedIds={lockedIds}
           onNewConversation={createNewConversation}
           onDeleteConversation={deleteConversation}
           onRenameConversation={renameConversation}
@@ -251,10 +383,23 @@ const Index = () => {
                 toast.error('PDF oluşturulamadı', { id: t });
               }
             }}
+            isChatLocked={isCurrentLocked}
+            onToggleLock={handleToggleLock}
           />
           
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
-            {messages.length === 0 ? (
+            {isCurrentHidden ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
+                  <Lock className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Bu sohbet kilitli</h2>
+                  <p className="text-sm text-muted-foreground mt-1">İçeriği görmek için şifreyi girin</p>
+                </div>
+                <Button onClick={() => openLockDialog('enter', currentConversationId!, true)}>Şifreyi Gir</Button>
+              </div>
+            ) : messages.length === 0 ? (
               <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
             ) : (
               <ScrollArea className="h-full">
@@ -277,10 +422,11 @@ const Index = () => {
               </ScrollArea>
             )}
           </div>
+
           
           <ChatInput
             onSend={(msg, fileUrl, genType) => sendMessage(msg, fileUrl, genType)}
-            disabled={isTyping}
+            disabled={isTyping || isCurrentHidden}
             pendingQuestion={pendingQuestion}
             thinkingMode={thinkingMode}
             onThinkingModeChange={setThinkingMode}
@@ -349,6 +495,39 @@ const Index = () => {
         isOpen={isAccountsPanelOpen}
         onClose={() => setIsAccountsPanelOpen(false)}
       />
+
+      {/* Chat lock dialog */}
+      <Dialog open={!!lockDialog} onOpenChange={(o) => !o && setLockDialog(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              {lockDialog?.mode === 'set' ? 'Şifre Belirle' : 'Şifreyi Gir'}
+            </DialogTitle>
+            <DialogDescription>
+              {lockDialog?.mode === 'set'
+                ? 'En az 4 karakterli bir şifre belirleyin. Şifre yalnızca bu cihazda saklanır.'
+                : 'Sohbeti açmak için şifrenizi girin.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            type="password"
+            inputMode="numeric"
+            autoFocus
+            value={pwInput}
+            onChange={(e) => { setPwInput(e.target.value); setPwError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitLockDialog(); }}
+            placeholder="••••"
+          />
+          {pwError && <p className="text-xs text-destructive">{pwError}</p>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setLockDialog(null)}>İptal</Button>
+            <Button onClick={submitLockDialog}>
+              {lockDialog?.mode === 'set' ? 'Kilitle' : 'Aç'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

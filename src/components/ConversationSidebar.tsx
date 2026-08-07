@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, TouchEvent } from 'react';
-import { MessageSquare, Plus, Trash2, X, Check, Pencil } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, X, Check, Pencil, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ interface ConversationSidebarProps {
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
   onRenameConversation?: (id: string, newTitle: string) => void;
+  lockedIds?: string[];
 }
 
 const useSwipeToDelete = (onDelete: () => void, threshold = 80) => {
@@ -72,13 +73,14 @@ const useSwipeToDelete = (onDelete: () => void, threshold = 80) => {
 };
 
 const ConversationItem = ({
-  conv, isActive, onSelect, onDelete, onRename,
+  conv, isActive, onSelect, onDelete, onRename, isLocked = false,
 }: {
   conv: Conversation;
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onRename?: (newTitle: string) => void;
+  isLocked?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conv.title);
@@ -188,7 +190,11 @@ const ConversationItem = ({
           if (!isEditing) onSelect();
         }}
       >
-        <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        {isLocked ? (
+          <Lock className="h-4 w-4 text-primary flex-shrink-0" />
+        ) : (
+          <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <Input
@@ -202,11 +208,17 @@ const ConversationItem = ({
             />
           ) : (
             <>
-              <div className="text-sm font-medium text-foreground truncate">{conv.title}</div>
-              <div className="text-xs text-muted-foreground">{formatDate(conv.updated_at)}</div>
+              <div className="text-sm font-medium text-foreground truncate flex items-center gap-1">
+                {conv.title}
+                {isLocked && <span className="text-[10px] text-primary">🔒</span>}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {isLocked ? <span className="tracking-widest select-none">••••••••</span> : formatDate(conv.updated_at)}
+              </div>
             </>
           )}
         </div>
+
 
         {/* Actions: hover on desktop, long-press on mobile */}
         <div className={cn(
@@ -243,6 +255,7 @@ const ConversationItem = ({
 export const ConversationSidebar = ({
   conversations, currentConversationId, isOpen, onToggle,
   onSelectConversation, onNewConversation, onDeleteConversation, onRenameConversation,
+  lockedIds = [],
 }: ConversationSidebarProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const conversationToDelete = deleteId ? conversations.find(c => c.id === deleteId) : null;
@@ -281,7 +294,8 @@ export const ConversationSidebar = ({
                       key={conv.id}
                       conv={conv}
                       isActive={currentConversationId === conv.id}
-                      onSelect={() => { onSelectConversation(conv.id); if (window.innerWidth < 1024) onToggle(); }}
+                      isLocked={lockedIds.includes(conv.id)}
+                      onSelect={() => { onSelectConversation(conv.id); if (window.innerWidth < 1024 && !lockedIds.includes(conv.id)) onToggle(); }}
                       onDelete={() => setDeleteId(conv.id)}
                       onRename={onRenameConversation ? (t) => onRenameConversation(conv.id, t) : undefined}
                     />
