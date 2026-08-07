@@ -73,13 +73,14 @@ const useSwipeToDelete = (onDelete: () => void, threshold = 80) => {
 };
 
 const ConversationItem = ({
-  conv, isActive, onSelect, onDelete, onRename,
+  conv, isActive, onSelect, onDelete, onRename, isLocked = false,
 }: {
   conv: Conversation;
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onRename?: (newTitle: string) => void;
+  isLocked?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conv.title);
