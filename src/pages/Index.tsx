@@ -131,6 +131,87 @@ const Index = () => {
   const [isAccountsPanelOpen, setIsAccountsPanelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  /* ---------- Chat lock state ---------- */
+  const [locks, setLocks] = useState<{ id: string; hash: string }[]>([]);
+  const [unlockedIds, setUnlockedIds] = useState<string[]>([]); // session only
+  const [lockDialog, setLockDialog] = useState<null | { mode: 'set' | 'enter'; convId: string; openAfter?: boolean }>(null);
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState('');
+
+  const lockedIds = locks.map((l) => l.id);
+  const isCurrentLocked = !!currentConversationId && lockedIds.includes(currentConversationId);
+  const isCurrentHidden = isCurrentLocked && !unlockedIds.includes(currentConversationId!);
+
+  useEffect(() => {
+    listLocks().then(setLocks).catch(() => {});
+  }, []);
+
+  // Auto-lock when leaving the app / tab or unmounting
+  useEffect(() => {
+    const relock = () => setUnlockedIds([]);
+    const onVisibility = () => { if (document.visibilityState === 'hidden') relock(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', relock);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', relock);
+      relock();
+    };
+  }, []);
+
+  const openLockDialog = (mode: 'set' | 'enter', convId: string, openAfter = false) => {
+    setPwInput('');
+    setPwError('');
+    setLockDialog({ mode, convId, openAfter });
+  };
+
+  const handleToggleLock = () => {
+    if (!currentConversationId) {
+      toast.info('Önce bir sohbet seçin');
+      return;
+    }
+    openLockDialog(isCurrentLocked ? 'enter' : 'set', currentConversationId);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    if (lockedIds.includes(id) && !unlockedIds.includes(id)) {
+      openLockDialog('enter', id, true);
+      return;
+    }
+    selectConversation(id);
+  };
+
+  const submitLockDialog = async () => {
+    if (!lockDialog) return;
+    const pw = pwInput.trim();
+    if (lockDialog.mode === 'set') {
+      if (pw.length < 4) { setPwError('Şifre en az 4 karakter olmalı'); return; }
+      const hash = await hashPassword(pw);
+      await putLock(lockDialog.convId, hash);
+      setLocks((prev) => [...prev.filter((l) => l.id !== lockDialog.convId), { id: lockDialog.convId, hash }]);
+      setUnlockedIds((prev) => prev.filter((i) => i !== lockDialog.convId));
+      setLockDialog(null);
+      toast.success('Sohbet kilitlendi 🔒');
+      return;
+    }
+    const hash = await hashPassword(pw);
+    const lock = locks.find((l) => l.id === lockDialog.convId);
+    if (!lock || lock.hash !== hash) { setPwError('Şifre hatalı'); return; }
+    if (lockDialog.openAfter) {
+      setUnlockedIds((prev) => [...prev, lockDialog.convId]);
+      selectConversation(lockDialog.convId);
+      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+      toast.success('Sohbet açıldı 🔓');
+    } else {
+      await removeLock(lockDialog.convId);
+      setLocks((prev) => prev.filter((l) => l.id !== lockDialog.convId));
+      setUnlockedIds((prev) => [...prev, lockDialog.convId]);
+      toast.success('Kilit kaldırıldı 🔓');
+    }
+    setLockDialog(null);
+  };
+
+
   // Open sidebar on desktop by default
   useEffect(() => {
     const checkWidth = () => {
