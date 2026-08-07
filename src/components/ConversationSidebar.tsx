@@ -190,7 +190,11 @@ const ConversationItem = ({
           if (!isEditing) onSelect();
         }}
       >
-        <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        {isLocked ? (
+          <Lock className="h-4 w-4 text-primary flex-shrink-0" />
+        ) : (
+          <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           {isEditing ? (
             <Input
@@ -204,11 +208,17 @@ const ConversationItem = ({
             />
           ) : (
             <>
-              <div className="text-sm font-medium text-foreground truncate">{conv.title}</div>
-              <div className="text-xs text-muted-foreground">{formatDate(conv.updated_at)}</div>
+              <div className="text-sm font-medium text-foreground truncate flex items-center gap-1">
+                {conv.title}
+                {isLocked && <span className="text-[10px] text-primary">🔒</span>}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {isLocked ? <span className="tracking-widest select-none">••••••••</span> : formatDate(conv.updated_at)}
+              </div>
             </>
           )}
         </div>
+
 
         {/* Actions: hover on desktop, long-press on mobile */}
         <div className={cn(
