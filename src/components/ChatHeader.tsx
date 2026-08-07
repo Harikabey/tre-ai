@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, FolderOpen, Brain, Link2, FileDown } from 'lucide-react';
+import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, FolderOpen, Brain, Link2, FileDown, Lock, LockOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslations } from '@/utils/translations';
@@ -21,6 +21,8 @@ interface ChatHeaderProps {
   memoryCount?: number;
   onToggleConnectedAccounts?: () => void;
   onExportPdf?: () => void;
+  isChatLocked?: boolean;
+  onToggleLock?: () => void;
 }
 
 export const ChatHeader = ({
@@ -36,6 +38,8 @@ export const ChatHeader = ({
   memoryCount = 0,
   onToggleConnectedAccounts,
   onExportPdf,
+  isChatLocked = false,
+  onToggleLock,
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
@@ -137,6 +141,18 @@ export const ChatHeader = ({
             title="Bağlı Hesaplar"
           >
             <Link2 className="w-4 h-4" />
+          </Button>
+        )}
+
+        {onToggleLock && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleLock}
+            className={`h-8 w-8 sm:h-9 sm:w-9 ${isChatLocked ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            title={isChatLocked ? 'Sohbet kilidi açık (kilitli)' : 'Sohbeti kilitle'}
+          >
+            {isChatLocked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
           </Button>
         )}
 
