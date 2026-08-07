@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, TouchEvent } from 'react';
-import { MessageSquare, Plus, Trash2, X, Check, Pencil } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, X, Check, Pencil, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ interface ConversationSidebarProps {
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
   onRenameConversation?: (id: string, newTitle: string) => void;
+  lockedIds?: string[];
 }
 
 const useSwipeToDelete = (onDelete: () => void, threshold = 80) => {
