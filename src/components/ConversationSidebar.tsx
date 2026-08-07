@@ -255,6 +255,7 @@ const ConversationItem = ({
 export const ConversationSidebar = ({
   conversations, currentConversationId, isOpen, onToggle,
   onSelectConversation, onNewConversation, onDeleteConversation, onRenameConversation,
+  lockedIds = [],
 }: ConversationSidebarProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const conversationToDelete = deleteId ? conversations.find(c => c.id === deleteId) : null;
