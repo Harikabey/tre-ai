@@ -15,6 +15,7 @@ import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
 import ShareTargetFeaturePreview from "./components/ShareTargetFeaturePreview";
 import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
 import WidgetPreview from "./components/WidgetPreview";
+import ScreenAnalysisTrigger from "./components/ScreenAnalysisTrigger";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ScreenAnalysisTrigger />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
