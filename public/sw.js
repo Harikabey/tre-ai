@@ -67,6 +67,24 @@ self.addEventListener("notificationclick", (event) => {
 
   notif.close();
 
+  if (action === "analyze-screen") {
+    const url = "/?screenAnalyze=1";
+    event.waitUntil((async () => {
+      const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of allClients) {
+        if ("focus" in c) {
+          await c.focus();
+          try { await c.navigate(url); } catch (e) {}
+          return;
+        }
+      }
+      return self.clients.openWindow(url);
+    })());
+    return;
+  }
+
+
+
   if (action === "reply") {
     if (replyText && replyText.trim()) {
       event.waitUntil((async () => {
