@@ -50,6 +50,7 @@ self.addEventListener("push", (event) => {
     },
     actions: [
       { action: "reply", type: "text", title: "Cevap yaz", placeholder: "Tre'ye yaz..." },
+      { action: "analyze-screen", title: "Ekranı Analiz Et" },
       { action: "open", title: "Aç" },
     ],
     requireInteraction: true,
@@ -65,6 +66,24 @@ self.addEventListener("notificationclick", (event) => {
   const replyText = event.reply; // Android Chrome inline reply text
 
   notif.close();
+
+  if (action === "analyze-screen") {
+    const url = "/?screenAnalyze=1";
+    event.waitUntil((async () => {
+      const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of allClients) {
+        if ("focus" in c) {
+          await c.focus();
+          try { await c.navigate(url); } catch (e) {}
+          return;
+        }
+      }
+      return self.clients.openWindow(url);
+    })());
+    return;
+  }
+
+
 
   if (action === "reply") {
     if (replyText && replyText.trim()) {
