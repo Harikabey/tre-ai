@@ -50,6 +50,7 @@ self.addEventListener("push", (event) => {
     },
     actions: [
       { action: "reply", type: "text", title: "Cevap yaz", placeholder: "Tre'ye yaz..." },
+      { action: "analyze-screen", title: "Ekranı Analiz Et" },
       { action: "open", title: "Aç" },
     ],
     requireInteraction: true,
