@@ -63,7 +63,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
   }
 };
 
-export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
+export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
