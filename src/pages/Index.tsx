@@ -405,18 +405,20 @@ const Index = () => {
               <ScrollArea className="h-full">
                 <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {messages.map((message) => (
-                    preferences.swipe_to_delete_enabled ? (
-                      <SwipeableMessage 
-                        key={message.id} 
-                        messageId={message.id}
-                        onDelete={() => deleteMessage(message.id)}
-                      >
-                        <ChatMessage message={message} onReact={reactToMessage} />
-                      </SwipeableMessage>
-                    ) : (
-                      <ChatMessage key={message.id} message={message} onReact={reactToMessage} />
-                    )
+                    <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
+                      {preferences.swipe_to_delete_enabled ? (
+                        <SwipeableMessage
+                          messageId={message.id}
+                          onDelete={() => deleteMessage(message.id)}
+                        >
+                          <ChatMessage message={message} onReact={reactToMessage} chatId={currentConversationId} chatTitle={conversations.find(c => c.id === currentConversationId)?.title} />
+                        </SwipeableMessage>
+                      ) : (
+                        <ChatMessage message={message} onReact={reactToMessage} chatId={currentConversationId} chatTitle={conversations.find(c => c.id === currentConversationId)?.title} />
+                      )}
+                    </div>
                   ))}
+
                   {isTyping && <TypingIndicator />}
                 </div>
               </ScrollArea>
