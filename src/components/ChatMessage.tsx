@@ -465,7 +465,34 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
               </Button>
             )}
 
+            {/* Star (favorite) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 sm:h-6 sm:w-6"
+              title={starred ? 'Yıldızı kaldır' : 'Yıldızla'}
+              onClick={async () => {
+                if (starred) {
+                  await removeStarred(message.id);
+                  setStarred(false);
+                } else {
+                  await addStarred({
+                    messageId: message.id,
+                    chatId: chatId ?? null,
+                    chatTitle,
+                    text: (displayContent || message.content).slice(0, 4000),
+                    timestamp: message.timestamp.getTime(),
+                    sender: isBot ? 'bot' : 'user',
+                  });
+                  setStarred(true);
+                }
+              }}
+            >
+              <Star className={cn('w-3 h-3', starred ? 'text-primary fill-primary' : 'text-muted-foreground/60 hover:text-foreground')} />
+            </Button>
+
             {/* Reaction popover */}
+
             {onReact && (
               <Popover>
                 <PopoverTrigger asChild>
