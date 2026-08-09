@@ -247,6 +247,34 @@ const Index = () => {
     sendMessage(sharedText);
   }, [location.state, user, sendMessage]);
 
+  // Jump to a starred message (/starred → "Sohbete git")
+  const starredNavRef = useRef<string | null>(null);
+  useEffect(() => {
+    const st = location.state as { openConversationId?: string | null; scrollToMessageId?: string } | null;
+    if (!st?.scrollToMessageId || !user) return;
+    if (starredNavRef.current === st.scrollToMessageId) return;
+    starredNavRef.current = st.scrollToMessageId;
+    if (st.openConversationId && st.openConversationId !== currentConversationId) {
+      selectConversation(st.openConversationId);
+    }
+    const target = st.scrollToMessageId;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.getElementById(`msg-${target}`);
+      if (el) {
+        clearInterval(timer);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-primary');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-primary'), 2500);
+        window.history.replaceState({}, '');
+      } else if (++tries > 40) {
+        clearInterval(timer);
+      }
+    }, 150);
+    return () => clearInterval(timer);
+  }, [location.state, user, currentConversationId, selectConversation]);
+
+
 
   // Auto-scroll to bottom
   useEffect(() => {
