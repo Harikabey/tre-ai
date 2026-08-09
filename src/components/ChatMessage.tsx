@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/types/language';
+import { addStarred, removeStarred, isStarred } from '@/lib/starredDb';
 
 interface ChatMessageProps {
   message: Message;
   onReact?: (messageId: string, emoji: string) => void;
+  chatId?: string | null;
+  chatTitle?: string;
 }
+
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
 
@@ -59,7 +63,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
   }
 };
 
-export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
+export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
@@ -67,6 +71,14 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [starred, setStarred] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    isStarred(message.id).then((v) => active && setStarred(v));
+    return () => { active = false; };
+  }, [message.id]);
+
 
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
@@ -453,7 +465,34 @@ export const ChatMessage = ({ message, onReact }: ChatMessageProps) => {
               </Button>
             )}
 
+            {/* Star (favorite) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 sm:h-6 sm:w-6"
+              title={starred ? 'Yıldızı kaldır' : 'Yıldızla'}
+              onClick={async () => {
+                if (starred) {
+                  await removeStarred(message.id);
+                  setStarred(false);
+                } else {
+                  await addStarred({
+                    messageId: message.id,
+                    chatId: chatId ?? null,
+                    chatTitle,
+                    text: (displayContent || message.content).slice(0, 4000),
+                    timestamp: message.timestamp.getTime(),
+                    sender: isBot ? 'bot' : 'user',
+                  });
+                  setStarred(true);
+                }
+              }}
+            >
+              <Star className={cn('w-3 h-3', starred ? 'text-primary fill-primary' : 'text-muted-foreground/60 hover:text-foreground')} />
+            </Button>
+
             {/* Reaction popover */}
+
             {onReact && (
               <Popover>
                 <PopoverTrigger asChild>

@@ -936,6 +936,22 @@ const Settings = () => {
             </Link>
           </Button>
 
+          {/* Yıldızlı Mesajlar */}
+          <Button
+            asChild
+            variant="outline"
+            className="w-full justify-between border-border/50 h-auto py-3"
+          >
+            <Link to="/starred">
+              <span className="flex items-center gap-2">
+                <span className="text-base leading-none">⭐</span>
+                Yıldızlı Mesajlar
+              </span>
+              <span className="text-xs text-muted-foreground">Kaydedilenler →</span>
+            </Link>
+          </Button>
+
+
           {/* Geri Bildirim */}
           <Button
             asChild
