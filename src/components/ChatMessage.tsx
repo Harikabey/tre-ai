@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/types/language';
+import { addStarred, removeStarred, isStarred } from '@/lib/starredDb';
 
 interface ChatMessageProps {
   message: Message;
   onReact?: (messageId: string, emoji: string) => void;
+  chatId?: string | null;
+  chatTitle?: string;
 }
+
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
 
