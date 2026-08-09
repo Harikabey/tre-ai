@@ -71,6 +71,14 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [starred, setStarred] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    isStarred(message.id).then((v) => active && setStarred(v));
+    return () => { active = false; };
+  }, [message.id]);
+
 
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
