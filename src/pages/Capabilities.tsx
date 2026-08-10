@@ -54,11 +54,11 @@ const GROUPS: { group: string; items: Capability[] }[] = [
   {
     group: 'Entegrasyon & Modüller',
     items: [
-      { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: 'Herhangi bir sayfada metin seçip Tre'ye sor.', to: '/extension', badge: 'Önizleme' },
-      { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: 'Başka uygulamalardan Tre'ye içerik paylaş.', to: '/share-target' },
+      { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: "Herhangi bir sayfada metin seçip Tre'ye sor.", to: '/extension', badge: 'Önizleme' },
+      { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: "Başka uygulamalardan Tre'ye içerik paylaş.", to: '/share-target' },
       { icon: Bell, title: 'Bildirimden Yanıt', desc: 'Uygulamayı açmadan bildirim üzerinden yaz.', to: '/settings' },
-      { icon: Clock, title: 'Hatırlatıcılar', desc: '"Yarın 9'da hatırlat" de, zamanında bildirsin.', to: '/settings' },
-      { icon: LayoutGrid, title: 'Ana Ekran Widget'ı', desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
+      { icon: Clock, title: 'Hatırlatıcılar', desc: "\"Yarın 9'da hatırlat\" de, zamanında bildirsin.", to: '/settings' },
+      { icon: LayoutGrid, title: "Ana Ekran Widget'ı", desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
       { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
       { icon: Mail, title: 'Google Bağlantısı', desc: 'Gmail ve Drive hesabını bağla, e-posta/dosya erişimi.', to: '/settings' },
     ],
