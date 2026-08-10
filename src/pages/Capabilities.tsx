@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Puzzle, Share2, Bell, Mic, Image as ImageIcon, Film, Brain, Search,
   FileDown, Languages, Camera, ScreenShare, FileText, Smartphone, Package,
-  Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput, LucideIcon
+  Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput,
+  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +24,9 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Code2, title: 'Kod Yazma & İç Denetim', desc: 'Kod üretir, kendi içinde test eder, sonra sunar.' },
       { icon: Search, title: 'Web Arama & Kaynaklar', desc: 'Güncel bilgi için canlı arama ve kaynak gösterimi.' },
       { icon: Brain, title: 'Hafıza', desc: 'Seni hatırlar; hafızayı görüntüleyip düzenleyebilirsin.' },
+      { icon: Smile, title: 'Emoji Reaksiyonları', desc: 'Mesajlara emoji bırak, Tre duyguya göre yanıt verir.' },
+      { icon: Heart, title: 'Duygu Analizi', desc: 'Ruh halini takip eder, gerektiğinde iyileştirme moduna geçer.' },
+      { icon: Eye, title: 'Düşünce Görünümü', desc: 'Derin düşünmede Tre\'nin adımlarını canlı izle.', to: '/settings' },
     ],
   },
   {
@@ -32,6 +36,7 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Volume2, title: '"Hey Tre" Uyandırma', desc: 'İzin verdiğinde adını duyunca uyanır.', to: '/settings' },
       { icon: Camera, title: 'Canlı Kamera Analizi', desc: 'Kameranı aç, gördüğünü yorumlasın.' },
       { icon: ScreenShare, title: 'Ekran Paylaşımı', desc: 'Ekranını paylaş, üzerinde yardım etsin.' },
+      { icon: Bell, title: 'Bildirimden Ekran Analizi', desc: 'Bildirimdeki butonla ekranı yakala, cevabı bildirim olarak al.' },
     ],
   },
   {
@@ -49,12 +54,21 @@ const GROUPS: { group: string; items: Capability[] }[] = [
   {
     group: 'Entegrasyon & Modüller',
     items: [
-      { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: 'Herhangi bir sayfada metin seçip Tre’ye sor.', to: '/extension', badge: 'Önizleme' },
-      { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: 'Başka uygulamalardan Tre’ye içerik paylaş.', to: '/share-target' },
+      { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: 'Herhangi bir sayfada metin seçip Tre'ye sor.', to: '/extension', badge: 'Önizleme' },
+      { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: 'Başka uygulamalardan Tre'ye içerik paylaş.', to: '/share-target' },
       { icon: Bell, title: 'Bildirimden Yanıt', desc: 'Uygulamayı açmadan bildirim üzerinden yaz.', to: '/settings' },
-      { icon: Clock, title: 'Hatırlatıcılar', desc: '"Yarın 9’da hatırlat" de, zamanında bildirsin.', to: '/settings' },
-      { icon: LayoutGrid, title: 'Ana Ekran Widget’ı', desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
+      { icon: Clock, title: 'Hatırlatıcılar', desc: '"Yarın 9'da hatırlat" de, zamanında bildirsin.', to: '/settings' },
+      { icon: LayoutGrid, title: 'Ana Ekran Widget'ı', desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
       { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
+      { icon: Mail, title: 'Google Bağlantısı', desc: 'Gmail ve Drive hesabını bağla, e-posta/dosya erişimi.', to: '/settings' },
+    ],
+  },
+  {
+    group: 'Kişisel & Gizlilik',
+    items: [
+      { icon: Star, title: 'Yıldızlı Mesajlar', desc: 'Önemli mesajları yıldızla, tek yerden gör.', to: '/starred' },
+      { icon: Lock, title: 'Sohbet Kilitleme', desc: 'Sohbeti şifrele, gizliliğini koru, otomatik kilit.' },
+      { icon: Palette, title: 'Arayüz Özelleştirme', desc: 'Vurgu rengi, yazı tipi, baloncuk stili, duvar kağıdı.', to: '/settings' },
     ],
   },
   {
