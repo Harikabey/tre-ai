@@ -64,7 +64,11 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
-      console.error("ElevenLabs API error:", response.status);
+      const errText = await response.text();
+      console.error("ElevenLabs API error:", response.status, errText.slice(0, 300));
+      if (response.status === 401) {
+        throw new Error("ElevenLabs API anahtarı geçersiz veya süresi dolmuş");
+      }
       throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 
