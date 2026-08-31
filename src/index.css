@@ -364,3 +364,8 @@ html[data-wallpaper="sunset"] body::before {
   pointer-events: none;
   z-index: 0;
 }
+[href*="lovable.dev"],
+[class*="lovable"] {
+  display: none !important;
+}
+
