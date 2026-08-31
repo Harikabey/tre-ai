@@ -19,6 +19,8 @@ import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
 import WidgetPreview from "./components/WidgetPreview";
 import ScreenAnalysisTrigger from "./components/ScreenAnalysisTrigger";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
+import { useShakeToClose } from "./hooks/useShakeToClose";
+
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,12 @@ const queryClient = new QueryClient();
 })();
 
 const App = () => (
+    useShakeToClose({
+    onShake: () => {
+      window.close(); // Veya ana sayfaya/kapatmaya yönlendir
+    }
+  });
+
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
