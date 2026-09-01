@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
 import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useLocalScheduler } from '@/hooks/useLocalScheduler';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
 import { Link } from 'react-router-dom';
@@ -51,6 +52,7 @@ const Settings = () => {
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
   const push = usePushNotifications();
+  const scheduler = useLocalScheduler();
   const install = useInstallPrompt();
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
@@ -887,6 +889,105 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Otomatik Bildirimler & Temizlik */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Otomatik Hatırlatma & Temizlik
+              </CardTitle>
+              <CardDescription>
+                Sabah/akşam bildirimleri, uzun sessizlik uyarısı ve eski sohbetlerin otomatik temizliği. Cihazının saatine göre çalışır.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Sabah / Akşam */}
+              <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground">Sabah / Akşam bildirimi</div>
+                    <div className="text-xs text-muted-foreground">Belirlediğin saatlerde Tre sana seslenir.</div>
+                  </div>
+                  <Switch
+                    checked={scheduler.settings.dailyEnabled}
+                    onCheckedChange={(c) => scheduler.update('dailyEnabled', c)}
+                  />
+                </div>
+                {scheduler.settings.dailyEnabled && (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Sabah saati</label>
+                        <Input
+                          type="time"
+                          value={scheduler.settings.morningTime}
+                          onChange={(e) => scheduler.update('morningTime', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Akşam saati</label>
+                        <Input
+                          type="time"
+                          value={scheduler.settings.eveningTime}
+                          onChange={(e) => scheduler.update('eveningTime', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Sabah mesajı</label>
+                      <Input
+                        value={scheduler.settings.morningText}
+                        onChange={(e) => scheduler.update('morningText', e.target.value)}
+                        placeholder="Günaydın!"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Akşam mesajı</label>
+                      <Input
+                        value={scheduler.settings.eveningText}
+                        onChange={(e) => scheduler.update('eveningText', e.target.value)}
+                        placeholder="İyi akşamlar!"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sessizlik */}
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Uzun sessizlik bildirimi</div>
+                  <div className="text-xs text-muted-foreground">2 gündür sohbet yoksa "Bir şey mi oldu?" bildirimi gelir.</div>
+                </div>
+                <Switch
+                  checked={scheduler.settings.inactivityEnabled}
+                  onCheckedChange={(c) => scheduler.update('inactivityEnabled', c)}
+                />
+              </div>
+
+              {/* Otomatik temizlik */}
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Otomatik temizlik</div>
+                  <div className="text-xs text-muted-foreground">30 gündür kullanılmayan sohbetler günlük olarak silinir. Hafıza ve ayarların korunur.</div>
+                </div>
+                <Switch
+                  checked={scheduler.settings.autoCleanEnabled}
+                  onCheckedChange={(c) => {
+                    scheduler.update('autoCleanEnabled', c);
+                    if (c) toast.info('30 günden eski sohbetler bundan sonra otomatik silinecek.');
+                  }}
+                />
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Bildirimlerin gelmesi için yukarıdaki push bildirimlerinin açık olması gerekir. Uygulama tamamen kapalıyken bildirim gecikebilir; uygulama açıldığında kontrol tekrar yapılır.
+              </p>
+            </CardContent>
+          </Card>
+
+
 
           {/* Uygulamayı Yükle (PWA) */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
