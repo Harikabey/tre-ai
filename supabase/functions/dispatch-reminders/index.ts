@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 // Cron-invoked. Finds due reminders and sends web push, then marks them sent.
@@ -13,7 +13,24 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Only the scheduler may run this privileged job.
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSecret = req.headers.get("x-cron-secret") ?? "";
+    const authHeader = req.headers.get("authorization") ?? "";
+    const bearer = authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    const authorized =
+      (!!cronSecret && providedSecret === cronSecret) ||
+      (!!serviceKey && bearer === serviceKey);
+
+    if (!authorized) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
     const admin = createClient(supabaseUrl, serviceKey);
+
 
     const { data: due, error } = await admin
       .from("reminders")
