@@ -109,27 +109,99 @@ export const useChatbot = () => {
     }
   };
 
+  // Load the latest page of messages (offline-first from IndexedDB cache, then network)
   const loadMessages = async (conversationId: string) => {
+    // 1) Instant render from compressed local cache
+    try {
+      const cached = await getCachedPage(conversationId, undefined, PAGE_SIZE);
+      if (cached.length) {
+        setMessages(cached.map(cachedToMessage));
+        setHasMoreMessages(cached.length === PAGE_SIZE);
+      }
+    } catch (e) {
+      console.warn('message cache read failed', e);
+    }
+
+    // 2) Refresh from server (last PAGE_SIZE messages)
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-    
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+
     if (!error && data) {
-      setMessages(data.map(m => ({
+      const page = [...data].reverse();
+      setMessages(page.map(m => ({
         id: m.id,
-        role: m.role === 'user' ? 'user' : 'bot',
+        role: m.role === 'user' ? 'user' as const : 'bot' as const,
         content: m.content,
         timestamp: new Date(m.created_at),
       })));
+      setHasMoreMessages(page.length === PAGE_SIZE);
+      cacheMessages(page.map(m => ({
+        id: m.id,
+        conversation_id: conversationId,
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        created_at: m.created_at,
+      }))).catch(() => {});
     }
   };
 
+  /** Infinite scroll-up: load the previous 20 messages (cache first, then server). */
+  const loadOlderMessages = useCallback(async () => {
+    const conversationId = currentConversationId;
+    if (!conversationId || isLoadingOlder || !hasMoreMessages) return;
+    const oldest = messages[0];
+    if (!oldest) return;
+    const before = oldest.timestamp.toISOString();
+
+    setIsLoadingOlder(true);
+    try {
+      let page = await getCachedPage(conversationId, before, PAGE_SIZE);
+
+      if (page.length < PAGE_SIZE) {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .lt('created_at', before)
+          .order('created_at', { ascending: false })
+          .limit(PAGE_SIZE);
+        if (data) {
+          page = [...data].reverse().map(m => ({
+            id: m.id,
+            conversation_id: conversationId,
+            role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+            content: m.content,
+            created_at: m.created_at,
+          }));
+          cacheMessages(page).catch(() => {});
+        }
+      }
+
+      if (page.length === 0) {
+        setHasMoreMessages(false);
+        return;
+      }
+      setMessages(prev => {
+        const existing = new Set(prev.map(m => m.id));
+        const older = page.filter(m => !existing.has(m.id)).map(cachedToMessage);
+        return [...older, ...prev];
+      });
+      setHasMoreMessages(page.length === PAGE_SIZE);
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [currentConversationId, isLoadingOlder, hasMoreMessages, messages]);
+
   const selectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId);
+    setHasMoreMessages(true);
     await loadMessages(conversationId);
   };
+
 
   const createNewConversation = async (): Promise<string | null> => {
     if (!user) return null;
