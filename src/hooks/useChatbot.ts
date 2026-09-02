@@ -1257,6 +1257,9 @@ export const useChatbot = () => {
 
   return {
     messages,
+    hasMoreMessages,
+    isLoadingOlder,
+    loadOlderMessages,
     conversations,
     currentConversationId,
     knowledgeBase,
