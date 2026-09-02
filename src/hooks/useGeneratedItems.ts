@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   GeneratedItem,
   GeneratedItemKind,
@@ -12,6 +13,29 @@ import {
 } from '@/lib/generatedItemsDb';
 
 export type { GeneratedItem, GeneratedItemKind };
+
+/** localStorage flag: when 'true', generated files are also synced to cloud storage. */
+export const CLOUD_FILES_KEY = 'tre_cloud_files_enabled';
+export const isCloudFilesEnabled = () => localStorage.getItem(CLOUD_FILES_KEY) === 'true';
+
+/** Best-effort upload to the private attachments bucket (only when the toggle is ON). */
+async function syncToCloud(name: string, blob: Blob) {
+  if (!isCloudFilesEnabled()) return;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) return;
+    const safe = name.replace(/[^\w.\-]/g, '_');
+    await supabase.storage
+      .from('chat-attachments')
+      .upload(`${uid}/generated/${Date.now()}-${safe}`, blob, {
+        contentType: blob.type || 'application/octet-stream',
+        upsert: false,
+      });
+  } catch (e) {
+    console.warn('cloud sync skipped:', e);
+  }
+}
 
 export const useGeneratedItems = () => {
   const [items, setItems] = useState<GeneratedItem[]>([]);
@@ -47,6 +71,7 @@ export const useGeneratedItems = () => {
       kind,
     });
     setItems((prev) => [item, ...prev]);
+    syncToCloud(params.name, params.blob);
     return item;
   }, []);
 

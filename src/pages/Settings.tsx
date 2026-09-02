@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload } from 'lucide-react';
+import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useLocalScheduler } from '@/hooks/useLocalScheduler';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
@@ -887,6 +888,37 @@ const Settings = () => {
                   )}
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Otomatik Bildirimler & Temizlik */}
+          {/* Dosya Depolama */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CloudUpload className="h-5 w-5 text-primary" />
+                Dosya Depolama
+              </CardTitle>
+              <CardDescription>
+                Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Dosyaları bulutta sakla</div>
+                  <div className="text-xs text-muted-foreground">
+                    Açık olduğunda yeni üretilen dosyalar hesabına da yedeklenir.
+                  </div>
+                </div>
+                <Switch
+                  checked={cloudFiles}
+                  onCheckedChange={(c) => {
+                    setCloudFiles(c);
+                    localStorage.setItem(CLOUD_FILES_KEY, String(c));
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
 

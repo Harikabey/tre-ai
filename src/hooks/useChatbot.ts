@@ -3,6 +3,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
+import {
+  cacheMessages,
+  getCachedPage,
+  deleteCachedMessage,
+  clearConversationCache,
+  PAGE_SIZE,
+  type PlainMessage,
+} from '@/lib/messageCacheDb';
+
+const cachedToMessage = (m: PlainMessage): Message => ({
+  id: m.id,
+  role: m.role === 'user' ? 'user' : 'bot',
+  content: m.content,
+  timestamp: new Date(m.created_at),
+});
 
 // Voice mode state shared across components
 let isVoiceModeActive = false;
@@ -54,6 +69,8 @@ export const useChatbot = () => {
   } = useUserMemory();
   
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<{provider: string; scopes: string[]; provider_email: string | null}[]>([]);
@@ -109,27 +126,116 @@ export const useChatbot = () => {
     }
   };
 
+  // Load the latest page of messages (offline-first from IndexedDB cache, then network)
   const loadMessages = async (conversationId: string) => {
+    // 1) Instant render from compressed local cache
+    try {
+      const cached = await getCachedPage(conversationId, undefined, PAGE_SIZE);
+      if (cached.length) {
+        setMessages(cached.map(cachedToMessage));
+        setHasMoreMessages(cached.length === PAGE_SIZE);
+      }
+    } catch (e) {
+      console.warn('message cache read failed', e);
+    }
+
+    // 2) Refresh from server (last PAGE_SIZE messages)
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-    
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+
     if (!error && data) {
-      setMessages(data.map(m => ({
+      const page = [...data].reverse();
+      setMessages(page.map(m => ({
         id: m.id,
-        role: m.role === 'user' ? 'user' : 'bot',
+        role: m.role === 'user' ? 'user' as const : 'bot' as const,
         content: m.content,
         timestamp: new Date(m.created_at),
       })));
+      setHasMoreMessages(page.length === PAGE_SIZE);
+      cacheMessages(page.map(m => ({
+        id: m.id,
+        conversation_id: conversationId,
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        created_at: m.created_at,
+      }))).catch(() => {});
     }
   };
 
+  /** Infinite scroll-up: load the previous 20 messages (cache first, then server). */
+  const loadOlderMessages = useCallback(async () => {
+    const conversationId = currentConversationId;
+    if (!conversationId || isLoadingOlder || !hasMoreMessages) return;
+    const oldest = messages[0];
+    if (!oldest) return;
+    const before = oldest.timestamp.toISOString();
+
+    setIsLoadingOlder(true);
+    try {
+      let page = await getCachedPage(conversationId, before, PAGE_SIZE);
+
+      if (page.length < PAGE_SIZE) {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .lt('created_at', before)
+          .order('created_at', { ascending: false })
+          .limit(PAGE_SIZE);
+        if (data) {
+          page = [...data].reverse().map(m => ({
+            id: m.id,
+            conversation_id: conversationId,
+            role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+            content: m.content,
+            created_at: m.created_at,
+          }));
+          cacheMessages(page).catch(() => {});
+        }
+      }
+
+      if (page.length === 0) {
+        setHasMoreMessages(false);
+        return;
+      }
+      setMessages(prev => {
+        const existing = new Set(prev.map(m => m.id));
+        const older = page.filter(m => !existing.has(m.id)).map(cachedToMessage);
+        return [...older, ...prev];
+      });
+      setHasMoreMessages(page.length === PAGE_SIZE);
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [currentConversationId, isLoadingOlder, hasMoreMessages, messages]);
+
+  // Keep the compressed local cache in sync with rendered messages (debounced)
+  useEffect(() => {
+    if (!currentConversationId || messages.length === 0) return;
+    const convId = currentConversationId;
+    const snapshot = messages;
+    const t = setTimeout(() => {
+      cacheMessages(snapshot.map(m => ({
+        id: m.id,
+        conversation_id: convId,
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        created_at: (m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp)).toISOString(),
+      }))).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [messages, currentConversationId]);
+
   const selectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId);
+    setHasMoreMessages(true);
     await loadMessages(conversationId);
   };
+
 
   const createNewConversation = async (): Promise<string | null> => {
     if (!user) return null;
@@ -1031,8 +1137,10 @@ export const useChatbot = () => {
         .from('messages')
         .delete()
         .eq('conversation_id', currentConversationId);
+      await clearConversationCache(currentConversationId).catch(() => {});
     }
     setMessages([]);
+    setHasMoreMessages(false);
     setPendingQuestion(null);
   }, [currentConversationId]);
 
@@ -1048,7 +1156,9 @@ export const useChatbot = () => {
       .from('conversations')
       .delete()
       .eq('id', conversationId);
-    
+
+    await clearConversationCache(conversationId).catch(() => {});
+
     setConversations(prev => prev.filter(c => c.id !== conversationId));
     
     if (currentConversationId === conversationId) {
@@ -1078,6 +1188,7 @@ export const useChatbot = () => {
       .eq('id', messageId);
     
     // Remove from local state
+    await deleteCachedMessage(messageId).catch(() => {});
     setMessages(prev => prev.filter(m => m.id !== messageId));
   }, []);
 
@@ -1146,6 +1257,9 @@ export const useChatbot = () => {
 
   return {
     messages,
+    hasMoreMessages,
+    isLoadingOlder,
+    loadOlderMessages,
     conversations,
     currentConversationId,
     knowledgeBase,

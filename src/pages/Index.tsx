@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
@@ -101,6 +101,9 @@ const Index = () => {
     clearKnowledge,
     deleteKnowledgeItem,
     selectConversation,
+    hasMoreMessages,
+    isLoadingOlder,
+    loadOlderMessages,
     createNewConversation,
     deleteConversation,
     renameConversation,
@@ -276,14 +279,34 @@ const Index = () => {
 
 
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+  // Infinite scroll-up state
+  const prependingRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
+
+  const getViewport = () =>
+    scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+
+  const handleChatScroll = useCallback(() => {
+    const el = getViewport();
+    if (!el || isLoadingOlder || !hasMoreMessages) return;
+    if (el.scrollTop < 60) {
+      prependingRef.current = true;
+      prevScrollHeightRef.current = el.scrollHeight;
+      loadOlderMessages();
     }
+  }, [isLoadingOlder, hasMoreMessages, loadOlderMessages]);
+
+  // Auto-scroll to bottom (skip while prepending older messages)
+  useEffect(() => {
+    const scrollElement = getViewport();
+    if (!scrollElement) return;
+    if (prependingRef.current) {
+      // Keep the reading position stable after older messages are prepended
+      scrollElement.scrollTop = scrollElement.scrollHeight - prevScrollHeightRef.current;
+      prependingRef.current = false;
+      return;
+    }
+    scrollElement.scrollTop = scrollElement.scrollHeight;
   }, [messages, isTyping]);
 
   // Track processed message IDs to avoid re-saving items on each render
@@ -430,8 +453,16 @@ const Index = () => {
             ) : messages.length === 0 ? (
               <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
             ) : (
-              <ScrollArea className="h-full">
+              <ScrollArea className="h-full" onScrollCapture={handleChatScroll}>
                 <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                  {isLoadingOlder && (
+                    <div className="flex justify-center py-2">
+                      <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
+                    </div>
+                  )}
+                  {!hasMoreMessages && messages.length > 20 && (
+                    <div className="text-center text-[11px] text-muted-foreground/70 py-1">Sohbetin başı</div>
+                  )}
                   {messages.map((message) => (
                     <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
                       {preferences.swipe_to_delete_enabled ? (
