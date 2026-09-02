@@ -279,14 +279,34 @@ const Index = () => {
 
 
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+  // Infinite scroll-up state
+  const prependingRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
+
+  const getViewport = () =>
+    scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+
+  const handleChatScroll = useCallback(() => {
+    const el = getViewport();
+    if (!el || isLoadingOlder || !hasMoreMessages) return;
+    if (el.scrollTop < 60) {
+      prependingRef.current = true;
+      prevScrollHeightRef.current = el.scrollHeight;
+      loadOlderMessages();
     }
+  }, [isLoadingOlder, hasMoreMessages, loadOlderMessages]);
+
+  // Auto-scroll to bottom (skip while prepending older messages)
+  useEffect(() => {
+    const scrollElement = getViewport();
+    if (!scrollElement) return;
+    if (prependingRef.current) {
+      // Keep the reading position stable after older messages are prepended
+      scrollElement.scrollTop = scrollElement.scrollHeight - prevScrollHeightRef.current;
+      prependingRef.current = false;
+      return;
+    }
+    scrollElement.scrollTop = scrollElement.scrollHeight;
   }, [messages, isTyping]);
 
   // Track processed message IDs to avoid re-saving items on each render
