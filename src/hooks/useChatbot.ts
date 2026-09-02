@@ -54,6 +54,8 @@ export const useChatbot = () => {
   } = useUserMemory();
   
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<{provider: string; scopes: string[]; provider_email: string | null}[]>([]);
