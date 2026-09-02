@@ -71,6 +71,7 @@ export const useGeneratedItems = () => {
       kind,
     });
     setItems((prev) => [item, ...prev]);
+    syncToCloud(params.name, params.blob);
     return item;
   }, []);
 
