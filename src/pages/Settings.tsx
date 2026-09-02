@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload } from 'lucide-react';
+import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useLocalScheduler } from '@/hooks/useLocalScheduler';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
