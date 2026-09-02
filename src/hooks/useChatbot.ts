@@ -3,6 +3,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
+import {
+  cacheMessages,
+  getCachedPage,
+  deleteCachedMessage,
+  clearConversationCache,
+  PAGE_SIZE,
+  type PlainMessage,
+} from '@/lib/messageCacheDb';
+
+const cachedToMessage = (m: PlainMessage): Message => ({
+  id: m.id,
+  role: m.role === 'user' ? 'user' : 'bot',
+  content: m.content,
+  timestamp: new Date(m.created_at),
+});
 
 // Voice mode state shared across components
 let isVoiceModeActive = false;
