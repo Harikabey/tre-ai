@@ -213,6 +213,23 @@ export const useChatbot = () => {
     }
   }, [currentConversationId, isLoadingOlder, hasMoreMessages, messages]);
 
+  // Keep the compressed local cache in sync with rendered messages (debounced)
+  useEffect(() => {
+    if (!currentConversationId || messages.length === 0) return;
+    const convId = currentConversationId;
+    const snapshot = messages;
+    const t = setTimeout(() => {
+      cacheMessages(snapshot.map(m => ({
+        id: m.id,
+        conversation_id: convId,
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        created_at: (m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp)).toISOString(),
+      }))).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [messages, currentConversationId]);
+
   const selectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId);
     setHasMoreMessages(true);
