@@ -1120,8 +1120,10 @@ export const useChatbot = () => {
         .from('messages')
         .delete()
         .eq('conversation_id', currentConversationId);
+      await clearConversationCache(currentConversationId).catch(() => {});
     }
     setMessages([]);
+    setHasMoreMessages(false);
     setPendingQuestion(null);
   }, [currentConversationId]);
 
@@ -1137,7 +1139,9 @@ export const useChatbot = () => {
       .from('conversations')
       .delete()
       .eq('id', conversationId);
-    
+
+    await clearConversationCache(conversationId).catch(() => {});
+
     setConversations(prev => prev.filter(c => c.id !== conversationId));
     
     if (currentConversationId === conversationId) {
