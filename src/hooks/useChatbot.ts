@@ -1167,6 +1167,7 @@ export const useChatbot = () => {
       .eq('id', messageId);
     
     // Remove from local state
+    await deleteCachedMessage(messageId).catch(() => {});
     setMessages(prev => prev.filter(m => m.id !== messageId));
   }, []);
 
