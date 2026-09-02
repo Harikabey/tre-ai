@@ -453,8 +453,16 @@ const Index = () => {
             ) : messages.length === 0 ? (
               <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
             ) : (
-              <ScrollArea className="h-full">
+              <ScrollArea className="h-full" onScrollCapture={handleChatScroll}>
                 <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                  {isLoadingOlder && (
+                    <div className="flex justify-center py-2">
+                      <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
+                    </div>
+                  )}
+                  {!hasMoreMessages && messages.length > 20 && (
+                    <div className="text-center text-[11px] text-muted-foreground/70 py-1">Sohbetin başı</div>
+                  )}
                   {messages.map((message) => (
                     <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
                       {preferences.swipe_to_delete_enabled ? (
