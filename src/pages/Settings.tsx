@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload } from 'lucide-react';
+import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
+import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useLocalScheduler } from '@/hooks/useLocalScheduler';
@@ -66,6 +67,39 @@ const Settings = () => {
   const [showThinking, setShowThinking] = useState(
     () => localStorage.getItem('ai_chatbot_show_thinking') === 'true'
   );
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
+
+  const handleExport = async () => {
+    if (getCooldownRemainingMs() > 0) return;
+    setExporting(true);
+    try {
+      const payload = await exportAllData();
+      await shareOrDownloadExport(payload);
+      markExported();
+      setCooldownMs(getCooldownRemainingMs());
+      toast.success('Yedek dosyası oluşturuldu.');
+    } catch (e) {
+      toast.error('Dışa aktarma başarısız: ' + (e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const payload = parseExportFile(text);
+      await importAllData(payload);
+      toast.success('Veriler içe aktarıldı. Sayfa yenileniyor…');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+      toast.error('İçe aktarma başarısız: ' + (e as Error).message);
+      setImporting(false);
+    }
+  };
 
   const handleShowThinkingChange = (enabled: boolean) => {
     setShowThinking(enabled);
@@ -919,6 +953,70 @@ const Settings = () => {
                     localStorage.setItem(CLOUD_FILES_KEY, String(c));
                   }}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Veri Yedekleme (Dışa / İçe Aktar) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DatabaseBackup className="h-5 w-5 text-primary" />
+                Veri Yedekleme
+              </CardTitle>
+              <CardDescription>
+                Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  onClick={handleExport}
+                  disabled={exporting || cooldownMs > 0}
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {cooldownMs > 0
+                    ? `Tekrar dışa aktarmak için bekle: ${Math.ceil(cooldownMs / 3600000)} saat`
+                    : 'Tüm Verileri Dışa Aktar (JSON)'}
+                </Button>
+                {cooldownMs > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  disabled={importing}
+                  onClick={() => document.getElementById('tre-import-input')?.click()}
+                >
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Yedekten İçe Aktar
+                </Button>
+                <input
+                  id="tre-import-input"
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleImportFile(f);
+                    e.target.value = '';
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.
+                </p>
               </div>
             </CardContent>
           </Card>
