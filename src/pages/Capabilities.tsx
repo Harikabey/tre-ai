@@ -3,7 +3,8 @@ import {
   ArrowLeft, Puzzle, Share2, Bell, Mic, Image as ImageIcon, Film, Brain, Search,
   FileDown, Languages, Camera, ScreenShare, FileText, Smartphone, Package,
   Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput,
-  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon
+  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon,
+  ArrowUpDown, Minimize2, Cloud, DatabaseBackup, Sunrise, Moon, Eraser
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,6 +28,8 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Smile, title: 'Emoji Reaksiyonları', desc: 'Mesajlara emoji bırak, Tre duyguya göre yanıt verir.' },
       { icon: Heart, title: 'Duygu Analizi', desc: 'Ruh halini takip eder, gerektiğinde iyileştirme moduna geçer.' },
       { icon: Eye, title: 'Düşünce Görünümü', desc: 'Derin düşünmede Tre\'nin adımlarını canlı izle.', to: '/settings' },
+      { icon: ArrowUpDown, title: 'Sonsuz Kaydırma', desc: 'Eski mesajları yukarı kaydırarak 20\'şerli yükler.' },
+      { icon: Minimize2, title: 'Sıkıştırılmış Hafıza', desc: 'Mesajlar LZString ile sıkıştırılıp IndexedDB\'de saklanır.' },
     ],
   },
   {
@@ -61,6 +64,8 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: LayoutGrid, title: "Ana Ekran Widget'ı", desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
       { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
       { icon: Mail, title: 'Google Bağlantısı', desc: 'Gmail ve Drive hesabını bağla, e-posta/dosya erişimi.', to: '/settings' },
+      { icon: Sunrise, title: 'Günaydın / İyi Akşamlar', desc: 'Ayarladığın saatte günlük bildirim al; tıklayınca sohbet açılır.', to: '/settings' },
+      { icon: Moon, title: 'Hareketsizlik Bildirimi', desc: '2 gün mesajlaşmazsan "Bir şey mi oldu?" hatırlatması al.', to: '/settings' },
     ],
   },
   {
@@ -69,6 +74,9 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Star, title: 'Yıldızlı Mesajlar', desc: 'Önemli mesajları yıldızla, tek yerden gör.', to: '/starred' },
       { icon: Lock, title: 'Sohbet Kilitleme', desc: 'Sohbeti şifrele, gizliliğini koru, otomatik kilit.' },
       { icon: Palette, title: 'Arayüz Özelleştirme', desc: 'Vurgu rengi, yazı tipi, baloncuk stili, duvar kağıdı.', to: '/settings' },
+      { icon: Cloud, title: 'Bulut Senkronizasyonu', desc: 'İstersen üretilen dosyaları Lovable Cloud\'a yedekle.', to: '/settings' },
+      { icon: DatabaseBackup, title: 'Veri Yedekleme / İçe Aktarma', desc: 'Tüm yerel verileri JSON olarak dışa aktar ve geri yükle.', to: '/settings' },
+      { icon: Eraser, title: 'Otomatik Temizlik', desc: '30 gün hareketsiz sohbeti otomatik sil; tercihler ve hafıza kalır.', to: '/settings' },
     ],
   },
   {
