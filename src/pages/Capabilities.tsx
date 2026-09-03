@@ -72,6 +72,9 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Star, title: 'Yıldızlı Mesajlar', desc: 'Önemli mesajları yıldızla, tek yerden gör.', to: '/starred' },
       { icon: Lock, title: 'Sohbet Kilitleme', desc: 'Sohbeti şifrele, gizliliğini koru, otomatik kilit.' },
       { icon: Palette, title: 'Arayüz Özelleştirme', desc: 'Vurgu rengi, yazı tipi, baloncuk stili, duvar kağıdı.', to: '/settings' },
+      { icon: Cloud, title: 'Bulut Senkronizasyonu', desc: 'İstersen üretilen dosyaları Lovable Cloud\'a yedekle.', to: '/settings' },
+      { icon: DatabaseBackup, title: 'Veri Yedekleme / İçe Aktarma', desc: 'Tüm yerel verileri JSON olarak dışa aktar ve geri yükle.', to: '/settings' },
+      { icon: Eraser, title: 'Otomatik Temizlik', desc: '30 gün hareketsiz sohbeti otomatik sil; tercihler ve hafıza kalır.', to: '/settings' },
     ],
   },
   {
