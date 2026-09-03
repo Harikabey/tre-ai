@@ -64,6 +64,8 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: LayoutGrid, title: "Ana Ekran Widget'ı", desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
       { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
       { icon: Mail, title: 'Google Bağlantısı', desc: 'Gmail ve Drive hesabını bağla, e-posta/dosya erişimi.', to: '/settings' },
+      { icon: Sunrise, title: 'Günaydın / İyi Akşamlar', desc: 'Ayarladığın saatte günlük bildirim al; tıklayınca sohbet açılır.', to: '/settings' },
+      { icon: Moon, title: 'Hareketsizlik Bildirimi', desc: '2 gün mesajlaşmazsan "Bir şey mi oldu?" hatırlatması al.', to: '/settings' },
     ],
   },
   {
