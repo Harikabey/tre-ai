@@ -3,7 +3,8 @@ import {
   ArrowLeft, Puzzle, Share2, Bell, Mic, Image as ImageIcon, Film, Brain, Search,
   FileDown, Languages, Camera, ScreenShare, FileText, Smartphone, Package,
   Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput,
-  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon
+  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon,
+  ArrowUpDown, Minimize2, Cloud, DatabaseBackup, Sunrise, Moon, Eraser
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
