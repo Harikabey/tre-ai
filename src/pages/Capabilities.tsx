@@ -28,6 +28,8 @@ const GROUPS: { group: string; items: Capability[] }[] = [
       { icon: Smile, title: 'Emoji Reaksiyonları', desc: 'Mesajlara emoji bırak, Tre duyguya göre yanıt verir.' },
       { icon: Heart, title: 'Duygu Analizi', desc: 'Ruh halini takip eder, gerektiğinde iyileştirme moduna geçer.' },
       { icon: Eye, title: 'Düşünce Görünümü', desc: 'Derin düşünmede Tre\'nin adımlarını canlı izle.', to: '/settings' },
+      { icon: ArrowUpDown, title: 'Sonsuz Kaydırma', desc: 'Eski mesajları yukarı kaydırarak 20\'şerli yükler.' },
+      { icon: Minimize2, title: 'Sıkıştırılmış Hafıza', desc: 'Mesajlar LZString ile sıkıştırılıp IndexedDB\'de saklanır.' },
     ],
   },
   {
