@@ -957,6 +957,70 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Veri Yedekleme (Dışa / İçe Aktar) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DatabaseBackup className="h-5 w-5 text-primary" />
+                Veri Yedekleme
+              </CardTitle>
+              <CardDescription>
+                Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  onClick={handleExport}
+                  disabled={exporting || cooldownMs > 0}
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {cooldownMs > 0
+                    ? `Tekrar dışa aktarmak için bekle: ${Math.ceil(cooldownMs / 3600000)} saat`
+                    : 'Tüm Verileri Dışa Aktar (JSON)'}
+                </Button>
+                {cooldownMs > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  disabled={importing}
+                  onClick={() => document.getElementById('tre-import-input')?.click()}
+                >
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Yedekten İçe Aktar
+                </Button>
+                <input
+                  id="tre-import-input"
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleImportFile(f);
+                    e.target.value = '';
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Otomatik Bildirimler & Temizlik */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
