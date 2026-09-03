@@ -67,6 +67,39 @@ const Settings = () => {
   const [showThinking, setShowThinking] = useState(
     () => localStorage.getItem('ai_chatbot_show_thinking') === 'true'
   );
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
+
+  const handleExport = async () => {
+    if (getCooldownRemainingMs() > 0) return;
+    setExporting(true);
+    try {
+      const payload = await exportAllData();
+      await shareOrDownloadExport(payload);
+      markExported();
+      setCooldownMs(getCooldownRemainingMs());
+      toast.success('Yedek dosyası oluşturuldu.');
+    } catch (e) {
+      toast.error('Dışa aktarma başarısız: ' + (e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const payload = parseExportFile(text);
+      await importAllData(payload);
+      toast.success('Veriler içe aktarıldı. Sayfa yenileniyor…');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+      toast.error('İçe aktarma başarısız: ' + (e as Error).message);
+      setImporting(false);
+    }
+  };
 
   const handleShowThinkingChange = (enabled: boolean) => {
     setShowThinking(enabled);
