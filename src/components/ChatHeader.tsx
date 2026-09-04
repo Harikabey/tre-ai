@@ -188,12 +188,13 @@ export const ChatHeader = ({
           <Trash2 className="w-4 h-4" />
         </Button>
         
-        {/* Panel toggle - hidden on mobile */}
+        {/* Panel toggle - Bilgi Tabanı */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onTogglePanel}
-          className={`hidden lg:flex h-8 w-8 sm:h-9 sm:w-9 ${isPanelOpen ? 'bg-primary/20 border-primary/30' : ''}`}
+          className={`h-8 w-8 sm:h-9 sm:w-9 ${isPanelOpen ? 'bg-primary/20 border-primary/30' : ''}`}
+          title="Bilgi Tabanı"
         >
           <PanelRight className="w-4 h-4" />
         </Button>

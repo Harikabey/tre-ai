@@ -497,10 +497,12 @@ const Index = () => {
           />
         </div>
         
-        {/* Knowledge Panel - Hidden on mobile */}
+        {/* Knowledge Panel - Responsive slide-in on mobile */}
         <div
-          className={`hidden lg:block transition-all duration-300 overflow-hidden ${
-            isPanelOpen ? 'w-80' : 'w-0'
+          className={`fixed inset-y-0 right-0 z-50 lg:static lg:z-auto transition-all duration-300 overflow-hidden border-l border-border/50 bg-card/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:border-l-0 w-80 ${
+            isPanelOpen
+              ? 'translate-x-0 lg:w-80'
+              : 'translate-x-full lg:translate-x-0 lg:w-0 pointer-events-none lg:pointer-events-auto'
           }`}
         >
           <KnowledgePanel
