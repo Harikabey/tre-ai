@@ -509,6 +509,7 @@ const Index = () => {
             knowledgeBase={knowledgeBase}
             onDelete={deleteKnowledgeItem}
             onClear={clearKnowledge}
+            onClose={() => setIsPanelOpen(false)}
           />
         </div>
       </div>
