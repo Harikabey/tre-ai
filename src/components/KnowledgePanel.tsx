@@ -1,15 +1,16 @@
 import { KnowledgeItem } from '@/types/chatbot';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Brain, Trash2, MessageSquare, Zap } from 'lucide-react';
+import { Brain, Trash2, MessageSquare, Zap, X } from 'lucide-react';
 
 interface KnowledgePanelProps {
   knowledgeBase: KnowledgeItem[];
   onDelete: (id: string) => void;
   onClear: () => void;
+  onClose?: () => void;
 }
 
-export const KnowledgePanel = ({ knowledgeBase, onDelete, onClear }: KnowledgePanelProps) => {
+export const KnowledgePanel = ({ knowledgeBase, onDelete, onClear, onClose }: KnowledgePanelProps) => {
   return (
     <div className="h-full flex flex-col bg-card/30 border-l border-border/50">
       <div className="p-4 border-b border-border/50">
@@ -18,9 +19,22 @@ export const KnowledgePanel = ({ knowledgeBase, onDelete, onClear }: KnowledgePa
             <Brain className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">Bilgi Tabanı</h2>
           </div>
-          <span className="px-2 py-1 text-xs bg-primary/20 text-primary rounded-full">
-            {knowledgeBase.length} kayıt
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 text-xs bg-primary/20 text-primary rounded-full">
+              {knowledgeBase.length} kayıt
+            </span>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="h-7 w-7 text-muted-foreground hover:text-foreground -mr-2"
+                aria-label="Bilgi Tabanını kapat"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       
