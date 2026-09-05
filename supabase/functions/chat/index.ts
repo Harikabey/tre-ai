@@ -97,12 +97,12 @@ serve(async (req) => {
     // Fall back to OpenRouter only if Lovable key is missing.
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
+    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
     if (!apiKey) throw new Error("API key is not configured");
 
-    const apiUrl = LOVABLE_API_KEY
-      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-      : "https://openrouter.ai/api/v1/chat/completions";
+    const apiUrl = OPENROUTER_API_KEY
+      ? "https://openrouter.ai/api/v1/chat/completions"
+      : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
@@ -168,7 +168,7 @@ TABLO OLUŞTURMA (GFM Markdown Table - GUI olarak render edilir):
 | Boyut | Orta | 50 |
 
 - Karmaşık verileri tablo ile sun; uygun durumlarda proaktif olarak tablo kullan
-- Hücre içinde **kalın**, *italik*, `kod` ve [link](url) kullanabilirsin
+- Hücre içinde **kalın**, *italik*, kod ve [link](url) kullanabilirsin
 
 KOD YAZMA STANDARTLARI (ZORUNLU - SENIOR DEVELOPER SEVİYESİ):
 Sen deneyimli bir senior software engineer'sın. Kod ürettiğinde aşağıdaki kurallara KESİNLİKLE uy:
@@ -509,11 +509,11 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
     });
 
     // Fallback: if Lovable gateway fails, try OpenRouter as backup
-    if (!response.ok && LOVABLE_API_KEY && OPENROUTER_API_KEY) {
-      console.warn("Lovable gateway failed with", response.status, "- falling back to OpenRouter");
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
+      console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
     }

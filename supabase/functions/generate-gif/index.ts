@@ -99,23 +99,22 @@ serve(async (req) => {
         model: "google/gemini-3.1-flash-image-preview",
         messages,
         modalities: ["image", "text"],
-        max_tokens: 8192,
       });
 
       // Try Lovable gateway first (more reliable), then OpenRouter
       const attempts = [];
-      if (LOVABLE_API_KEY) {
-        attempts.push({
-          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
-          key: LOVABLE_API_KEY,
-          name: "Lovable",
-        });
-      }
       if (OPENROUTER_API_KEY) {
         attempts.push({
           url: "https://openrouter.ai/api/v1/chat/completions",
           key: OPENROUTER_API_KEY,
           name: "OpenRouter",
+        });
+      }
+      if (LOVABLE_API_KEY) {
+        attempts.push({
+          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+          key: LOVABLE_API_KEY,
+          name: "Lovable",
         });
       }
 

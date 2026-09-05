@@ -70,11 +70,11 @@ Renkler konuyla uyumlu olsun (finans=mavi/yeşil, sağlık=teal, teknoloji=koyu+
 Bullet sayısı slayt başına 3-6 arası, her bullet en fazla 12 kelime.
 İçerik Türkçe olsun (kullanıcı başka dil belirtmediyse).`;
 
-  const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
-  const apiUrl = LOVABLE_API_KEY
-    ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-    : "https://openrouter.ai/api/v1/chat/completions";
-  const model = LOVABLE_API_KEY ? "google/gemini-2.5-flash" : "google/gemini-2.5-flash";
+  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+  const apiUrl = OPENROUTER_API_KEY
+    ? "https://openrouter.ai/api/v1/chat/completions"
+    : "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const model = "google/gemini-2.5-flash";
 
   const res = await fetch(apiUrl, {
     method: "POST",
