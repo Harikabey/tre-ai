@@ -37,18 +37,18 @@ async function callAi(prompt: string): Promise<AiSite> {
   });
 
   let res: Response | null = null;
-  if (LOVABLE_API_KEY) {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  if (OPENROUTER_API_KEY) {
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
       body,
     });
     if (!res.ok) res = null;
   }
-  if (!res && OPENROUTER_API_KEY) {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  if (!res && LOVABLE_API_KEY) {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body,
     });
   }
@@ -78,18 +78,18 @@ async function generateIconPng(prompt: string): Promise<Uint8Array> {
     modalities: ["image", "text"],
   });
   let res: Response | null = null;
-  if (LOVABLE_API_KEY) {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  if (OPENROUTER_API_KEY) {
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
       body,
     });
     if (!res.ok) res = null;
   }
-  if (!res && OPENROUTER_API_KEY) {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  if (!res && LOVABLE_API_KEY) {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body,
     });
   }

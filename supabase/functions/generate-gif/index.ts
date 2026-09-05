@@ -103,18 +103,18 @@ serve(async (req) => {
 
       // Try Lovable gateway first (more reliable), then OpenRouter
       const attempts = [];
-      if (LOVABLE_API_KEY) {
-        attempts.push({
-          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
-          key: LOVABLE_API_KEY,
-          name: "Lovable",
-        });
-      }
       if (OPENROUTER_API_KEY) {
         attempts.push({
           url: "https://openrouter.ai/api/v1/chat/completions",
           key: OPENROUTER_API_KEY,
           name: "OpenRouter",
+        });
+      }
+      if (LOVABLE_API_KEY) {
+        attempts.push({
+          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+          key: LOVABLE_API_KEY,
+          name: "Lovable",
         });
       }
 

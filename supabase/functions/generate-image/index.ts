@@ -60,29 +60,29 @@ serve(async (req) => {
 
     let response: Response | null = null;
 
-    // Try Lovable gateway first (more reliable), then OpenRouter
-    if (LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("Lovable gateway error:", response.status, errText.slice(0, 200));
-        response = null;
-      }
-    }
-
-    // Fallback to OpenRouter
-    if (!response && OPENROUTER_API_KEY) {
+    // Try OpenRouter first (primary), then Lovable gateway
+    if (OPENROUTER_API_KEY) {
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
         body: requestBody,
       });
       if (!response.ok) {
-        console.error("OpenRouter error:", response.status, "- both gateways failed");
+        const errText = await response.text();
+        console.error("OpenRouter error:", response.status, errText.slice(0, 200));
+        response = null;
+      }
+    }
+
+    // Fallback to Lovable gateway
+    if (!response && LOVABLE_API_KEY) {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: requestBody,
+      });
+      if (!response.ok) {
+        console.error("Lovable gateway error:", response.status, "- both gateways failed");
         response = null;
       }
     }
