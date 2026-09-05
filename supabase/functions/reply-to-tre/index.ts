@@ -10,13 +10,13 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
 async function generateReply(history: Array<{ role: string; content: string }>): Promise<string> {
-  const apiKey = LOVABLE_API_KEY || OPENROUTER_API_KEY;
+  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
   if (!apiKey) return "Şu an cevap üretemiyorum (API anahtarı eksik).";
 
-  const endpoint = LOVABLE_API_KEY
-    ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-    : "https://openrouter.ai/api/v1/chat/completions";
-  const model = LOVABLE_API_KEY ? "google/gemini-2.5-flash" : "google/gemini-2.5-flash";
+  const endpoint = OPENROUTER_API_KEY
+    ? "https://openrouter.ai/api/v1/chat/completions"
+    : "https://ai.gateway.lovable.dev/v1/chat/completions";
+  const model = "google/gemini-2.5-flash";
 
   const messages = [
     {
@@ -33,7 +33,7 @@ async function generateReply(history: Array<{ role: string; content: string }>):
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages, max_tokens: 300 }),
+    body: JSON.stringify({ model, messages }),
   });
   if (!res.ok) {
     const t = await res.text();
