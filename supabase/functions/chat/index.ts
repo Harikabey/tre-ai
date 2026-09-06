@@ -124,11 +124,13 @@ serve(async (req) => {
       codeKeywords.some(k => lastUserText.includes(k));
 
     // Code → strongest reasoning model. Deep mode → Gemini Pro. Otherwise → fast flash-lite.
-    const model = looksLikeCode
+    // OpenRouter calls use the ":free" variants to avoid 402 credit errors; Lovable gateway keeps plain ids.
+    const baseModel = looksLikeCode
       ? "openai/gpt-5.2"
       : safeThinkingMode === "deep"
         ? "google/gemini-2.5-pro"
         : "google/gemini-2.5-flash-lite";
+    const model = OPENROUTER_API_KEY ? `${baseModel}:free` : baseModel;
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
 

@@ -41,7 +41,7 @@ async function callAi(prompt: string): Promise<AiSite> {
     res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body,
+      body: body.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
     });
     if (!res.ok) res = null;
   }
@@ -82,7 +82,7 @@ async function generateIconPng(prompt: string): Promise<Uint8Array> {
     res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body,
+      body: body.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
     });
     if (!res.ok) res = null;
   }
