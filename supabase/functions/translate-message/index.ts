@@ -56,7 +56,7 @@ serve(async (req) => {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: requestBody,
+        body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
       });
 
       if (!response.ok) {
