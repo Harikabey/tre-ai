@@ -508,13 +508,18 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
       body: JSON.stringify(requestBody),
     });
 
-    // Fallback: if Lovable gateway fails, try OpenRouter as backup
+    // Fallback: if OpenRouter fails (e.g. no credits), try Lovable gateway with a supported model
     if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
       console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
+      const lovableModel = looksLikeCode || safeThinkingMode === "deep"
+        ? "google/gemini-2.5-pro"
+        : "google/gemini-2.5-flash";
+      const lovableBody: Record<string, unknown> = { ...requestBody, model: lovableModel };
+      delete lovableBody.reasoning;
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(lovableBody),
       });
     }
 
