@@ -16,7 +16,7 @@ async function generateReply(history: Array<{ role: string; content: string }>):
   const endpoint = OPENROUTER_API_KEY
     ? "https://openrouter.ai/api/v1/chat/completions"
     : "https://ai.gateway.lovable.dev/v1/chat/completions";
-  const model = "google/gemini-2.5-flash";
+  const model = OPENROUTER_API_KEY ? "google/gemini-2.5-flash:free" : "google/gemini-2.5-flash";
 
   const messages = [
     {

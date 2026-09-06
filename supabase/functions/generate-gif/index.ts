@@ -126,7 +126,9 @@ serve(async (req) => {
               Authorization: `Bearer ${attempt.key}`,
               "Content-Type": "application/json",
             },
-            body: requestBody,
+            body: attempt.name === "OpenRouter"
+              ? requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"')
+              : requestBody,
           });
 
           if (!response.ok) {

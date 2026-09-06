@@ -120,7 +120,7 @@ SADECE JSON döndür.`,
     response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody,
+      body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
     });
     if (!response.ok) {
       console.error("OpenRouter mood error:", response.status, "- falling back");
@@ -193,7 +193,7 @@ Eğer önemli bilgi yoksa boş array döndür.`,
     response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody,
+      body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
     });
     if (!response.ok) {
       console.error("OpenRouter memory error:", response.status, "- falling back");
