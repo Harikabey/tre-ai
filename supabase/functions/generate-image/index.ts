@@ -43,55 +43,33 @@ serve(async (req) => {
       });
     }
 
-    // --- API Setup with fallback ---
+    // --- Free-only policy ---
+    // OpenRouter currently serves no free model that can OUTPUT images,
+    // so image generation is disabled while the app runs in free-only mode.
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY yapılandırılmamış.");
 
     const requestBody = JSON.stringify({
-      model: "google/gemini-3.1-flash-image-preview",
+      model: "image-generation",
       messages: [{
         role: "user",
         content: `Generate ONE high-quality image. Visually depict this request: ${prompt}. If the request is abstract, create a symbolic/illustrative scene. Do not refuse; always produce an image.`,
       }],
       modalities: ["image", "text"],
     });
+    void requestBody;
 
-    let response: Response | null = null;
+    return new Response(
+      JSON.stringify({ error: "Görsel üretimi şu anda ücretsiz modelde kullanılamıyor." }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
 
-    // Try OpenRouter first (primary), then Lovable gateway
-    if (OPENROUTER_API_KEY) {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
-      });
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("OpenRouter error:", response.status, errText.slice(0, 200));
-        response = null;
-      }
-    }
-
-    // Fallback to Lovable gateway
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-      if (!response.ok) {
-        console.error("Lovable gateway error:", response.status, "- both gateways failed");
-        response = null;
-      }
-    }
-
-
-    if (!response || !response.ok) {
-      console.error("AI gateway error:", response?.status);
+    // deno-lint-ignore no-unreachable
+    const response: Response | null = null;
+    if (!response) {
       throw new Error("Görsel oluşturulamadı");
     }
+
 
     const data = await response.json();
     const images = data.choices?.[0]?.message?.images;
