@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,19 @@ serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     const { text, targetLanguage } = await req.json();
     if (!text || typeof text !== "string" || text.length > 10000) {
