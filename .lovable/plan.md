@@ -1,38 +1,24 @@
-# Plan: Tre'nin Yetenek Farkındalığı + Sözleşme Güncellemesi
+# Sadece Ücretsiz Model Kullanımı
 
-## 1. Tre'nin tüm yeteneklerini bilmesi
+Amaç: Tre'nin tüm yapay zekâ çağrıları ücretsiz sürümlerle çalışsın, ücretli kullanım kazara devreye girmesin.
 
-`supabase/functions/chat/index.ts` içindeki sistem prompt'una **"Yetenekler Kataloğu"** bloğu ekle. Tre, kendisine "neler yapabilirsin?" diye sorulduğunda ya da uygun bağlamda özelliklerini net biçimde tanıtabilecek.
+## Şu anki durum
 
-Kataloğa dahil edilecekler (koddaki mevcut özelliklerden derlenmiştir):
-- Sohbet: 6 kişilik (Arkadaş, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna)
-- Düşünme modları: Hızlı / Derin (Gemini 2.5 Pro)
-- Görsel üretme, GIF üretme, görsel analiz, canlı kamera analizi, ekran paylaşımı analizi
-- Belge okuma (PDF/70+ format), web arama + kaynak gösterme, çeviri (114 dil)
-- Sesli sohbet (STT/TTS), fullscreen /voice-chat, wake word "Hey Tre"
-- Hatırlatıcılar (bildirim ile), push bildirim üzerinden yanıtlama
-- Google (Gmail/Drive) bağlantısı, kullanıcı hafızası, duygu analizi ve iyileştirme modu
-- Dosya üretme (APK, ISO, PPTX, ses), **sohbeti PDF olarak dışa aktarma**
-- Erişilebilirlik ayarları, tema, çoklu dil UI
+- 11 serviste OpenRouter çağrıları zaten modelin ":free" (ücretsiz) sürümünü kullanıyor: sohbet, web arama, belge okuma, görsel analizi, ruh hali analizi, görsel üretimi, GIF, PWA site, sunum, çeviri, bildirimden yanıt.
+- Ancak ücretsiz çağrı başarısız olursa (hata veya limit), servisler otomatik olarak ücretli yedek sağlayıcıya düşüyor. Yani ücretsiz istemenize rağmen bazı durumlarda ücretli kullanım oluşabiliyor.
 
-Kurallar:
-- Katalog Türkçe, kısa maddeler; her özellik tek satır.
-- "Neler yapabilirsin?" sorusunda özet + kategorize liste sun; başka sorularda gereksiz reklam yapma.
-- Kullanıcı bir işi isteyince önce ilgili yeteneğin nasıl tetikleneceğini kısaca söyle (ör. "Ayarlar > Bildirimler'i aç").
+## Yapılacaklar
 
-## 2. Kullanım Sözleşmesi güncellemesi
+1. Ücretsiz-öncelik kuralını tüm servislerde tek tip hale getirmek: her yapay zekâ çağrısı önce ücretsiz sürümü dener.
+2. Ücretli yedeğe otomatik geçişi kapatmak. Ücretsiz sürüm yanıt vermezse kullanıcıya anlaşılır bir mesaj gösterilir ("Ücretsiz model şu anda meşgul, birazdan tekrar deneyin") ve ücretli çağrı yapılmaz.
+3. Ücretsiz sürümü olmayan modellerin, ücretsiz karşılığı olan bir modele yönlendirilmesi (örneğin ağır düşünme modu için ücretsiz bir muadil).
+4. Ayarlar tarafında ek bir seçenek eklenmez; davranış varsayılan olarak "yalnızca ücretsiz" olur.
 
-`src/components/TermsOfServiceDialog.tsx`:
-- "Son güncelleme" tarihini **7 Temmuz 2026** yap.
-- **Madde 2 (Hizmet Tanımı)** metnini genişlet: yukarıdaki tüm yetenekleri özetleyen bir cümle listesi.
-- Yeni maddeler ekle:
-  - **17. Bildirimler ve Hatırlatıcılar** — push izni, hatırlatıcı kurma, cihaz aboneliğinin iptali.
-  - **18. Sesli Etkileşim ve Uyandırma Sözcüğü** — mikrofon izni, "Hey Tre" wake word yalnızca kullanıcı ayardan etkinleştirdiğinde çalışır, ses lokal işlenir.
-  - **19. Canlı Kamera ve Ekran Paylaşımı** — yalnızca kullanıcı başlatınca, akış kaydedilmez, sadece analiz için kare işlenir.
-  - **20. Dosya Üretimi ve Dışa Aktarma** — üretilen APK/ISO/PPTX/PDF içeriğinin sorumluluğu kullanıcıda; PDF dışa aktarımı istemcide oluşturulur.
-- Mevcut madde numaralarını koru; yeni maddeler sona eklenir.
+## Teknik detaylar
 
-## Teknik Notlar
-- Sadece iki dosya değişecek: `supabase/functions/chat/index.ts` (system prompt katalog bloğu), `src/components/TermsOfServiceDialog.tsx` (metin).
-- Chat fonksiyonundaki mevcut kişilik/tarih enjeksiyon akışı korunur; katalog ondan önce sabit blok olarak eklenir.
-- Sözleşme UI/tasarımı aynı kalır, yalnızca içerik güncellenir.
+- Etkilenen edge fonksiyonları: `chat`, `web-search`, `read-document`, `analyze-image`, `analyze-mood`, `generate-image`, `generate-gif`, `generate-pwa-site`, `generate-pptx`, `translate-message`, `reply-to-tre`.
+- Model kimliği dönüşümü tek bir ortak yardımcıya (`_shared/model.ts`) taşınır: `toFreeModel(id)` — zaten `:free` ile bitmiyorsa ekler.
+- Lovable AI Gateway fallback blokları kaldırılır ya da yalnızca `LOVABLE_ONLY` gibi açık bir bayrak varsa çalışacak şekilde kapatılır; varsayılan kapalı.
+- Ücretsiz çağrı 402/429/5xx dönerse: kısa bekleme ile en fazla 2 deneme, sonra kullanıcıya Türkçe hata mesajı (ücretli çağrı yok).
+- Görsel/GIF üretimi için ücretsiz sürümü bulunmayan model kullanılıyorsa, OpenRouter model listesinden ücretsiz bir görsel modeli seçilir; bulunamazsa özellik kullanıcıya "şu anda ücretsiz modelde kullanılamıyor" diye bildirilir.
+- Değişiklik sonrası tüm etkilenen fonksiyonlar yeniden yayınlanır ve sohbet ile çeviri uçtan uca test edilir.
