@@ -24,7 +24,7 @@ let isVoiceModeActive = false;
 export const setVoiceMode = (active: boolean) => { isVoiceModeActive = active; };
 export const getVoiceMode = () => isVoiceModeActive;
 
-const CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
