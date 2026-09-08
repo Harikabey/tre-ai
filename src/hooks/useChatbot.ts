@@ -338,20 +338,25 @@ export const useChatbot = () => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
-   const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-    "HTTP-Referer": window.location.origin,
-  },
-  body: JSON.stringify({
-    model: "openrouter/free",
-    messages: newHistory,
-    // Aşağıdaki alanlar OpenRouter için geçerli değil, ama Tre'nin kendi mantığı için kalabilir.
-    // Burada sadece OpenRouter'ın anlayacağı alanları gönder.
-  }),
-});
+   const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "x-voice-mode": isVoiceModeActive ? "true" : "false",
+      },
+      body: JSON.stringify({ 
+        messages: newHistory, 
+        personality, 
+        thinkingMode,
+        memoryContext,
+        moodContext,
+        language,
+        connectedAccounts,
+        userPreferences,
+        showThinking: localStorage.getItem('ai_chatbot_show_thinking') === 'true',
+      }),
+    });
 
     if (!resp.ok) {
       const errorData = await resp.json().catch(() => ({ error: 'Bağlantı hatası' }));
