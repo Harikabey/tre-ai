@@ -33,9 +33,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-// ===== YENİ IMPORT =====
-import CodeCanvasPanel from '@/components/CodeCanvasPanel';
-
 /* ---------- Chat lock: local-only IndexedDB storage ---------- */
 const LOCK_DB = 'tre_chat_locks';
 const LOCK_STORE = 'locks';
@@ -81,35 +78,16 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ =====
+  // ===== ARKA PLAN RESMİ =====
   const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
 
   useEffect(() => {
     const updateBg = () => {
       setBgImage(localStorage.getItem('chatBg') || '');
     };
-
     window.addEventListener('bgImageChanged', updateBg);
-
     return () => window.removeEventListener('bgImageChanged', updateBg);
   }, []);
-
-  // ===== CANVAS / KOD ÖNİZLEME STATE'LERİ (YENİ) =====
-  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
-  const [canvasCode, setCanvasCode] = useState('');
-  const [canvasFileName, setCanvasFileName] = useState('');
-
-  const handleOpenCanvas = (code: string, fileName: string) => {
-    setCanvasCode(code);
-    setCanvasFileName(fileName);
-    setIsCanvasOpen(true);
-  };
-
-  const handleCloseCanvas = () => {
-    setIsCanvasOpen(false);
-    setCanvasCode('');
-    setCanvasFileName('');
-  };
 
   // ===== CHATBOT HOOKS =====
   const {
@@ -412,7 +390,6 @@ const Index = () => {
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
 
       <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-hidden">
@@ -586,7 +563,7 @@ const Index = () => {
         onClose={() => setIsAccountsPanelOpen(false)}
       />
 
-      {/* ===== CODE CANVAS PANEL (YENİ) ===== */}
+      {/* ===== CODE CANVAS PANEL ===== */}
       <CodeCanvasPanel
         isOpen={isCanvasOpen}
         code={canvasCode}
