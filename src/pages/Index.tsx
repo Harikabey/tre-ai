@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
@@ -47,6 +48,20 @@ const openLockDb = () =>
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+
+const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
+
+useEffect(() => {
+  const updateBg = () => {
+    setBgImage(localStorage.getItem('chatBg') || '');
+  };
+
+  // Event dinleyiciyi ekle
+  window.addEventListener('bgImageChanged', updateBg);
+
+  // Temizlik (component unmount olursa)
+  return () => window.removeEventListener('bgImageChanged', updateBg);
+}, []);
 
 const listLocks = async (): Promise<{ id: string; hash: string }[]> => {
   const db = await openLockDb();
@@ -387,6 +402,20 @@ const Index = () => {
   }
 
   return (
+  <div
+    style={{
+      backgroundImage: bgImage
+        ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${bgImage})`
+        : 'none',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+      minHeight: '100vh',
+    }}
+  >
+    {/* Sohbet arayüzün burada */}
+  </div>
+);
     <div className="min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden">
       {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
