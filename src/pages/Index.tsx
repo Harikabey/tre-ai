@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,20 +48,6 @@ const openLockDb = () =>
     req.onerror = () => reject(req.error);
   });
 
-const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
-
-useEffect(() => {
-  const updateBg = () => {
-    setBgImage(localStorage.getItem('chatBg') || '');
-  };
-
-  // Event dinleyiciyi ekle
-  window.addEventListener('bgImageChanged', updateBg);
-
-  // Temizlik (component unmount olursa)
-  return () => window.removeEventListener('bgImageChanged', updateBg);
-}, []);
-
 const listLocks = async (): Promise<{ id: string; hash: string }[]> => {
   const db = await openLockDb();
   return new Promise((resolve, reject) => {
@@ -87,13 +72,26 @@ const hashPassword = async (pw: string) => {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 
-
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ (BURAYA TAŞINDI) =====
+  const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
+
+  useEffect(() => {
+    const updateBg = () => {
+      setBgImage(localStorage.getItem('chatBg') || '');
+    };
+
+    window.addEventListener('bgImageChanged', updateBg);
+
+    return () => window.removeEventListener('bgImageChanged', updateBg);
+  }, []);
+
+  // ===== CHATBOT HOOKS =====
   const {
     messages,
     conversations,
@@ -151,7 +149,7 @@ const Index = () => {
 
   /* ---------- Chat lock state ---------- */
   const [locks, setLocks] = useState<{ id: string; hash: string }[]>([]);
-  const [unlockedIds, setUnlockedIds] = useState<string[]>([]); // session only
+  const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
   const [lockDialog, setLockDialog] = useState<null | { mode: 'set' | 'enter'; convId: string; openAfter?: boolean }>(null);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState('');
@@ -164,7 +162,6 @@ const Index = () => {
     listLocks().then(setLocks).catch(() => {});
   }, []);
 
-  // Auto-lock when leaving the app / tab or unmounting
   useEffect(() => {
     const relock = () => setUnlockedIds([]);
     const onVisibility = () => { if (document.visibilityState === 'hidden') relock(); };
@@ -229,8 +226,6 @@ const Index = () => {
     setLockDialog(null);
   };
 
-
-  // Open sidebar on desktop by default
   useEffect(() => {
     const checkWidth = () => {
       if (window.innerWidth >= 1024) {
@@ -242,20 +237,17 @@ const Index = () => {
     return () => window.removeEventListener('resize', checkWidth);
   }, []);
 
-  // Wake word: "Hey Tre" -> open voice chat
   useWakeWord(() => {
     toast.success('Seni duyuyorum...');
     navigate('/voice-chat');
   });
 
-  // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
-  // Shared content from PWA Share Target (/share-target)
   const sharedHandledRef = useRef(false);
   useEffect(() => {
     const sharedText = (location.state as { sharedText?: string } | null)?.sharedText;
@@ -265,7 +257,6 @@ const Index = () => {
     sendMessage(sharedText);
   }, [location.state, user, sendMessage]);
 
-  // Jump to a starred message (/starred → "Sohbete git")
   const starredNavRef = useRef<string | null>(null);
   useEffect(() => {
     const st = location.state as { openConversationId?: string | null; scrollToMessageId?: string } | null;
@@ -292,9 +283,6 @@ const Index = () => {
     return () => clearInterval(timer);
   }, [location.state, user, currentConversationId, selectConversation]);
 
-
-
-  // Infinite scroll-up state
   const prependingRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
 
@@ -311,12 +299,10 @@ const Index = () => {
     }
   }, [isLoadingOlder, hasMoreMessages, loadOlderMessages]);
 
-  // Auto-scroll to bottom (skip while prepending older messages)
   useEffect(() => {
     const scrollElement = getViewport();
     if (!scrollElement) return;
     if (prependingRef.current) {
-      // Keep the reading position stable after older messages are prepended
       scrollElement.scrollTop = scrollElement.scrollHeight - prevScrollHeightRef.current;
       prependingRef.current = false;
       return;
@@ -324,10 +310,8 @@ const Index = () => {
     scrollElement.scrollTop = scrollElement.scrollHeight;
   }, [messages, isTyping]);
 
-  // Track processed message IDs to avoid re-saving items on each render
   const processedIdsRef = useRef<Set<string>>(new Set());
 
-  // Track all bot-generated items (images, GIFs, code files, audio, video, docs) → IndexedDB
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.role !== 'bot') return;
@@ -338,7 +322,6 @@ const Index = () => {
     const promptMatch = content.match(/\*"([^"]+)"\*/);
     const prompt = promptMatch?.[1];
 
-    // 1) Generated images (markdown ![]() with data: or http url)
     const imageRegex = /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|webp|gif)[^\s)]*)\)/gi;
     let m: RegExpExecArray | null;
     let imgIdx = 0;
@@ -352,7 +335,6 @@ const Index = () => {
       imgIdx++;
     }
 
-    // 2) Animated frames block → save as JSON (GIF-like sequence)
     const framesMatch = content.match(/\[ANIMATED_FRAMES\]([\s\S]*?)\[\/ANIMATED_FRAMES\]/);
     if (framesMatch) {
       addGeneratedText({
@@ -363,14 +345,12 @@ const Index = () => {
       });
     }
 
-    // 3) File blocks: [FILE:name]...[/FILE] (code, docs, etc.)
     const fileRegex = /\[FILE:([^\]]+)\]\n([\s\S]*?)\n\[\/FILE\]/g;
     let fm: RegExpExecArray | null;
     while ((fm = fileRegex.exec(content)) !== null) {
       addGeneratedText({ name: fm[1].trim(), content: fm[2], prompt });
     }
 
-    // 4) Audio / video / apk / iso / pptx / pdf / word / excel via [Ek dosya: name](url)
     const attachRegex = /\[(?:Ek dosya|İndir|Dosya):\s*([^\]]+)\]\((https?:\/\/[^\s)]+|data:[^)]+)\)/gi;
     let am: RegExpExecArray | null;
     while ((am = attachRegex.exec(content)) !== null) {
@@ -384,7 +364,6 @@ const Index = () => {
   };
 
   const handleCameraAnalysis = (analysis: string, imageDataUrl: string) => {
-    // Send the analysis as a message with the image
     const messageContent = `📷 Canlı görüntü analizi:\n\n![Kamera görüntüsü](${imageDataUrl})\n\n**AI Analizi:**\n${analysis}`;
     sendMessage(messageContent);
   };
@@ -402,26 +381,21 @@ const Index = () => {
   }
 
   return (
-  <div
-    style={{
-      backgroundImage: bgImage
-        ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${bgImage})`
-        : 'none',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-      minHeight: '100vh',
-    }}
-  >
-    {/* Sohbet arayüzün burada */}
-  </div>
-);
-    <div className="min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden">
+    <div
+      className="min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden"
+      style={{
+        backgroundImage: bgImage
+          ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${bgImage})`
+          : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-      
+
       <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-hidden">
-        {/* Conversation Sidebar */}
         <ConversationSidebar
           conversations={conversations}
           currentConversationId={currentConversationId}
@@ -433,8 +407,7 @@ const Index = () => {
           onDeleteConversation={deleteConversation}
           onRenameConversation={renameConversation}
         />
-        
-        {/* Main Chat Area */}
+
         <div className="flex-1 flex flex-col min-w-0">
           <ChatHeader
             isLearningMode={isLearningMode}
@@ -466,7 +439,7 @@ const Index = () => {
             isChatLocked={isCurrentLocked}
             onToggleLock={handleToggleLock}
           />
-          
+
           <div className="flex-1 overflow-hidden" ref={scrollRef}>
             {isCurrentHidden ? (
               <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
@@ -506,14 +479,12 @@ const Index = () => {
                       )}
                     </div>
                   ))}
-
                   {isTyping && <TypingIndicator />}
                 </div>
               </ScrollArea>
             )}
           </div>
 
-          
           <ChatInput
             onSend={(msg, fileUrl, genType) => sendMessage(msg, fileUrl, genType)}
             disabled={isTyping || isCurrentHidden}
@@ -525,8 +496,7 @@ const Index = () => {
             currentMood={currentMood?.mood}
           />
         </div>
-        
-        {/* Knowledge Panel - Responsive slide-in on mobile */}
+
         <div
           className={`fixed inset-y-0 right-0 z-50 lg:static lg:z-auto transition-all duration-300 overflow-hidden border-l border-border/50 bg-card/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:border-l-0 w-80 ${
             isPanelOpen
@@ -543,7 +513,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Generated Items Panel */}
       <GeneratedItemsPanel
         items={generatedItems}
         onDelete={removeGenerated}
@@ -553,7 +522,6 @@ const Index = () => {
         onClose={() => setIsImageHistoryOpen(false)}
       />
 
-      {/* User Memory Panel */}
       <UserMemoryPanel
         isOpen={isMemoryPanelOpen}
         onClose={() => setIsMemoryPanelOpen(false)}
@@ -569,27 +537,23 @@ const Index = () => {
         onUpdateInterest={updateInterest}
       />
 
-      {/* Live Camera View */}
       <LiveCameraView
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onAnalysisComplete={handleCameraAnalysis}
       />
 
-      {/* Live Screen Share View */}
       <LiveScreenShareView
         isOpen={isScreenShareOpen}
         onClose={() => setIsScreenShareOpen(false)}
         onAnalysisComplete={handleCameraAnalysis}
       />
 
-      {/* Connected Accounts Panel */}
       <ConnectedAccountsPanel
         isOpen={isAccountsPanelOpen}
         onClose={() => setIsAccountsPanelOpen(false)}
       />
 
-      {/* Chat lock dialog */}
       <Dialog open={!!lockDialog} onOpenChange={(o) => !o && setLockDialog(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
