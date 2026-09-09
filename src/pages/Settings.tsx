@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useState, useEffect, useCallback, useReducer } from 'react';
 import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
@@ -38,11 +39,44 @@ type ThemeOption = {
   icon: typeof Sun;
 };
 
+const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
+const [bgError, setBgError] = useState<string>('');
 const themeOptions: ThemeOption[] = [
   { id: 'light', nameKey: 'lightMode', descKey: 'lightDesc', icon: Sun },
   { id: 'dark', nameKey: 'darkMode', descKey: 'darkDesc', icon: Moon },
   { id: 'system', nameKey: 'systemMode', descKey: 'systemDesc', icon: Monitor },
 ];
+
+const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    setBgError('❌ Resim 2 MB\'dan büyük olamaz.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const result = event.target?.result as string;
+    setBgImage(result);
+    localStorage.setItem('chatBg', result);
+    setBgError('');
+
+    // ✅ KRİTİK: Sohbet ekranına anında yansıması için event fırlat
+    window.dispatchEvent(new Event('bgImageChanged'));
+  };
+  reader.readAsDataURL(file);
+};
+
+const removeBgImage = () => {
+  localStorage.removeItem('chatBg');
+  setBgImage('');
+  setBgError('');
+
+  // ✅ KRİTİK: Kaldırma işleminde de event fırlat
+  window.dispatchEvent(new Event('bgImageChanged'));
+};
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -234,6 +268,34 @@ const Settings = () => {
   };
 
   return (
+    <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '20px' }}>
+  <h3>🖼️ Sohbet Arka Planı</h3>
+  <input
+    type="file"
+    accept="image/*"
+    onChange={handleBgImageUpload}
+    style={{ marginBottom: '10px', display: 'block' }}
+  />
+  {bgError && <p style={{ color: '#ff6b6b' }}>{bgError}</p>}
+  {bgImage && (
+    <div>
+      <img
+        src={bgImage}
+        alt="Arka plan"
+        style={{
+          width: '100%',
+          maxHeight: '150px',
+          objectFit: 'cover',
+          borderRadius: '8px',
+          marginBottom: '10px',
+        }}
+      />
+      <button onClick={removeBgImage} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+        🗑️ Kaldır
+      </button>
+    </div>
+  )}
+</div>
     <div className="min-h-screen bg-background bg-grid">
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
       
