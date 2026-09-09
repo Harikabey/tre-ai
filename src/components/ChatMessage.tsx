@@ -63,11 +63,6 @@ const searchSources = async (query: string): Promise<Citation[]> => {
   }
 };
 
-// ===== handleSearchSources TANIMLANDI =====
-const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
-  return searchSources(query);
-}, []);
-
 export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
@@ -77,6 +72,11 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
   const [starred, setStarred] = useState(false);
+
+  // ===== handleSearchSources BURADA TANIMLANIYOR =====
+  const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
+    return searchSources(query);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -109,7 +109,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     return { cleanContent: message.content, sources: [] };
   }, [message.content, isBot]);
 
-  // Parse file blocks for download
   const { cleanContent: contentWithoutFiles, files: downloadableFiles } = useMemo(() => {
     if (isBot) return parseFileBlocks(contentWithoutSources);
     return { cleanContent: contentWithoutSources, files: [] };
@@ -125,7 +124,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     .replace(/<video[\s\S]*?<\/video>/gi, '')
     .trim();
 
-  // Extract Tre's "thinking" block (deep mode + show thinking enabled)
   let thinkingContent: string | null = null;
   const thinkMatch = displayContent.match(/\[THINKING\]([\s\S]*?)(\[\/THINKING\]|$)/);
   if (thinkMatch) {
@@ -138,7 +136,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
     !displayContent.startsWith('❌');
 
-  // ===== DOSYA İÇERİĞİNİ YAKALAMA (ÖNİZLEME İÇİN) =====
   const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/);
   const codeContent = codeBlockMatch ? codeBlockMatch[2].trim() : null;
   const codeLanguage = codeBlockMatch ? codeBlockMatch[1] : null;
@@ -245,7 +242,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
             : 'bg-primary/15 border border-primary/20 rounded-tr-md'
         )}
       >
-        {/* File attachment preview */}
         {fileUrl && (
           <div className="mb-2">
             {isImage ? (
@@ -288,7 +284,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {/* Downloadable file blocks */}
         {downloadableFiles.length > 0 && (
           <div className="mb-2">
             {downloadableFiles.map((file, index) => (
@@ -301,14 +296,12 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {/* Animated frames (GIF) preview */}
         {animatedFrames && (
           <div className="mb-2">
             <AnimatedFrames frames={animatedFrames} delay={500} />
           </div>
         )}
 
-        {/* Generated image preview */}
         {generatedImageUrl && (
           <div className="mb-2">
             <img 
@@ -319,7 +312,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {/* Tre's thinking process (collapsible) */}
         {isBot && thinkingContent && (
           <div className="mb-2 rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
             <button
@@ -404,7 +396,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           )
         )}
 
-        {/* Translation display */}
         {isBot && showTranslation && translatedContent && (
           <div className="mt-2 pt-2 border-t border-border/30">
             <div className="text-[10px] text-muted-foreground/60 mb-1 flex items-center gap-1">
@@ -417,7 +408,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {/* Citation panel */}
         {isFactualMessage && (
           <CitationPanel 
             sources={sources} 
@@ -435,7 +425,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </span>
           
           <div className="flex items-center gap-0.5">
-            {/* Copy button for bot messages */}
             {isBot && displayContent && (
               <Button
                 variant="ghost"
@@ -451,7 +440,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </Button>
             )}
             
-            {/* Audio playback button */}
             {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
               <Button
                 variant="ghost"
@@ -470,7 +458,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </Button>
             )}
 
-            {/* Translate button */}
             {isBot && displayContent && !displayContent.includes('🎨 Görsel oluşturuluyor') && (
               <Button
                 variant="ghost"
@@ -488,7 +475,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </Button>
             )}
 
-            {/* Star (favorite) */}
             <Button
               variant="ghost"
               size="icon"
@@ -514,7 +500,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               <Star className={cn('w-3 h-3', starred ? 'text-primary fill-primary' : 'text-muted-foreground/60 hover:text-foreground')} />
             </Button>
 
-            {/* Reaction popover */}
             {onReact && (
               <Popover>
                 <PopoverTrigger asChild>
