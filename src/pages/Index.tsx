@@ -35,6 +35,7 @@ import {
 
 // ===== YENİ IMPORT =====
 import CodeCanvasPanel from '@/components/CodeCanvasPanel';
+import ChatMinimap from '@/components/ChatMinimap';
 
 /* ---------- Chat lock: local-only IndexedDB storage ---------- */
 const LOCK_DB = 'tre_chat_locks';
@@ -460,38 +461,48 @@ const Index = () => {
             onToggleLock={handleToggleLock}
           />
 
-          <div className="flex-1 overflow-hidden" ref={scrollRef}>
-            {isCurrentHidden ? (
-              <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
-                  <Lock className="w-7 h-7 text-primary" />
+          <div className="flex-1 flex overflow-hidden min-w-0">
+            <div className="flex-1 overflow-hidden flex flex-col" ref={scrollRef}>
+              {isCurrentHidden ? (
+                <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
+                    <Lock className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Bu sohbet kilitli</h2>
+                    <p className="text-sm text-muted-foreground mt-1">İçeriği görmek için şifreyi girin</p>
+                  </div>
+                  <Button onClick={() => openLockDialog('enter', currentConversationId!, true)}>Şifreyi Gir</Button>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Bu sohbet kilitli</h2>
-                  <p className="text-sm text-muted-foreground mt-1">İçeriği görmek için şifreyi girin</p>
-                </div>
-                <Button onClick={() => openLockDialog('enter', currentConversationId!, true)}>Şifreyi Gir</Button>
-              </div>
-            ) : messages.length === 0 ? (
-              <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
-            ) : (
-              <ScrollArea className="h-full" onScrollCapture={handleChatScroll}>
-                <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                  {isLoadingOlder && (
-                    <div className="flex justify-center py-2">
-                      <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
-                    </div>
-                  )}
-                  {!hasMoreMessages && messages.length > 20 && (
-                    <div className="text-center text-[11px] text-muted-foreground/70 py-1">Sohbetin başı</div>
-                  )}
-                  {messages.map((message) => (
-                    <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
-                      {preferences.swipe_to_delete_enabled ? (
-                        <SwipeableMessage
-                          messageId={message.id}
-                          onDelete={() => deleteMessage(message.id)}
-                        >
+              ) : messages.length === 0 ? (
+                <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
+              ) : (
+                <ScrollArea className="h-full" onScrollCapture={handleChatScroll}>
+                  <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                    {isLoadingOlder && (
+                      <div className="flex justify-center py-2">
+                        <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
+                      </div>
+                    )}
+                    {!hasMoreMessages && messages.length > 20 && (
+                      <div className="text-center text-[11px] text-muted-foreground/70 py-1">Sohbetin başı</div>
+                    )}
+                    {messages.map((message) => (
+                      <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
+                        {preferences.swipe_to_delete_enabled ? (
+                          <SwipeableMessage
+                            messageId={message.id}
+                            onDelete={() => deleteMessage(message.id)}
+                          >
+                            <ChatMessage
+                              message={message}
+                              onReact={reactToMessage}
+                              onPreview={handleOpenCanvas}
+                              chatId={currentConversationId}
+                              chatTitle={conversations.find(c => c.id === currentConversationId)?.title}
+                            />
+                          </SwipeableMessage>
+                        ) : (
                           <ChatMessage
                             message={message}
                             onReact={reactToMessage}
@@ -499,22 +510,16 @@ const Index = () => {
                             chatId={currentConversationId}
                             chatTitle={conversations.find(c => c.id === currentConversationId)?.title}
                           />
-                        </SwipeableMessage>
-                      ) : (
-                        <ChatMessage
-                          message={message}
-                          onReact={reactToMessage}
-                          onPreview={handleOpenCanvas}
-                          chatId={currentConversationId}
-                          chatTitle={conversations.find(c => c.id === currentConversationId)?.title}
-                        />
-                      )}
-                    </div>
-                  ))}
-                  {isTyping && <TypingIndicator />}
-                </div>
-              </ScrollArea>
-            )}
+                        )}
+                      </div>
+                    ))}
+                    {isTyping && <TypingIndicator />}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+
+            <ChatMinimap messages={messages} scrollRef={scrollRef} />
           </div>
 
           <ChatInput
@@ -530,7 +535,7 @@ const Index = () => {
         </div>
 
         <div
-          className={`fixed inset-y-0 right-0 z-50 lg:static lg:z-auto transition-all duration-300 overflow-hidden border-l border-border/50 bg-card/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:border-l-0 w-80 ${
+          className={`fixed inset-y-0 right-0 z-50 lg:static lg:z-auto transition-all duration-300 overflow-hidden border-l border-border/50 bg-card/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none ${
             isPanelOpen
               ? 'translate-x-0 lg:w-80'
               : 'translate-x-full lg:translate-x-0 lg:w-0 pointer-events-none lg:pointer-events-auto'
