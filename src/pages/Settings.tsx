@@ -267,34 +267,49 @@ const Settings = () => {
     playText(`Merhaba, ben ${voice.name}. Size nasıl yardımcı olabilirim?`, voice.id);
   };
 
-  return (
-    <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '20px' }}>
-  <h3>🖼️ Sohbet Arka Planı</h3>
-  <input
-    type="file"
-    accept="image/*"
-    onChange={handleBgImageUpload}
-    style={{ marginBottom: '10px', display: 'block' }}
-  />
-  {bgError && <p style={{ color: '#ff6b6b' }}>{bgError}</p>}
-  {bgImage && (
-    <div>
-      <img
-        src={bgImage}
-        alt="Arka plan"
-        style={{
-          width: '100%',
-          maxHeight: '150px',
-          objectFit: 'cover',
-          borderRadius: '8px',
-          marginBottom: '10px',
-        }}
-      />
-      <button onClick={removeBgImage} style={{ padding: '6px 12px', cursor: 'pointer' }}>
-        🗑️ Kaldır
-      </button>
-    </div>
-  )}
+ return (
+  <div className="min-h-screen bg-background bg-grid">
+    <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+    
+    <div className="relative z-10 max-w-3xl mx-auto p-4 sm:p-6">
+      {/* Settings sayfasının var olan diğer ayarları/içeriği... */}
+
+
+      {/* 🟢 BİZİM KOD BURAYA GELMELİ 🟢 */}
+      <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '20px' }}>
+        <h3>🖼️ Sohbet Arka Planı</h3>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleBgImageUpload}
+          style={{ marginBottom: '10px', display: 'block' }}
+        />
+        {bgError && <p style={{ color: '#ff6b6b' }}>{bgError}</p>}
+        {bgImage && (
+          <div>
+            <img
+              src={bgImage}
+              alt="Arka plan"
+              style={{
+                width: '100%',
+                maxHeight: '150px',
+                objectFit: 'cover',
+                borderRadius: '8px',
+                marginBottom: '10px',
+              }}
+            />
+            <button onClick={removeBgImage} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+              🗑️ Kaldır
+            </button>
+          </div>
+        )}
+      </div>
+      {/* 🟢 BİZİM KOD BİTİŞ 🟢 */}
+
+
+    </div> {/* Sayfanın kapsayıcı div'i */}
+  </div>
+);
 </div>
     <div className="min-h-screen bg-background bg-grid">
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
