@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star } from 'lucide-react';
+import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star, Eye } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { addStarred, removeStarred, isStarred } from '@/lib/starredDb';
 interface ChatMessageProps {
   message: Message;
   onReact?: (messageId: string, emoji: string) => void;
+  onPreview?: (code: string, fileName: string) => void; // YENİ PROP
   chatId?: string | null;
   chatTitle?: string;
 }
@@ -63,7 +64,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
   }
 };
 
-export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessageProps) => {
+export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
@@ -78,7 +79,6 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
     isStarred(message.id).then((v) => active && setStarred(v));
     return () => { active = false; };
   }, [message.id]);
-
 
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
@@ -134,9 +134,23 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
     !displayContent.startsWith('❌');
 
-  const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
-    return searchSources(query);
-  }, []);
+  // ===== DOSYA İÇERİĞİNİ YAKALAMA (ÖNİZLEME İÇİN) =====
+  // Kod bloğunu yakala (```html ... ``` veya ```javascript ... ```)
+  const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/);
+  const codeContent = codeBlockMatch ? codeBlockMatch[2].trim() : null;
+  const codeLanguage = codeBlockMatch ? codeBlockMatch[1] : null;
+  const isPreviewable = codeContent && (codeLanguage === 'html' || codeLanguage === 'javascript' || codeLanguage === 'js' || codeLanguage === 'css');
+
+  // Dosya ismini oluştur (dosya varsa onu kullan, yoksa kod türüne göre isim ver)
+  const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
+
+  const handlePreviewClick = () => {
+    // Eğer dosya içeriği doğrudan varsa onu kullan, yoksa kod bloğunu kullan
+    const contentToPreview = displayContent || codeContent;
+    if (onPreview && contentToPreview) {
+      onPreview(contentToPreview, previewFileName);
+    }
+  };
 
   const handleCopy = useCallback(() => {
     const plainText = displayContent
@@ -241,17 +255,50 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
                   className="max-w-full max-h-40 sm:max-h-48 rounded-lg object-cover"
                 />
               </a>
+            ) : isAudio ? (
+              <div className="mb-2">
+                <audio controls src={fileUrl} className="w-full max-w-sm" />
+              </div>
+            ) : isVideo ? (
+              <div className="mb-2">
+                <video controls src={fileUrl} className="max-w-full max-h-64 rounded-lg" />
+              </div>
             ) : (
-              <a 
-                href={fileUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors"
-              >
-                <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
-              </a>
+              <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+                {/* DOSYA İKONU (ÖNİZLEME TETİKLEYİCİSİ) */}
+                <button
+                  onClick={handlePreviewClick}
+                  className="flex items-center gap-2 flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
+                  title="Önizle"
+                >
+                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
+                </button>
+                {/* ÖNİZLEME BUTONU (GÖZ İKONU) */}
+                {isPreviewable && (
+                  <button
+                    onClick={handlePreviewClick}
+                    className="p-1 rounded-md hover:bg-primary/20 transition-colors"
+                    title="Canlı Önizle"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-primary" />
+                  </button>
+                )}
+              </div>
             )}
+          </div>
+        )}
+
+        {/* Downloadable file blocks */}
+        {downloadableFiles.length > 0 && (
+          <div className="mb-2">
+            {downloadableFiles.map((file, index) => (
+              <FileDownloadBlock 
+                key={index} 
+                file={file} 
+                onPreview={isPreviewable ? handlePreviewClick : undefined}
+              />
+            ))}
           </div>
         )}
 
@@ -270,29 +317,6 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
               alt={generatedImageAlt} 
               className="max-w-full max-h-48 sm:max-h-64 rounded-lg object-contain"
             />
-          </div>
-        )}
-
-        {/* Audio (MP3) preview */}
-        {isAudio && fileUrl && (
-          <div className="mb-2">
-            <audio controls src={fileUrl} className="w-full max-w-sm" />
-          </div>
-        )}
-
-        {/* Video (MP4) preview */}
-        {isVideo && fileUrl && (
-          <div className="mb-2">
-            <video controls src={fileUrl} className="max-w-full max-h-64 rounded-lg" />
-          </div>
-        )}
-
-        {/* Downloadable file blocks */}
-        {downloadableFiles.length > 0 && (
-          <div className="mb-2">
-            {downloadableFiles.map((file, index) => (
-              <FileDownloadBlock key={index} file={file} />
-            ))}
           </div>
         )}
 
@@ -492,7 +516,6 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
             </Button>
 
             {/* Reaction popover */}
-
             {onReact && (
               <Popover>
                 <PopoverTrigger asChild>
@@ -530,7 +553,7 @@ export const ChatMessage = ({ message, onReact, chatId, chatTitle }: ChatMessage
       
       {!isBot && (
         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center mt-1">
-          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
+          <User className="w-3.5 h-3.5 sm:w-4 sm:w-4 text-accent" />
         </div>
       )}
     </div>
