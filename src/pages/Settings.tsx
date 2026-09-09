@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useState, useEffect, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useReducer } from 'react';
 import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
@@ -39,44 +38,11 @@ type ThemeOption = {
   icon: typeof Sun;
 };
 
-const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
-const [bgError, setBgError] = useState<string>('');
 const themeOptions: ThemeOption[] = [
   { id: 'light', nameKey: 'lightMode', descKey: 'lightDesc', icon: Sun },
   { id: 'dark', nameKey: 'darkMode', descKey: 'darkDesc', icon: Moon },
   { id: 'system', nameKey: 'systemMode', descKey: 'systemDesc', icon: Monitor },
 ];
-
-const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  if (file.size > 2 * 1024 * 1024) {
-    setBgError('❌ Resim 2 MB\'dan büyük olamaz.');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const result = event.target?.result as string;
-    setBgImage(result);
-    localStorage.setItem('chatBg', result);
-    setBgError('');
-
-    // ✅ KRİTİK: Sohbet ekranına anında yansıması için event fırlat
-    window.dispatchEvent(new Event('bgImageChanged'));
-  };
-  reader.readAsDataURL(file);
-};
-
-const removeBgImage = () => {
-  localStorage.removeItem('chatBg');
-  setBgImage('');
-  setBgError('');
-
-  // ✅ KRİTİK: Kaldırma işleminde de event fırlat
-  window.dispatchEvent(new Event('bgImageChanged'));
-};
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -104,6 +70,37 @@ const Settings = () => {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
+
+  // ===== ARKA PLAN RESMİ AYARI (BİLEŞEN İÇİNE TAŞINDI) =====
+  const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
+  const [bgError, setBgError] = useState<string>('');
+
+  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setBgError('❌ Resim 2 MB\'dan büyük olamaz.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setBgImage(result);
+      localStorage.setItem('chatBg', result);
+      setBgError('');
+      window.dispatchEvent(new Event('bgImageChanged'));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeBgImage = () => {
+    localStorage.removeItem('chatBg');
+    setBgImage('');
+    setBgError('');
+    window.dispatchEvent(new Event('bgImageChanged'));
+  };
 
   const handleExport = async () => {
     if (getCooldownRemainingMs() > 0) return;
@@ -225,7 +222,6 @@ const Settings = () => {
 
   const handleSelectLanguage = async (code: string) => {
     updatePreference('language', code);
-    // For non-hardcoded languages, trigger dynamic translation
     const hardcoded = ['tr', 'en', 'de', 'fr', 'es'];
     if (!hardcoded.includes(code)) {
       setTranslating(true);
@@ -267,50 +263,7 @@ const Settings = () => {
     playText(`Merhaba, ben ${voice.name}. Size nasıl yardımcı olabilirim?`, voice.id);
   };
 
- return (
-  <div className="min-h-screen bg-background bg-grid">
-    <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-    
-    <div className="relative z-10 max-w-3xl mx-auto p-4 sm:p-6">
-      {/* Settings sayfasının var olan diğer ayarları/içeriği... */}
-
-
-      {/* 🟢 BİZİM KOD BURAYA GELMELİ 🟢 */}
-      <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '20px' }}>
-        <h3>🖼️ Sohbet Arka Planı</h3>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleBgImageUpload}
-          style={{ marginBottom: '10px', display: 'block' }}
-        />
-        {bgError && <p style={{ color: '#ff6b6b' }}>{bgError}</p>}
-        {bgImage && (
-          <div>
-            <img
-              src={bgImage}
-              alt="Arka plan"
-              style={{
-                width: '100%',
-                maxHeight: '150px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                marginBottom: '10px',
-              }}
-            />
-            <button onClick={removeBgImage} style={{ padding: '6px 12px', cursor: 'pointer' }}>
-              🗑️ Kaldır
-            </button>
-          </div>
-        )}
-      </div>
-      {/* 🟢 BİZİM KOD BİTİŞ 🟢 */}
-
-
-    </div> {/* Sayfanın kapsayıcı div'i */}
-  </div>
-);
-</div>
+  return (
     <div className="min-h-screen bg-background bg-grid">
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
       
@@ -1004,101 +957,6 @@ const Settings = () => {
           </Card>
 
           {/* Otomatik Bildirimler & Temizlik */}
-          {/* Dosya Depolama */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CloudUpload className="h-5 w-5 text-primary" />
-                Dosya Depolama
-              </CardTitle>
-              <CardDescription>
-                Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Dosyaları bulutta sakla</div>
-                  <div className="text-xs text-muted-foreground">
-                    Açık olduğunda yeni üretilen dosyalar hesabına da yedeklenir.
-                  </div>
-                </div>
-                <Switch
-                  checked={cloudFiles}
-                  onCheckedChange={(c) => {
-                    setCloudFiles(c);
-                    localStorage.setItem(CLOUD_FILES_KEY, String(c));
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Veri Yedekleme (Dışa / İçe Aktar) */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DatabaseBackup className="h-5 w-5 text-primary" />
-                Veri Yedekleme
-              </CardTitle>
-              <CardDescription>
-                Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="w-full border-border/50"
-                  onClick={handleExport}
-                  disabled={exporting || cooldownMs > 0}
-                >
-                  {exporting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  {cooldownMs > 0
-                    ? `Tekrar dışa aktarmak için bekle: ${Math.ceil(cooldownMs / 3600000)} saat`
-                    : 'Tüm Verileri Dışa Aktar (JSON)'}
-                </Button>
-                {cooldownMs > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.
-                  </p>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full border-border/50"
-                  disabled={importing}
-                  onClick={() => document.getElementById('tre-import-input')?.click()}
-                >
-                  {importing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  Yedekten İçe Aktar
-                </Button>
-                <input
-                  id="tre-import-input"
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleImportFile(f);
-                    e.target.value = '';
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Otomatik Bildirimler & Temizlik */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1195,7 +1053,137 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Dosya Depolama */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CloudUpload className="h-5 w-5 text-primary" />
+                Dosya Depolama
+              </CardTitle>
+              <CardDescription>
+                Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Dosyaları bulutta sakla</div>
+                  <div className="text-xs text-muted-foreground">
+                    Açık olduğunda yeni üretilen dosyalar hesabına da yedeklenir.
+                  </div>
+                </div>
+                <Switch
+                  checked={cloudFiles}
+                  onCheckedChange={(c) => {
+                    setCloudFiles(c);
+                    localStorage.setItem(CLOUD_FILES_KEY, String(c));
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
+          {/* Veri Yedekleme (Dışa / İçe Aktar) */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DatabaseBackup className="h-5 w-5 text-primary" />
+                Veri Yedekleme
+              </CardTitle>
+              <CardDescription>
+                Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  onClick={handleExport}
+                  disabled={exporting || cooldownMs > 0}
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {cooldownMs > 0
+                    ? `Tekrar dışa aktarmak için bekle: ${Math.ceil(cooldownMs / 3600000)} saat`
+                    : 'Tüm Verileri Dışa Aktar (JSON)'}
+                </Button>
+                {cooldownMs > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full border-border/50"
+                  disabled={importing}
+                  onClick={() => document.getElementById('tre-import-input')?.click()}
+                >
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Yedekten İçe Aktar
+                </Button>
+                <input
+                  id="tre-import-input"
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleImportFile(f);
+                    e.target.value = '';
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ARKA PLAN RESMİ AYARI (BURAYA EKLENDİ) */}
+          <div className="border-t border-border/30 pt-4">
+            <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4">
+              <h3 className="text-lg font-medium text-foreground mb-2 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-primary" />
+                🖼️ Sohbet Arka Planı
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">Kendi arka plan resmini seç (max 2 MB)</p>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBgImageUpload}
+                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              />
+
+              {bgError && (
+                <p className="text-sm text-red-500 mt-2">{bgError}</p>
+              )}
+
+              {bgImage && (
+                <div className="mt-4">
+                  <img
+                    src={bgImage}
+                    alt="Arka plan"
+                    className="w-full max-h-[150px] object-cover rounded-lg border border-border/50"
+                  />
+                  <button
+                    onClick={removeBgImage}
+                    className="mt-3 text-sm text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    🗑️ Kaldır
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Uygulamayı Yükle (PWA) */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -1260,7 +1248,6 @@ const Settings = () => {
             </Link>
           </Button>
 
-
           {/* Geri Bildirim */}
           <Button
             asChild
@@ -1277,7 +1264,6 @@ const Settings = () => {
             </a>
           </Button>
         </div>
-
       </div>
     </div>
   );
@@ -1306,7 +1292,7 @@ const ThemeCard = ({ option, isSelected, onSelect, t }: ThemeCardProps) => {
       <div className="font-medium text-foreground text-xs sm:text-sm">{t[option.nameKey]}</div>
       <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{t[option.descKey]}</div>
       {isSelected && (
-        <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary flex items-center justify-center mt-1">
+        <div className="h-4 w-4 sm:h-5 w-5 rounded-full bg-primary flex items-center justify-center mt-1">
           <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary-foreground" />
         </div>
       )}
@@ -1403,7 +1389,6 @@ const PersonalityCard = ({ personality, isSelected, onSelect }: PersonalityCardP
     </button>
   );
 };
-
 
 interface LanguageCardProps {
   language: Language;
