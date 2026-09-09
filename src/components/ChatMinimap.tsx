@@ -12,8 +12,8 @@ interface ChatMinimapProps {
 }
 
 const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   // Check screen width and update visibility
   useEffect(() => {
@@ -26,102 +26,94 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
     return () => window.removeEventListener('resize', checkWidth);
   }, []);
 
-  // Helper function to get scroll element
-  const getScrollElement = (): HTMLElement | null => {
-    if (!scrollRef.current) return null;
-    // Try to find the Radix scroll area viewport
-    const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    // Fallback to scrollRef.current if viewport not found
-    return viewport || scrollRef.current;
-  };
-
-  // Draw minimap
+  // Track scroll position for viewport highlight
   useEffect(() => {
-    if (!canvasRef.current || !isVisible || messages.length === 0) return;
+    if (!isVisible || messages.length === 0) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const getScrollElement = (): HTMLElement | null => {
+      if (!scrollRef.current) return null;
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+      return viewport || scrollRef.current;
+    };
+
+    const handleScroll = () => {
+      const scrollElement = getScrollElement();
+      if (!scrollElement) return;
+      setScrollPosition(scrollElement.scrollTop);
+    };
 
     const scrollElement = getScrollElement();
-    if (!scrollElement) return;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll, true);
+      return () => scrollElement.removeEventListener('scroll', handleScroll, true);
+    }
+  }, [isVisible, messages.length, scrollRef]);
 
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const width = rect.width * dpr;
-    const height = rect.height * dpr;
-
-    canvas.width = width;
-    canvas.height = height;
-    ctx.scale(dpr, dpr);
-
-    // Dark theme colors
-    const bgColor = '#1a1a1a';
-    const userColor = '#3b82f6'; // blue
-    const botColor = '#10b981'; // green
-    const viewportColor = '#f59e0b'; // amber for highlight
-    const borderColor = '#404040';
-
-    // Fill background
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, rect.width, rect.height);
-
-    // Draw border
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, rect.width, rect.height);
-
-    // Calculate viewport position and size
-    const scrollHeight = scrollElement.scrollHeight || 1;
-    const clientHeight = scrollElement.clientHeight || 1;
-    const scrollTop = scrollElement.scrollTop || 0;
-
-    const viewportHeight = Math.max(10, (clientHeight / scrollHeight) * rect.height);
-    const scrollRatio = scrollHeight > clientHeight ? scrollTop / (scrollHeight - clientHeight) : 0;
-    const viewportTop = Math.max(0, scrollRatio * (rect.height - viewportHeight));
-
-    // Draw message bars
-    const barHeight = Math.max(1, rect.height / messages.length);
-    messages.forEach((msg, index) => {
-      const y = (index / messages.length) * rect.height;
-      const color = msg.role === 'user' ? userColor : botColor;
-      
-      ctx.fillStyle = color;
-      ctx.fillRect(2, y, rect.width - 4, barHeight);
-    });
-
-    // Draw viewport highlight
-    ctx.strokeStyle = viewportColor;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.6;
-    ctx.strokeRect(1, viewportTop, rect.width - 2, viewportHeight);
-    ctx.globalAlpha = 1;
-  }, [messages, scrollRef, isVisible]);
-
-  // Handle click to scroll
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const scrollElement = getScrollElement();
-    if (!scrollElement || !canvasRef.current || messages.length === 0) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
-    const clickRatio = Math.max(0, Math.min(1, clickY / rect.height));
-
-    const totalScroll = (scrollElement.scrollHeight || 0) - (scrollElement.clientHeight || 0);
-    if (totalScroll > 0) {
-      scrollElement.scrollTop = clickRatio * totalScroll;
+  // Handle click on indicator to scroll to message
+  const handleIndicatorClick = (messageId: string, index: number) => {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   if (!isVisible || messages.length === 0) return null;
 
+  // Calculate which messages are visible in viewport
+  const getScrollElement = (): HTMLElement | null => {
+    if (!scrollRef.current) return null;
+    const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    return viewport || scrollRef.current;
+  };
+
+  const scrollElement = getScrollElement();
+  const scrollHeight = scrollElement?.scrollHeight || 1;
+  const clientHeight = scrollElement?.clientHeight || 1;
+  const scrollTop = scrollElement?.scrollTop || 0;
+
+  // Only render user messages as indicators
+  const userMessages = messages
+    .map((msg, idx) => ({ msg, idx }))
+    .filter(({ msg }) => msg.role === 'user');
+
   return (
-    <div className="hidden lg:flex flex-col h-full w-12 border-l border-border/50 bg-card/40 backdrop-blur-sm p-1">
-      <canvas
-        ref={canvasRef}
-        onClick={handleCanvasClick}
-        className="flex-1 w-full cursor-pointer hover:bg-card/60 transition-colors rounded"
-      />
+    <div className="hidden lg:flex flex-col gap-2 w-16 px-2 py-4 border-l border-border/30 bg-background/80 backdrop-blur-sm overflow-y-auto">
+      {userMessages.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/50">
+          —
+        </div>
+      ) : (
+        userMessages.map(({ msg, idx }) => {
+          // Calculate indicator position based on message index in full messages array
+          const position = (idx / Math.max(messages.length - 1, 1)) * 100;
+
+          return (
+            <button
+              key={msg.id}
+              onClick={() => handleIndicatorClick(msg.id, idx)}
+              title={`Jump to message ${idx + 1}`}
+              className="group relative flex flex-col items-center gap-1 transition-opacity hover:opacity-100 opacity-70"
+            >
+              {/* Indicator dot */}
+              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm group-hover:w-2.5 group-hover:h-2.5 transition-all" />
+
+              {/* Hover tooltip */}
+              <span className="hidden group-hover:block absolute right-full mr-2 px-2 py-1 text-xs whitespace-nowrap bg-secondary text-secondary-foreground rounded pointer-events-none">
+                Q{idx + 1}
+              </span>
+            </button>
+          );
+        })
+      )}
+
+      {/* Viewport indicator (shows current scroll position) */}
+      {scrollHeight > clientHeight && (
+        <div className="mt-auto pt-2 border-t border-border/20">
+          <div className="text-xs text-muted-foreground/50 text-center">
+            {Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)}%
+          </div>
+        </div>
+      )}
     </div>
   );
 };
