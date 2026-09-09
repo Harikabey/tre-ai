@@ -33,6 +33,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+// ===== YENİ IMPORT =====
+import CodeCanvasPanel from '@/components/CodeCanvasPanel';
+
 /* ---------- Chat lock: local-only IndexedDB storage ---------- */
 const LOCK_DB = 'tre_chat_locks';
 const LOCK_STORE = 'locks';
@@ -78,7 +81,7 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ (BURAYA TAŞINDI) =====
+  // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ =====
   const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
 
   useEffect(() => {
@@ -90,6 +93,23 @@ const Index = () => {
 
     return () => window.removeEventListener('bgImageChanged', updateBg);
   }, []);
+
+  // ===== CANVAS / KOD ÖNİZLEME STATE'LERİ (YENİ) =====
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [canvasCode, setCanvasCode] = useState('');
+  const [canvasFileName, setCanvasFileName] = useState('');
+
+  const handleOpenCanvas = (code: string, fileName: string) => {
+    setCanvasCode(code);
+    setCanvasFileName(fileName);
+    setIsCanvasOpen(true);
+  };
+
+  const handleCloseCanvas = () => {
+    setIsCanvasOpen(false);
+    setCanvasCode('');
+    setCanvasFileName('');
+  };
 
   // ===== CHATBOT HOOKS =====
   const {
@@ -472,10 +492,22 @@ const Index = () => {
                           messageId={message.id}
                           onDelete={() => deleteMessage(message.id)}
                         >
-                          <ChatMessage message={message} onReact={reactToMessage} chatId={currentConversationId} chatTitle={conversations.find(c => c.id === currentConversationId)?.title} />
+                          <ChatMessage
+                            message={message}
+                            onReact={reactToMessage}
+                            onPreview={handleOpenCanvas}
+                            chatId={currentConversationId}
+                            chatTitle={conversations.find(c => c.id === currentConversationId)?.title}
+                          />
                         </SwipeableMessage>
                       ) : (
-                        <ChatMessage message={message} onReact={reactToMessage} chatId={currentConversationId} chatTitle={conversations.find(c => c.id === currentConversationId)?.title} />
+                        <ChatMessage
+                          message={message}
+                          onReact={reactToMessage}
+                          onPreview={handleOpenCanvas}
+                          chatId={currentConversationId}
+                          chatTitle={conversations.find(c => c.id === currentConversationId)?.title}
+                        />
                       )}
                     </div>
                   ))}
@@ -552,6 +584,14 @@ const Index = () => {
       <ConnectedAccountsPanel
         isOpen={isAccountsPanelOpen}
         onClose={() => setIsAccountsPanelOpen(false)}
+      />
+
+      {/* ===== CODE CANVAS PANEL (YENİ) ===== */}
+      <CodeCanvasPanel
+        isOpen={isCanvasOpen}
+        code={canvasCode}
+        fileName={canvasFileName}
+        onClose={handleCloseCanvas}
       />
 
       <Dialog open={!!lockDialog} onOpenChange={(o) => !o && setLockDialog(null)}>
