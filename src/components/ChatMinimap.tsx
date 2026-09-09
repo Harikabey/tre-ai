@@ -26,13 +26,25 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
     return () => window.removeEventListener('resize', checkWidth);
   }, []);
 
+  // Helper function to get scroll element
+  const getScrollElement = (): HTMLElement | null => {
+    if (!scrollRef.current) return null;
+    // Try to find the Radix scroll area viewport
+    const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    // Fallback to scrollRef.current if viewport not found
+    return viewport || scrollRef.current;
+  };
+
   // Draw minimap
   useEffect(() => {
-    if (!canvasRef.current || !scrollRef.current || !isVisible || messages.length === 0) return;
+    if (!canvasRef.current || !isVisible || messages.length === 0) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    const scrollElement = getScrollElement();
+    if (!scrollElement) return;
 
     const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -59,15 +71,14 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, rect.width, rect.height);
 
-    // Calculate total content height (proportional to message count)
-    const totalHeight = messages.length * 8; // Each message gets 8px height in minimap
-    const viewportHeight = (rect.height / totalHeight) * rect.height;
-    const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    
-    if (!scrollElement) return;
+    // Calculate viewport position and size
+    const scrollHeight = scrollElement.scrollHeight || 1;
+    const clientHeight = scrollElement.clientHeight || 1;
+    const scrollTop = scrollElement.scrollTop || 0;
 
-    const scrollRatio = scrollElement.scrollTop / (scrollElement.scrollHeight - scrollElement.clientHeight || 1);
-    const viewportTop = scrollRatio * (rect.height - viewportHeight);
+    const viewportHeight = Math.max(10, (clientHeight / scrollHeight) * rect.height);
+    const scrollRatio = scrollHeight > clientHeight ? scrollTop / (scrollHeight - clientHeight) : 0;
+    const viewportTop = Math.max(0, scrollRatio * (rect.height - viewportHeight));
 
     // Draw message bars
     const barHeight = Math.max(1, rect.height / messages.length);
@@ -89,26 +100,27 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
 
   // Handle click to scroll
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const scrollElement = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    const scrollElement = getScrollElement();
     if (!scrollElement || !canvasRef.current || messages.length === 0) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const clickY = e.clientY - rect.top;
     const clickRatio = Math.max(0, Math.min(1, clickY / rect.height));
 
-    const totalScroll = scrollElement.scrollHeight - scrollElement.clientHeight;
-    scrollElement.scrollTop = clickRatio * totalScroll;
+    const totalScroll = (scrollElement.scrollHeight || 0) - (scrollElement.clientHeight || 0);
+    if (totalScroll > 0) {
+      scrollElement.scrollTop = clickRatio * totalScroll;
+    }
   };
 
   if (!isVisible || messages.length === 0) return null;
 
   return (
-    <div className="hidden lg:flex flex-col w-12 border-l border-border/50 bg-card/40 backdrop-blur-sm p-1">
+    <div className="hidden lg:flex flex-col h-full w-12 border-l border-border/50 bg-card/40 backdrop-blur-sm p-1">
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
-        className="flex-1 cursor-pointer hover:bg-card/60 transition-colors rounded"
-        style={{ minHeight: '200px' }}
+        className="flex-1 w-full cursor-pointer hover:bg-card/60 transition-colors rounded"
       />
     </div>
   );
