@@ -71,7 +71,7 @@ const Settings = () => {
   const [importing, setImporting] = useState(false);
   const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
 
-  // ===== ARKA PLAN RESMİ AYARI (BİLEŞEN İÇİNE TAŞINDI) =====
+  // ===== ARKA PLAN RESMİ AYARI =====
   const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
   const [bgError, setBgError] = useState<string>('');
 
@@ -1147,7 +1147,7 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* ARKA PLAN RESMİ AYARI (BURAYA EKLENDİ) */}
+          {/* ARKA PLAN RESMİ AYARI */}
           <div className="border-t border-border/30 pt-4">
             <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4">
               <h3 className="text-lg font-medium text-foreground mb-2 flex items-center gap-2">
