@@ -18,11 +18,10 @@ import { addStarred, removeStarred, isStarred } from '@/lib/starredDb';
 interface ChatMessageProps {
   message: Message;
   onReact?: (messageId: string, emoji: string) => void;
-  onPreview?: (code: string, fileName: string) => void; // YENİ PROP
+  onPreview?: (code: string, fileName: string) => void;
   chatId?: string | null;
   chatTitle?: string;
 }
-
 
 const WEB_SEARCH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-search`;
 
@@ -63,6 +62,11 @@ const searchSources = async (query: string): Promise<Citation[]> => {
     return [];
   }
 };
+
+// ===== handleSearchSources TANIMLANDI =====
+const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
+  return searchSources(query);
+}, []);
 
 export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
@@ -135,17 +139,14 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     !displayContent.startsWith('❌');
 
   // ===== DOSYA İÇERİĞİNİ YAKALAMA (ÖNİZLEME İÇİN) =====
-  // Kod bloğunu yakala (```html ... ``` veya ```javascript ... ```)
   const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/);
   const codeContent = codeBlockMatch ? codeBlockMatch[2].trim() : null;
   const codeLanguage = codeBlockMatch ? codeBlockMatch[1] : null;
   const isPreviewable = codeContent && (codeLanguage === 'html' || codeLanguage === 'javascript' || codeLanguage === 'js' || codeLanguage === 'css');
 
-  // Dosya ismini oluştur (dosya varsa onu kullan, yoksa kod türüne göre isim ver)
   const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
 
   const handlePreviewClick = () => {
-    // Eğer dosya içeriği doğrudan varsa onu kullan, yoksa kod bloğunu kullan
     const contentToPreview = displayContent || codeContent;
     if (onPreview && contentToPreview) {
       onPreview(contentToPreview, previewFileName);
@@ -265,7 +266,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </div>
             ) : (
               <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
-                {/* DOSYA İKONU (ÖNİZLEME TETİKLEYİCİSİ) */}
                 <button
                   onClick={handlePreviewClick}
                   className="flex items-center gap-2 flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
@@ -274,7 +274,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                   <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                   <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
                 </button>
-                {/* ÖNİZLEME BUTONU (GÖZ İKONU) */}
                 {isPreviewable && (
                   <button
                     onClick={handlePreviewClick}
