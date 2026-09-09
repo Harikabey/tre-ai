@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -13,6 +14,7 @@ interface ChatMinimapProps {
 
 const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
 
   // Check screen width and update visibility
@@ -79,17 +81,36 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
     .map((msg, idx) => ({ msg, idx }))
     .filter(({ msg }) => msg.role === 'user');
 
+  // If minimap is closed, show only the toggle button
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="hidden lg:flex flex-col items-center justify-center w-12 border-l border-border/20 bg-transparent hover:bg-black/5 transition-colors"
+        title="Show chat minimap"
+      >
+        <ChevronLeft className="w-4 h-4 text-muted-foreground/60 hover:text-muted-foreground" />
+      </button>
+    );
+  }
+
   return (
-    <div className="hidden lg:flex flex-col gap-2 w-16 px-2 py-4 border-l border-border/30 bg-background/80 backdrop-blur-sm overflow-y-auto">
+    <div className="hidden lg:flex flex-col gap-2 w-16 px-2 py-4 border-l border-border/20 bg-transparent backdrop-blur-md overflow-y-auto">
+      {/* Close button */}
+      <button
+        onClick={() => setIsOpen(false)}
+        className="flex-shrink-0 flex items-center justify-center w-full h-6 rounded text-muted-foreground/60 hover:text-muted-foreground hover:bg-black/5 transition-colors mb-2"
+        title="Hide chat minimap"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+
       {userMessages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/50">
           —
         </div>
       ) : (
         userMessages.map(({ msg, idx }) => {
-          // Calculate indicator position based on message index in full messages array
-          const position = (idx / Math.max(messages.length - 1, 1)) * 100;
-
           return (
             <button
               key={msg.id}
@@ -101,7 +122,7 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm group-hover:w-2.5 group-hover:h-2.5 transition-all" />
 
               {/* Hover tooltip */}
-              <span className="hidden group-hover:block absolute right-full mr-2 px-2 py-1 text-xs whitespace-nowrap bg-secondary text-secondary-foreground rounded pointer-events-none z-10">
+              <span className="hidden group-hover:block absolute right-full mr-2 px-2 py-1 text-xs whitespace-nowrap bg-secondary text-secondary-foreground rounded pointer-events-none z-10 shadow-md">
                 Q{idx + 1}
               </span>
             </button>
