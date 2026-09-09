@@ -50,8 +50,11 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
   }, [isVisible, messages.length, scrollRef]);
 
   // Handle click on indicator to scroll to message
-  const handleIndicatorClick = (messageId: string, index: number) => {
-    const messageElement = document.getElementById(`message-${messageId}`);
+  const handleIndicatorClick = (e: React.MouseEvent<HTMLButtonElement>, messageId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const messageElement = document.getElementById(`msg-${messageId}`);
     if (messageElement) {
       messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -59,7 +62,7 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
 
   if (!isVisible || messages.length === 0) return null;
 
-  // Calculate which messages are visible in viewport
+  // Calculate scroll metrics
   const getScrollElement = (): HTMLElement | null => {
     if (!scrollRef.current) return null;
     const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
@@ -90,7 +93,7 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
           return (
             <button
               key={msg.id}
-              onClick={() => handleIndicatorClick(msg.id, idx)}
+              onClick={(e) => handleIndicatorClick(e, msg.id)}
               title={`Jump to message ${idx + 1}`}
               className="group relative flex flex-col items-center gap-1 transition-opacity hover:opacity-100 opacity-70"
             >
@@ -98,7 +101,7 @@ const ChatMinimap: React.FC<ChatMinimapProps> = ({ messages, scrollRef }) => {
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm group-hover:w-2.5 group-hover:h-2.5 transition-all" />
 
               {/* Hover tooltip */}
-              <span className="hidden group-hover:block absolute right-full mr-2 px-2 py-1 text-xs whitespace-nowrap bg-secondary text-secondary-foreground rounded pointer-events-none">
+              <span className="hidden group-hover:block absolute right-full mr-2 px-2 py-1 text-xs whitespace-nowrap bg-secondary text-secondary-foreground rounded pointer-events-none z-10">
                 Q{idx + 1}
               </span>
             </button>
