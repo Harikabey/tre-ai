@@ -70,7 +70,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">4. Yapay Zeka İçeriği ve Sorumluluk Reddi</h3>
               <p>
-                TreFriend yapay zeka tarafından üretilen yanıtlar, tavsiyeler, analizler ve görseller bilgilendirme amaçlıdır. Yapay zeka tarafından üretilen hiçbir içerik; tıbbi, hukuki, mali, psikolojik veya profesyonel danışmanlık yerine geçmez. Yapay zeka yanıtlarının doğruluğu, eksiksizliği veya güncelliği garanti edilmez. Kullanıcı, yapay zeka tarafından üretilen içeriklere dayanarak aldığı kararlardan ve bu kararların sonuçlarından tamamen kendisi sorumludur. Treasure şirketi, yapay zeka yanıtlarından kaynaklanan doğrudan veya dolaylı hiçbir zarardan sorumlu tutulamaz.
+                Tre yapay zeka tarafından üretilen yanıtlar, tavsiyeler, analizler ve görseller bilgilendirme amaçlıdır. Yapay zeka tarafından üretilen hiçbir içerik; tıbbi, hukuki, mali, psikolojik veya profesyonel danışmanlık yerine geçmez. Yapay zeka yanıtlarının doğruluğu, eksiksizliği veya güncelliği garanti edilmez. Kullanıcı, yapay zeka tarafından üretilen içeriklere dayanarak aldığı kararlardan ve bu kararların sonuçlarından tamamen kendisi sorumludur. Treasure şirketi, yapay zeka yanıtlarından kaynaklanan doğrudan veya dolaylı hiçbir zarardan sorumlu tutulamaz.
               </p>
             </section>
 
@@ -84,14 +84,14 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">6. Fikri Mülkiyet Hakları</h3>
               <p>
-                TreFriend hizmetinin tüm fikri mülkiyet hakları Treasure şirketine aittir. Yapay zeka tarafından oluşturulan görseller ve içerikler kişisel kullanım amaçlıdır. Kullanıcı tarafından yüklenen içeriklerin telif hakkı sorumluluğu kullanıcıya aittir.
+                Tre hizmetinin tüm fikri mülkiyet hakları Treasure şirketine aittir. Yapay zeka tarafından oluşturulan görseller ve içerikler kişisel kullanım amaçlıdır. Kullanıcı tarafından yüklenen içeriklerin telif hakkı sorumluluğu kullanıcıya aittir.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">7. Sorumluluk Sınırlandırması</h3>
               <p>
-                Treasure şirketi ve TreFriend hizmeti; hizmetin kesintisiz, hatasız veya güvenli olacağını garanti etmez. Hizmetin kullanımından kaynaklanan doğrudan, dolaylı, arızi, özel, cezai veya sonuç olarak ortaya çıkan hiçbir zarardan (kâr kaybı, veri kaybı, itibar kaybı dahil) sorumlu tutulamaz. Hizmetin kullanılamaması, veri kaybı veya güvenlik ihlali durumlarında sorumluluk kabul etmez. Treasure şirketinin toplam sorumluluğu, her durumda kullanıcının son 12 ayda hizmet için ödediği toplam tutarla sınırlıdır.
+                Treasure şirketi ve Tre hizmeti; hizmetin kesintisiz, hatasız veya güvenli olacağını garanti etmez. Hizmetin kullanımından kaynaklanan doğrudan, dolaylı, arızi, özel, cezai veya sonuç olarak ortaya çıkan hiçbir zarardan (kâr kaybı, veri kaybı, itibar kaybı dahil) sorumlu tutulamaz. Hizmetin kullanılamaması, veri kaybı veya güvenlik ihlali durumlarında sorumluluk kabul etmez. Treasure şirketinin toplam sorumluluğu, her durumda kullanıcının son 12 ayda hizmet için ödediği toplam tutarla sınırlıdır.
               </p>
             </section>
 
@@ -133,21 +133,21 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">13. Erişilebilirlik</h3>
               <p>
-                TreFriend, tüm kullanıcıların hizmetten eşit şekilde faydalanabilmesi için erişilebilirlik özellikleri sunar. Yüksek kontrast modu, yazı ölçeği ayarlama ve animasyonları azaltma gibi seçenekler kullanıcıların bireysel ihtiyaçlarına göre yapılandırılabilir. Treasure şirketi, erişilebilirlik standartlarını sürekli iyileştirmeyi taahhüt eder.
+                Tre, tüm kullanıcıların hizmetten eşit şekilde faydalanabilmesi için erişilebilirlik özellikleri sunar. Yüksek kontrast modu, yazı ölçeği ayarlama ve animasyonları azaltma gibi seçenekler kullanıcıların bireysel ihtiyaçlarına göre yapılandırılabilir. Treasure şirketi, erişilebilirlik standartlarını sürekli iyileştirmeyi taahhüt eder.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">14. E-posta ve Üçüncü Taraf Hesap Erişimi</h3>
               <p>
-                Kullanıcı, TreFriend'e Google hesabı gibi üçüncü taraf hesaplarını bağlayarak e-posta okuma, özetleme ve taslak oluşturma gibi ek işlevleri etkinleştirebilir. Bu erişim yalnızca kullanıcının açık onayı ile sağlanır ve kullanıcı istediği zaman erişimi iptal edebilir. Bağlanan hesaplar üzerinden erişilen veriler, yalnızca talep edilen işlevler kapsamında kullanılır ve üçüncü şahıslarla paylaşılmaz. Treasure şirketi, üçüncü taraf hizmetlerinin kesintisiz veya hatasız çalışacağını garanti etmez.
+                Kullanıcı, Tre'e Google hesabı gibi üçüncü taraf hesaplarını bağlayarak e-posta okuma, özetleme ve taslak oluşturma gibi ek işlevleri etkinleştirebilir. Bu erişim yalnızca kullanıcının açık onayı ile sağlanır ve kullanıcı istediği zaman erişimi iptal edebilir. Bağlanan hesaplar üzerinden erişilen veriler, yalnızca talep edilen işlevler kapsamında kullanılır ve üçüncü şahıslarla paylaşılmaz. Treasure şirketi, üçüncü taraf hizmetlerinin kesintisiz veya hatasız çalışacağını garanti etmez.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">15. Kullanıcı Hafızası ve Kişiselleştirme</h3>
               <p>
-                TreFriend, kullanıcı deneyimini iyileştirmek amacıyla sohbet geçmişinden öğrenilen bilgileri (ilgi alanları, tercihler, hatıralar) saklayabilir. Bu veriler yalnızca ilgili kullanıcının hesabıyla ilişkilendirilir ve kişiselleştirilmiş yanıtlar sunmak için kullanılır. Kullanıcı, hafıza verilerini istediği zaman görüntüleyebilir ve silebilir.
+                Tre, kullanıcı deneyimini iyileştirmek amacıyla sohbet geçmişinden öğrenilen bilgileri (ilgi alanları, tercihler, hatıralar) saklayabilir. Bu veriler yalnızca ilgili kullanıcının hesabıyla ilişkilendirilir ve kişiselleştirilmiş yanıtlar sunmak için kullanılır. Kullanıcı, hafıza verilerini istediği zaman görüntüleyebilir ve silebilir.
               </p>
             </section>
 
