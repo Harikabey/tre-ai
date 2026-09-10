@@ -1,6 +1,6 @@
-# TreFriend - Akıllı Yapay Zeka Asistanı
+# Tre - Akıllı Yapay Zeka Asistanı
 
-TreFriend, Treasure şirketi tarafından geliştirilen gelişmiş yapay zeka sohbet asistanıdır.
+Tre, Treasure şirketi tarafından geliştirilen gelişmiş yapay zeka sohbet asistanıdır.
 
 ## Özellikler
 
