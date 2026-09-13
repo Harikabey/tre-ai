@@ -73,7 +73,6 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
   const [showTranslation, setShowTranslation] = useState(false);
   const [starred, setStarred] = useState(false);
 
-  // ===== handleSearchSources BURADA TANIMLANIYOR =====
   const handleSearchSources = useCallback(async (query: string): Promise<Citation[]> => {
     return searchSources(query);
   }, []);
@@ -136,17 +135,26 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     !displayContent.includes('🎨 Görsel oluşturuluyor') &&
     !displayContent.startsWith('❌');
 
+  // ===== KOD BLOĞUNU YAKALA (HTML ÖNİZLEME İÇİN) =====
   const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/);
   const codeContent = codeBlockMatch ? codeBlockMatch[2].trim() : null;
   const codeLanguage = codeBlockMatch ? codeBlockMatch[1] : null;
-  const isPreviewable = codeContent && (codeLanguage === 'html' || codeLanguage === 'javascript' || codeLanguage === 'js' || codeLanguage === 'css');
+  const isPreviewable = !!codeContent && (
+    codeLanguage === 'html' ||
+    codeLanguage === 'javascript' ||
+    codeLanguage === 'js' ||
+    codeLanguage === 'css'
+  );
 
   const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
 
+  // ===== DÜZELTİLDİ: codeContent ÖNCELİKLİ =====
   const handlePreviewClick = () => {
-    const contentToPreview = displayContent || codeContent;
+    const contentToPreview = codeContent || displayContent || message.content;
     if (onPreview && contentToPreview) {
       onPreview(contentToPreview, previewFileName);
+    } else {
+      console.warn('Önizlenecek içerik bulunamadı');
     }
   };
 
