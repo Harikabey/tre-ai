@@ -27,7 +27,11 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
     );
   }
 
-  const isRunnable = language === 'javascript' || language === 'js';
+  // ✅ HTML desteği eklendi
+  const isRunnable =
+    language === 'javascript' ||
+    language === 'js' ||
+    language === 'html';
 
   return (
     <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50 max-w-full">
@@ -46,10 +50,10 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
-              title="Çalistir"
+              title="Çalıştır"
             >
               <Play className="w-3 h-3" />
-              <span>{showRunner ? 'Gizle' : 'Çalistir'}</span>
+              <span>{showRunner ? 'Gizle' : 'Çalıştır'}</span>
             </button>
           )}
           <button
@@ -64,7 +68,7 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
             {copied ? (
               <>
                 <Check className="w-3 h-3" />
-                <span>Kopyalandi</span>
+                <span>Kopyalandı</span>
               </>
             ) : (
               <>
