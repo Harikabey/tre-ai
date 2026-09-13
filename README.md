@@ -4,7 +4,7 @@
 
 ---
 
-### 🌟 Öne Çıkan Özellikler ve Modeller
+### 🌟 Öne Çıkan Özellikler ve Modeller 
 
 * 🧠 **Kişisel Hafıza & Duygu Analizi:** Tüm sohbetlerden öğrenir, tercihlerinizi hatırlar ve ruh halinize göre tonda uyum sağlar.
 * 🎭 **6 Farklı Kişilik & Düşünme Modları:** Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı ve Ayna modları; Hızlı ve Derin düşünme seçenekleri.
