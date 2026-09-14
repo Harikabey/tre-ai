@@ -78,33 +78,35 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
   const isPreviewableFile = ['.html', '.htm', '.js', '.css'].some(extName => file.fileName.toLowerCase().endsWith(extName));
 
   return (
-    <div className="my-2 flex items-center gap-3 p-3 bg-secondary/50 border border-border/50 rounded-lg">
+    <div className="my-2 flex max-w-full items-center gap-3 overflow-hidden rounded-lg border border-border/50 bg-secondary/50 p-3">
       <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center">
         <FileText className="w-5 h-5 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{file.fileName}</p>
+      <div className="flex-1 min-w-0 max-w-full overflow-hidden">
+        <p className="truncate text-sm font-medium break-all">{file.fileName}</p>
         <p className="text-xs text-muted-foreground">{ext.toUpperCase()} • {sizeKB} KB</p>
       </div>
       {isPreviewableFile && onPreview && (
         <Button
           variant="outline"
-          size="sm"
-          className="flex-shrink-0 gap-1.5"
+          size="icon"
+          className="flex-shrink-0 h-8 w-8 p-1.5 rounded-md"
           onClick={handlePreview}
+          title="Çalıştır"
+          aria-label="Çalıştır"
         >
-          <Play className="w-3.5 h-3.5" />
-          Çalıştır
+          <Play className="h-3.5 w-3.5" />
         </Button>
       )}
       <Button
         variant="outline"
-        size="sm"
-        className="flex-shrink-0 gap-1.5"
+        size="icon"
+        className="flex-shrink-0 h-8 w-8 p-1.5 rounded-md"
         onClick={handleDownload}
+        title="İndir"
+        aria-label="İndir"
       >
-        <Download className="w-3.5 h-3.5" />
-        İndir
+        <Download className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
