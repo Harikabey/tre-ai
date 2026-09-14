@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 interface FileBlock {
   fileName: string;
-  content: string;
+  content?: string | null;
 }
 
 export const parseFileBlocks = (content: string): { cleanContent: string; files: FileBlock[] } => {
@@ -29,7 +29,8 @@ interface FileDownloadBlockProps {
 
 export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPreview?: (code: string, fileName: string) => void }) => {
   const handleDownload = useCallback(() => {
-    const blob = new Blob([file.content], { type: getMimeType(file.fileName) });
+    const content = typeof file.content === 'string' ? file.content : '';
+    const blob = new Blob([content], { type: getMimeType(file.fileName) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -40,9 +41,26 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
     URL.revokeObjectURL(url);
   }, [file]);
 
+  const handlePreview = useCallback(() => {
+    if (!onPreview) return;
+
+    const content = typeof file.content === 'string' ? file.content : '';
+    if (content.length > 0) {
+      onPreview(content, file.fileName);
+      return;
+    }
+
+    // Kart içerik modeli string değilse; kart bağlanmış "content" alanı tespit edilemeyecekse bile
+    // preview channel'i aynı imzayla çalışacak şekilde kullanılır.
+    if (file && typeof file === 'object' && 'content' in file) {
+      onPreview(String((file as any).content || ''), file.fileName);
+    }
+  }, [file, onPreview]);
+
   const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
-  const sizeKB = Math.round(new Blob([file.content]).size / 1024 * 10) / 10;
-  const isPreviewableFile = ['.html', '.htm', '.js', '.css'].some(ext => file.fileName.toLowerCase().endsWith(ext));
+  const contentSize = typeof file.content === 'string' ? new Blob([file.content]).size : 0;
+  const sizeKB = Math.round(contentSize / 1024 * 10) / 10;
+  const isPreviewableFile = ['.html', '.htm', '.js', '.css'].some(extName => file.fileName.toLowerCase().endsWith(extName));
 
   return (
     <div className="my-2 flex items-center gap-3 p-3 bg-secondary/50 border border-border/50 rounded-lg">
@@ -53,6 +71,17 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
         <p className="text-sm font-medium truncate">{file.fileName}</p>
         <p className="text-xs text-muted-foreground">{ext.toUpperCase()} • {sizeKB} KB</p>
       </div>
+      {isPreviewableFile && onPreview && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-shrink-0 gap-1.5"
+          onClick={handlePreview}
+        >
+          <Play className="w-3.5 h-3.5" />
+          Çalıştır
+        </Button>
+      )}
       <Button
         variant="outline"
         size="sm"
@@ -62,17 +91,6 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
         <Download className="w-3.5 h-3.5" />
         İndir
       </Button>
-      {isPreviewableFile && onPreview && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-shrink-0 gap-1.5"
-          onClick={() => onPreview(file.content, file.fileName)}
-        >
-          <Play className="w-3.5 h-3.5" />
-          Çalıştır
-        </Button>
-      )}
     </div>
   );
 };

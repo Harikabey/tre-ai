@@ -295,10 +295,10 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
         {downloadableFiles.length > 0 && (
           <div className="mb-2">
             {downloadableFiles.map((file, index) => (
-              <FileDownloadBlock 
-                key={index} 
-                file={file} 
-                onPreview={isPreviewable ? handlePreviewClick : undefined}
+              <FileDownloadBlock
+                key={index}
+                file={file}
+                onPreview={handlePreviewClick}
               />
             ))}
           </div>
