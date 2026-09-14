@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 interface FileBlock {
   fileName: string;
   content?: string | null;
+  fileUrl?: string | null;
 }
 
 export const parseFileBlocks = (content: string): { cleanContent: string; files: FileBlock[] } => {
@@ -16,6 +17,7 @@ export const parseFileBlocks = (content: string): { cleanContent: string; files:
     files.push({
       fileName: match[1].trim(),
       content: match[2],
+      fileUrl: null,
     });
   }
 
@@ -41,20 +43,33 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
     URL.revokeObjectURL(url);
   }, [file]);
 
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
     if (!onPreview) return;
 
-    const content = typeof file.content === 'string' ? file.content : '';
+    const content = typeof file.content === 'string' ? file.content.trim() : '';
     if (content.length > 0) {
       onPreview(content, file.fileName);
       return;
     }
 
-    // Kart içerik modeli string değilse; kart bağlanmış "content" alanı tespit edilemeyecekse bile
-    // preview channel'i aynı imzayla çalışacak şekilde kullanılır.
-    if (file && typeof file === 'object' && 'content' in file) {
-      onPreview(String((file as any).content || ''), file.fileName);
+    if (file.fileUrl) {
+      try {
+        const response = await fetch(file.fileUrl);
+        if (!response.ok) {
+          onPreview('', file.fileName);
+          return;
+        }
+        const fetchedText = await response.text();
+        onPreview(fetchedText, file.fileName);
+        return;
+      } catch (error) {
+        console.error('Preview fetch failed:', error);
+        onPreview('', file.fileName);
+        return;
+      }
     }
+
+    onPreview('', file.fileName);
   }, [file, onPreview]);
 
   const ext = file.fileName.split('.').pop()?.toLowerCase() || '';

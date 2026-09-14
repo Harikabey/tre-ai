@@ -113,6 +113,11 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     return { cleanContent: contentWithoutSources, files: [] };
   }, [contentWithoutSources, isBot]);
 
+  const enrichedDownloadableFiles = downloadableFiles.map((file) => ({
+    ...file,
+    fileUrl: file.fileUrl || fileUrl,
+  }));
+
   let displayContent = contentWithoutFiles
     .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
@@ -148,13 +153,17 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
 
   const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
 
-  // ===== DÜZELTİLDİ: codeContent ÖNCELİKLİ =====
-  const handlePreviewClick = () => {
-    const contentToPreview = codeContent || displayContent || message.content;
-    if (onPreview && contentToPreview) {
-      onPreview(contentToPreview, previewFileName);
-    } else {
-      console.warn('Önizlenecek içerik bulunamadı');
+  const handlePreviewClick = (codeToPreview?: string, explicitFileName?: string) => {
+    const safeCode = typeof codeToPreview === 'string' ? codeToPreview.trim() : '';
+    const contentToPreview = safeCode || codeContent || '';
+
+    if (!contentToPreview) {
+      console.warn('Önizlenecek gerçek içerik bulunamadı');
+      return;
+    }
+
+    if (onPreview) {
+      onPreview(contentToPreview, explicitFileName || previewFileName);
     }
   };
 
@@ -244,10 +253,10 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
       
       <div
         className={cn(
-          'chat-bubble max-w-[85%] sm:max-w-[75%] break-words min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
+          'chat-bubble max-w-[85%] sm:max-w-[75%] ml-auto break-words overflow-hidden min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl',
           isBot
             ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm'
-            : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[85%] sm:max-w-[75%] break-words'
+            : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
         )}
       >
         {fileUrl && (
@@ -292,9 +301,9 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {downloadableFiles.length > 0 && (
+        {enrichedDownloadableFiles.length > 0 && (
           <div className="mb-2">
-            {downloadableFiles.map((file, index) => (
+            {enrichedDownloadableFiles.map((file, index) => (
               <FileDownloadBlock
                 key={index}
                 file={file}
@@ -341,7 +350,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
 
         {displayContent && (
           isBot ? (
-            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
+            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere] overflow-hidden">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -398,7 +407,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </ReactMarkdown>
             </div>
           ) : (
-            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-all break-words">
+            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-all break-words [word-break:break-word] [overflow-wrap:anywhere] overflow-hidden">
               {displayContent}
             </p>
           )
