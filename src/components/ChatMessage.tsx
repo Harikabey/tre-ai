@@ -280,7 +280,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
             ) : (
               <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
                 <button
-                  onClick={handlePreviewClick}
+                  onClick={() => handlePreviewClick()}
                   className="flex items-center gap-2 flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
                   title="Önizle"
                 >
@@ -289,11 +289,12 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                 </button>
                 {isPreviewable && (
                   <button
-                    onClick={handlePreviewClick}
-                    className="p-1 rounded-md hover:bg-primary/20 transition-colors"
-                    title="Canlı Önizle"
+                    onClick={() => handlePreviewClick()}
+                    title="Çalıştır"
+                    aria-label="Çalıştır"
+                    className="p-1.5 rounded-md hover:bg-primary/20 text-primary transition-colors"
                   >
-                    <Eye className="w-3.5 h-3.5 text-primary" />
+                    <Eye className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
