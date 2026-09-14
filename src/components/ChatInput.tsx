@@ -401,7 +401,7 @@ export const ChatInput = ({
   }, []);
 
   return (
-    <div className="p-3 sm:p-4 pb-safe border-t border-border/50 bg-card/50 backdrop-blur-sm safe-area-inset-bottom">
+    <div className="w-full max-w-full px-2 py-2 sm:px-4 sm:py-3 pb-safe border-t border-border/50 bg-card/50 backdrop-blur-sm safe-area-inset-bottom overflow-x-hidden">
       {pendingQuestion && (
         <div className="mb-3 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg text-sm">
           <div className="flex items-center gap-2 text-accent flex-wrap">

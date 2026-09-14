@@ -414,9 +414,9 @@ const Index = () => {
       }}
     >
       {/* Gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none select-none overflow-hidden max-w-full" />
 
-      <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-hidden">
+      <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-x-hidden w-full max-w-full">
         <ConversationSidebar
           conversations={conversations}
           currentConversationId={currentConversationId}
@@ -429,7 +429,7 @@ const Index = () => {
           onRenameConversation={renameConversation}
         />
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
           <ChatHeader
             isLearningMode={isLearningMode}
             onLearningModeChange={setIsLearningMode}
@@ -461,8 +461,8 @@ const Index = () => {
             onToggleLock={handleToggleLock}
           />
 
-          <div className="flex-1 flex overflow-hidden min-w-0">
-            <div className="flex-1 overflow-hidden flex flex-col" ref={scrollRef}>
+          <div className="flex-1 flex overflow-hidden min-w-0 w-full max-w-full">
+            <div className="flex-1 overflow-hidden flex flex-col overflow-x-hidden w-full max-w-full" ref={scrollRef}>
               {isCurrentHidden ? (
                 <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
