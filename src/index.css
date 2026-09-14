@@ -173,6 +173,31 @@
   }
 }
 
+@media (max-width: 767px) {
+  #root {
+    width: min(100vw, 430px);
+    min-height: 100dvh;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  .mobile-9-16-frame {
+    width: min(100vw, 430px);
+    min-height: 100dvh;
+    max-height: 100dvh;
+    aspect-ratio: 9 / 16;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .mobile-9-16-frame > main {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 @layer utilities {
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;

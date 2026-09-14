@@ -403,7 +403,7 @@ const Index = () => {
 
   return (
     <div
-      className="min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden"
+      className="mobile-9-16-frame min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden"
       style={{
         backgroundImage: bgImage
           ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${bgImage})`
