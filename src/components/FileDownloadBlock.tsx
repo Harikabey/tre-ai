@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FileBlock {
@@ -27,7 +27,7 @@ interface FileDownloadBlockProps {
   file: FileBlock;
 }
 
-export const FileDownloadBlock = ({ file }: FileDownloadBlockProps) => {
+export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPreview?: (code: string, fileName: string) => void }) => {
   const handleDownload = useCallback(() => {
     const blob = new Blob([file.content], { type: getMimeType(file.fileName) });
     const url = URL.createObjectURL(blob);
@@ -42,6 +42,7 @@ export const FileDownloadBlock = ({ file }: FileDownloadBlockProps) => {
 
   const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
   const sizeKB = Math.round(new Blob([file.content]).size / 1024 * 10) / 10;
+  const isPreviewableFile = ['.html', '.htm', '.js', '.css'].some(ext => file.fileName.toLowerCase().endsWith(ext));
 
   return (
     <div className="my-2 flex items-center gap-3 p-3 bg-secondary/50 border border-border/50 rounded-lg">
@@ -61,6 +62,17 @@ export const FileDownloadBlock = ({ file }: FileDownloadBlockProps) => {
         <Download className="w-3.5 h-3.5" />
         İndir
       </Button>
+      {isPreviewableFile && onPreview && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-shrink-0 gap-1.5"
+          onClick={() => onPreview(file.content, file.fileName)}
+        >
+          <Play className="w-3.5 h-3.5" />
+          Çalıştır
+        </Button>
+      )}
     </div>
   );
 };

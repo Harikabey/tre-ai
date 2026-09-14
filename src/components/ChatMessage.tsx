@@ -136,9 +136,9 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     !displayContent.startsWith('❌');
 
   // ===== KOD BLOĞUNU YAKALA (HTML ÖNİZLEME İÇİN) =====
-  const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/);
+  const codeBlockMatch = displayContent.match(/```(html|javascript|js|css|python|py)\n([\s\S]*?)```/i);
   const codeContent = codeBlockMatch ? codeBlockMatch[2].trim() : null;
-  const codeLanguage = codeBlockMatch ? codeBlockMatch[1] : null;
+  const codeLanguage = codeBlockMatch ? codeBlockMatch[1].toLowerCase() : null;
   const isPreviewable = !!codeContent && (
     codeLanguage === 'html' ||
     codeLanguage === 'javascript' ||
