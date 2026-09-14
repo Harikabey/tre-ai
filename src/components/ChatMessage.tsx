@@ -253,9 +253,9 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
       
       <div
         className={cn(
-          'chat-bubble max-w-[85%] sm:max-w-[75%] ml-auto break-words overflow-hidden min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl',
+          'chat-bubble min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
-            ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm'
+            ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
             : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
         )}
       >
@@ -407,7 +407,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               </ReactMarkdown>
             </div>
           ) : (
-            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-all break-words [word-break:break-word] [overflow-wrap:anywhere] overflow-hidden">
+            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-all break-words overflow-hidden [word-break:break-word] [overflow-wrap:anywhere]">
               {displayContent}
             </p>
           )
