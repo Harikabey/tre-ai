@@ -416,7 +416,7 @@ const Index = () => {
       {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none select-none overflow-hidden max-w-full" />
 
-      <div className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto overflow-x-hidden w-full max-w-full">
+      <main className="relative z-10 flex h-screen h-[100dvh] max-w-7xl mx-auto w-full max-w-full overflow-x-hidden px-2 sm:px-4">
         <ConversationSidebar
           conversations={conversations}
           currentConversationId={currentConversationId}
@@ -477,8 +477,8 @@ const Index = () => {
               ) : messages.length === 0 ? (
                 <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
               ) : (
-                <ScrollArea className="h-full" onScrollCapture={handleChatScroll}>
-                  <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                <ScrollArea className="h-full w-full max-w-full overflow-x-hidden" onScrollCapture={handleChatScroll}>
+                  <div className="w-full max-w-full overflow-x-hidden px-2 sm:px-4 space-y-3 sm:space-y-4">
                     {isLoadingOlder && (
                       <div className="flex justify-center py-2">
                         <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
@@ -548,7 +548,7 @@ const Index = () => {
             onClose={() => setIsPanelOpen(false)}
           />
         </div>
-      </div>
+      </main>
 
       <GeneratedItemsPanel
         items={generatedItems}
