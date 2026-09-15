@@ -153,18 +153,37 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
 
   const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
 
-  const handlePreviewClick = (codeToPreview?: string, explicitFileName?: string) => {
-    const safeCode = typeof codeToPreview === 'string' ? codeToPreview.trim() : '';
-    const contentToPreview = safeCode || codeContent || '';
+  const handlePreviewClick = async (codeToPreview?: string, explicitFileName?: string) => {
+    if (!onPreview) return;
 
-    if (!contentToPreview) {
-      console.warn('Önizlenecek gerçek içerik bulunamadı');
+    const fileCode = typeof codeToPreview === 'string' ? codeToPreview.trim() : '';
+    if (fileCode) {
+      onPreview(fileCode, explicitFileName || previewFileName);
       return;
     }
 
-    if (onPreview) {
-      onPreview(contentToPreview, explicitFileName || previewFileName);
+    if (fileUrl) {
+      try {
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error(`Dosya alınamadı: ${response.status}`);
+
+        const fetchedText = (await response.text()).trim();
+        if (fetchedText) {
+          onPreview(fetchedText, explicitFileName || fileName || previewFileName);
+          return;
+        }
+      } catch (error) {
+        console.error('Dosya önizleme fetch işlemi başarısız:', error);
+      }
     }
+
+    const codeBlock = codeContent?.trim();
+    if (codeBlock) {
+      onPreview(codeBlock, explicitFileName || previewFileName);
+      return;
+    }
+
+    console.warn('Önizlenecek gerçek dosya içeriği bulunamadı');
   };
 
   const handleCopy = useCallback(() => {
