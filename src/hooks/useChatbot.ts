@@ -24,6 +24,7 @@ let isVoiceModeActive = false;
 export const setVoiceMode = (active: boolean) => { isVoiceModeActive = active; };
 export const getVoiceMode = () => isVoiceModeActive;
 
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
@@ -37,8 +38,6 @@ const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gene
 const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
 const CREATE_REMINDER_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-reminder`;
 const REMINDERS_ENABLED_KEY = 'ai_chatbot_reminders_enabled';
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
@@ -52,7 +51,7 @@ interface Conversation {
 }
 
 export const useChatbot = () => {
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const { 
     analyzeAndStore, 
     getMemoryContext, 
@@ -85,8 +84,8 @@ export const useChatbot = () => {
 
   const updateThinkingMode = useCallback((mode: ThinkingMode) => {
     setThinkingMode(mode);
-    if (!isGuest) localStorage.setItem(THINKING_MODE_KEY, mode);
-  }, [isGuest]);
+    localStorage.setItem(THINKING_MODE_KEY, mode);
+  }, []);
 
   // Load conversations and connected accounts when user changes
   useEffect(() => {
@@ -216,7 +215,7 @@ export const useChatbot = () => {
 
   // Keep the compressed local cache in sync with rendered messages (debounced)
   useEffect(() => {
-    if (isGuest || !currentConversationId || messages.length === 0) return;
+    if (!currentConversationId || messages.length === 0) return;
     const convId = currentConversationId;
     const snapshot = messages;
     const t = setTimeout(() => {
@@ -229,7 +228,7 @@ export const useChatbot = () => {
       }))).catch(() => {});
     }, 1200);
     return () => clearTimeout(t);
-  }, [isGuest, messages, currentConversationId]);
+  }, [messages, currentConversationId]);
 
   const selectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId);
@@ -302,24 +301,19 @@ export const useChatbot = () => {
 
   const streamChat = useCallback(async (conversationId: string, userMessage: string): Promise<string> => {
     // Get all messages for context
+    const { data: historyData } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    
     const MAX_HISTORY = 30;
-    let conversationHistory: ChatMessage[];
-    if (isGuest) {
-      conversationHistory = messages.slice(-MAX_HISTORY).map((message) => ({
-        role: message.role === 'bot' ? 'assistant' : 'user',
-        content: message.content,
-      }));
-    } else {
-      const { data: historyData } = await supabase
-        .from('messages')
-        .select('role, content')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-      conversationHistory = (historyData || []).slice(-MAX_HISTORY).map(m => ({
+    const conversationHistory: ChatMessage[] = (historyData || [])
+      .slice(-MAX_HISTORY)
+      .map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
-    }
     
     const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
@@ -341,18 +335,18 @@ export const useChatbot = () => {
       screen_share_enabled: localStorage.getItem('ai_chatbot_screen_share') === 'true',
     };
     
-    const resp = await fetch(OPENROUTER_URL, {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+   const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Tre AI",
+        Authorization: `Bearer ${token}`,
+        "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
       body: JSON.stringify({ 
         messages: newHistory, 
-        model: OPENROUTER_MODEL,
-        stream: true,
         personality, 
         thinkingMode,
         memoryContext,
@@ -429,7 +423,7 @@ export const useChatbot = () => {
     }
     
     return assistantContent;
-  }, [isGuest, messages, updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext]);
+  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext]);
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
@@ -793,15 +787,12 @@ export const useChatbot = () => {
 
   const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
-    if (!trimmedInput || (!user && !isGuest)) return;
+    if (!trimmedInput || !user) return;
 
     let conversationId = currentConversationId;
     
     // Create new conversation if needed
-    if (!conversationId && isGuest) {
-      conversationId = 'guest-conversation';
-      setCurrentConversationId(conversationId);
-    } else if (!conversationId) {
+    if (!conversationId) {
       conversationId = await createNewConversation();
       if (!conversationId) return;
     }
@@ -815,18 +806,6 @@ export const useChatbot = () => {
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
-
-    if (isGuest) {
-      setIsTyping(true);
-      try {
-        await streamChat(conversationId, trimmedInput);
-      } catch (error) {
-        updateLastBotMessage(error instanceof Error ? `❌ ${error.message}` : '❌ Bir hata oluştu.');
-      } finally {
-        setIsTyping(false);
-      }
-      return;
-    }
     
     // Save user message to DB and get the actual ID
     const { data: savedMessage } = await supabase
@@ -1149,10 +1128,10 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, isGuest, currentConversationId, conversations, createNewConversation, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
 
   const clearMessages = useCallback(async () => {
-    if (!isGuest && currentConversationId) {
+    if (currentConversationId) {
       await supabase
         .from('messages')
         .delete()
@@ -1162,17 +1141,9 @@ export const useChatbot = () => {
     setMessages([]);
     setHasMoreMessages(false);
     setPendingQuestion(null);
-  }, [isGuest, currentConversationId]);
+  }, [currentConversationId]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
-    if (isGuest) {
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      if (currentConversationId === conversationId) {
-        setCurrentConversationId(null);
-        setMessages([]);
-      }
-      return;
-    }
     // First delete all messages in the conversation (due to foreign key constraint)
     await supabase
       .from('messages')
@@ -1193,13 +1164,9 @@ export const useChatbot = () => {
       setCurrentConversationId(null);
       setMessages([]);
     }
-  }, [isGuest, currentConversationId]);
+  }, [currentConversationId]);
 
   const renameConversation = useCallback(async (conversationId: string, newTitle: string) => {
-    if (isGuest) {
-      setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c));
-      return;
-    }
     const { error } = await supabase
       .from('conversations')
       .update({ title: newTitle })
@@ -1210,13 +1177,9 @@ export const useChatbot = () => {
         prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c)
       );
     }
-  }, [isGuest]);
+  }, []);
 
   const deleteMessage = useCallback(async (messageId: string) => {
-    if (isGuest) {
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-      return;
-    }
     // Delete from database
     await supabase
       .from('messages')
@@ -1226,7 +1189,7 @@ export const useChatbot = () => {
     // Remove from local state
     await deleteCachedMessage(messageId).catch(() => {});
     setMessages(prev => prev.filter(m => m.id !== messageId));
-  }, [isGuest]);
+  }, []);
 
   const clearKnowledge = useCallback(() => {
     setKnowledgeBase([]);
@@ -1279,7 +1242,7 @@ export const useChatbot = () => {
 
     setMessages(prev => [...prev, userMsg, botMsg]);
 
-    if (convId && !isGuest) {
+    if (convId) {
       try {
         await supabase.from('messages').insert([
           { conversation_id: convId, role: 'user', content: userReactionContent },
@@ -1289,7 +1252,7 @@ export const useChatbot = () => {
         console.error('reaction save failed', e);
       }
     }
-  }, [currentConversationId, isGuest]);
+  }, [currentConversationId]);
 
   return {
     messages,

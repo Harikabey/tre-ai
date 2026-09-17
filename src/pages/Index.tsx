@@ -77,7 +77,7 @@ const hashPassword = async (pw: string) => {
 };
 
 const Index = () => {
-  const { user, isGuest, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   const location = useLocation();
@@ -264,19 +264,19 @@ const Index = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && !user && !isGuest) {
+    if (!authLoading && !user) {
       navigate('/auth');
     }
-  }, [user, isGuest, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const sharedHandledRef = useRef(false);
   useEffect(() => {
     const sharedText = (location.state as { sharedText?: string } | null)?.sharedText;
-    if (!sharedText || sharedHandledRef.current || (!user && !isGuest)) return;
+    if (!sharedText || sharedHandledRef.current || !user) return;
     sharedHandledRef.current = true;
     window.history.replaceState({}, '');
     sendMessage(sharedText);
-  }, [location.state, user, isGuest, sendMessage]);
+  }, [location.state, user, sendMessage]);
 
   const starredNavRef = useRef<string | null>(null);
   useEffect(() => {
