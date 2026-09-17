@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useVoice } from '@/hooks/useVoice';
+import { useAuth } from '@/hooks/useAuth';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
@@ -66,6 +67,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
 export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
+  const { isGuest } = useAuth();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
@@ -78,10 +80,11 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
   }, []);
 
   useEffect(() => {
+    if (isGuest) return;
     let active = true;
     isStarred(message.id).then((v) => active && setStarred(v));
     return () => { active = false; };
-  }, [message.id]);
+  }, [isGuest, message.id]);
 
   const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
   const fileName = fileMatch ? fileMatch[1] : null;
@@ -517,6 +520,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
               size="icon"
               className="h-5 w-5 sm:h-6 sm:w-6"
               title={starred ? 'Yıldızı kaldır' : 'Yıldızla'}
+              disabled={isGuest}
               onClick={async () => {
                 if (starred) {
                   await removeStarred(message.id);

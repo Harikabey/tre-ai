@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import {
   GeneratedItem,
   GeneratedItemKind,
@@ -25,7 +26,7 @@ async function syncToCloud(name: string, blob: Blob) {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) return;
-    const safe = name.replace(/[^\w.\-]/g, '_');
+    const safe = name.replace(/[^\w.-]/g, '_');
     await supabase.storage
       .from('chat-attachments')
       .upload(`${uid}/generated/${Date.now()}-${safe}`, blob, {
@@ -38,6 +39,7 @@ async function syncToCloud(name: string, blob: Blob) {
 }
 
 export const useGeneratedItems = () => {
+  const { isGuest } = useAuth();
   const [items, setItems] = useState<GeneratedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +49,10 @@ export const useGeneratedItems = () => {
   }, []);
 
   useEffect(() => {
+    if (isGuest) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         await refresh();
@@ -54,7 +60,7 @@ export const useGeneratedItems = () => {
         setLoading(false);
       }
     })();
-  }, [refresh]);
+  }, [isGuest, refresh]);
 
   const addFromBlob = useCallback(async (params: {
     name: string;
@@ -63,6 +69,20 @@ export const useGeneratedItems = () => {
     kind?: GeneratedItemKind;
   }) => {
     const kind = params.kind || kindFromMimeOrName(params.blob.type || '', params.name);
+    if (isGuest) {
+      const item: GeneratedItem = {
+        id: `guest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: params.name,
+        kind,
+        mimeType: params.blob.type || 'application/octet-stream',
+        size: params.blob.size,
+        blob: params.blob,
+        prompt: params.prompt,
+        createdAt: Date.now(),
+      };
+      setItems((prev) => [item, ...prev]);
+      return item;
+    }
     const item = await dbAdd({
       name: params.name,
       blob: params.blob,
@@ -73,7 +93,7 @@ export const useGeneratedItems = () => {
     setItems((prev) => [item, ...prev]);
     syncToCloud(params.name, params.blob);
     return item;
-  }, []);
+  }, [isGuest]);
 
   const addFromUrl = useCallback(async (params: {
     url: string;
@@ -101,19 +121,31 @@ export const useGeneratedItems = () => {
   }, [addFromBlob]);
 
   const remove = useCallback(async (id: string) => {
+    if (isGuest) {
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      return;
+    }
     await dbDelete(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
-  }, []);
+  }, [isGuest]);
 
   const rename = useCallback(async (id: string, newName: string) => {
+    if (isGuest) {
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, name: newName } : item)));
+      return;
+    }
     await dbRename(id, newName);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, name: newName } : i)));
-  }, []);
+  }, [isGuest]);
 
   const clear = useCallback(async () => {
+    if (isGuest) {
+      setItems([]);
+      return;
+    }
     await dbClear();
     setItems([]);
-  }, []);
+  }, [isGuest]);
 
   return { items, loading, addFromBlob, addFromUrl, addFromText, remove, rename, clear, refresh };
 };

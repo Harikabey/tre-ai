@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { setGuestMode, useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +51,11 @@ const Auth = () => {
   const handleLangChange = (val: string) => {
     localStorage.setItem('ai_chatbot_language', val);
     setLang(val);
+  };
+
+  const handleTryIt = () => {
+    setGuestMode(true);
+    navigate('/');
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -290,6 +295,10 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+
+          <Button type="button" variant="secondary" className="mt-6 w-full" onClick={handleTryIt}>
+            Ücretsiz Dene / Try It
+          </Button>
         </CardContent>
       </Card>
 
