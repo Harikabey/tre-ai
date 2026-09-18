@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { TermsOfServiceDialog } from '@/components/TermsOfServiceDialog';
 import { getTranslations } from '@/utils/translations';
 import { languages as LANGUAGES } from '@/types/language';
+import TryTreButton from '@/components/TryTreButton'; // ✅ YENİ
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -290,6 +291,11 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+
+          {/* ✅ Tre'yi Dene Butonu */}
+          <div className="mt-6 pt-6 border-t border-border/50 flex justify-center">
+            <TryTreButton />
+          </div>
         </CardContent>
       </Card>
 
