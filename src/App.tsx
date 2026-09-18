@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import DemoChat from "./pages/DemoChat";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VoiceChat from "./pages/VoiceChat";
@@ -66,6 +67,7 @@ const App = () => (
 
           <Route path="/voice-chat" element={<VoiceChat />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/demo-chat" element={<DemoChat />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/extension" element={<ExtensionFeaturePreview />} />
           <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
