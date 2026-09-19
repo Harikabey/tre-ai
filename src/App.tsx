@@ -24,33 +24,6 @@ import "./hooks/useUICustomization"; // Apply UI customization on load (prevent 
 
 const queryClient = new QueryClient();
 
-// Apply saved preferences on app load (before React renders)
-(() => {
-  const root = document.documentElement;
-  // Theme
-  const savedTheme = localStorage.getItem('ai_chatbot_theme') || 'dark';
-  let effectiveTheme: string;
-  if (savedTheme === 'system') {
-    effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  } else {
-    effectiveTheme = savedTheme;
-  }
-  root.classList.remove('light', 'dark');
-  root.classList.add(effectiveTheme);
-  // Text scale
-  const savedScale = localStorage.getItem('ai_chatbot_text_scale');
-  if (savedScale) {
-    root.style.fontSize = `${parseFloat(savedScale) * 16}px`;
-  }
-  // Accessibility
-  if (localStorage.getItem('ai_chatbot_high_contrast') === 'true') {
-    root.classList.add('high-contrast');
-  }
-  if (localStorage.getItem('ai_chatbot_reduce_motion') === 'true') {
-    root.classList.add('reduce-motion');
-  }
-})();
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>

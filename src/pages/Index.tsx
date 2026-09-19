@@ -4,6 +4,7 @@ import { useChatbot } from '@/hooks/useChatbot';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useGeneratedItems } from '@/hooks/useGeneratedItems';
+import DemoChat from '@/pages/DemoChat';
 import { ChatHeader } from '@/components/ChatHeader';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
@@ -37,63 +38,19 @@ import {
 import CodeCanvasPanel from '@/components/CodeCanvasPanel';
 import ChatMinimap from '@/components/ChatMinimap';
 
-/* ---------- Chat lock: local-only IndexedDB storage ---------- */
-const LOCK_DB = 'tre_chat_locks';
-const LOCK_STORE = 'locks';
-
-const openLockDb = () =>
-  new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open(LOCK_DB, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(LOCK_STORE)) db.createObjectStore(LOCK_STORE, { keyPath: 'id' });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-
-const listLocks = async (): Promise<{ id: string; hash: string }[]> => {
-  const db = await openLockDb();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(LOCK_STORE, 'readonly').objectStore(LOCK_STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-};
-
-const putLock = async (id: string, hash: string) => {
-  const db = await openLockDb();
-  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).put({ id, hash });
-};
-
-const removeLock = async (id: string) => {
-  const db = await openLockDb();
-  db.transaction(LOCK_STORE, 'readwrite').objectStore(LOCK_STORE).delete(id);
-};
-
 const hashPassword = async (pw: string) => {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 
-const Index = () => {
-  const { user, loading: authLoading } = useAuth();
+const AuthenticatedIndex = () => {
+  const { user } = useAuth();
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   const location = useLocation();
 
   // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ =====
-  const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
-
-  useEffect(() => {
-    const updateBg = () => {
-      setBgImage(localStorage.getItem('chatBg') || '');
-    };
-
-    window.addEventListener('bgImageChanged', updateBg);
-
-    return () => window.removeEventListener('bgImageChanged', updateBg);
-  }, []);
+  const [bgImage] = useState('');
 
   // ===== CANVAS / KOD ÖNİZLEME STATE'LERİ (YENİ) =====
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
@@ -180,10 +137,6 @@ const Index = () => {
   const isCurrentHidden = isCurrentLocked && !unlockedIds.includes(currentConversationId!);
 
   useEffect(() => {
-    listLocks().then(setLocks).catch(() => {});
-  }, []);
-
-  useEffect(() => {
     const relock = () => setUnlockedIds([]);
     const onVisibility = () => { if (document.visibilityState === 'hidden') relock(); };
     document.addEventListener('visibilitychange', onVisibility);
@@ -223,7 +176,6 @@ const Index = () => {
     if (lockDialog.mode === 'set') {
       if (pw.length < 4) { setPwError('Şifre en az 4 karakter olmalı'); return; }
       const hash = await hashPassword(pw);
-      await putLock(lockDialog.convId, hash);
       setLocks((prev) => [...prev.filter((l) => l.id !== lockDialog.convId), { id: lockDialog.convId, hash }]);
       setUnlockedIds((prev) => prev.filter((i) => i !== lockDialog.convId));
       setLockDialog(null);
@@ -239,7 +191,6 @@ const Index = () => {
       if (window.innerWidth < 1024) setIsSidebarOpen(false);
       toast.success('Sohbet açıldı 🔓');
     } else {
-      await removeLock(lockDialog.convId);
       setLocks((prev) => prev.filter((l) => l.id !== lockDialog.convId));
       setUnlockedIds((prev) => [...prev, lockDialog.convId]);
       toast.success('Kilit kaldırıldı 🔓');
@@ -262,12 +213,6 @@ const Index = () => {
     toast.success('Seni duyuyorum...');
     navigate('/voice-chat');
   });
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
 
   const sharedHandledRef = useRef(false);
   useEffect(() => {
@@ -395,10 +340,6 @@ const Index = () => {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -632,6 +573,20 @@ const Index = () => {
       </Dialog>
     </div>
   );
+};
+
+const Index = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return user ? <AuthenticatedIndex /> : <DemoChat />;
 };
 
 export default Index;

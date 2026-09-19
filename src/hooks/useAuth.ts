@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { getInitialSession, supabase } from '@/integrations/supabase/client';
+import { getInitialSession, isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -8,6 +8,11 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -32,6 +37,10 @@ export const useAuth = () => {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, username?: string) => {
+    if (!isSupabaseConfigured) {
+      return { data: null, error: new Error('Supabase is unavailable') };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -48,6 +57,10 @@ export const useAuth = () => {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      return { data: null, error: new Error('Supabase is unavailable') };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -56,6 +69,8 @@ export const useAuth = () => {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!isSupabaseConfigured) return { error: null };
+
     const { error } = await supabase.auth.signOut();
     return { error };
   }, []);
