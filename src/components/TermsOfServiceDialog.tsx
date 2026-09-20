@@ -19,7 +19,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">Tre Kullanım Sözleşmesi</DialogTitle>
-          <DialogDescription>Son güncelleme: 7 Temmuz 2026</DialogDescription>
+          <DialogDescription>Son güncelleme: 20 Eylül 2026</DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
@@ -33,7 +33,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">2. Hizmet Tanımı</h3>
               <p>
-                Tre, Treasure tarafından geliştirilen yapay zeka destekli çok yönlü bir asistandır. Hizmet aşağıdaki başlıca özellikleri sunar:
+                Tre, Tre Geliştirici Ekibi tarafından geliştirilen yapay zeka destekli çok yönlü bir asistandır. Hizmet aşağıdaki başlıca özellikleri sunar:
               </p>
               <ul className="list-disc list-inside space-y-1 mt-2 ml-2">
                 <li>Metin tabanlı sohbet ve 6 farklı kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna),</li>
@@ -63,105 +63,106 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
                 <li>Üçüncü şahısların haklarını ihlal etmeyeceğinizi,</li>
                 <li>Hizmeti kötüye kullanmayacağınızı, zararlı içerik paylaşmayacağınızı,</li>
                 <li>Hizmeti tersine mühendislik, kopyalama veya dağıtma girişiminde bulunmayacağınızı,</li>
-                <li>18 yaşından büyük olduğunuzu veya yasal vasinin onayı ile kullandığınızı.</li>
+                <li>13 yaşından büyük olduğunuzu; 13-18 yaş aralığındaysanız yasal vasi onayı ile kullandığınızı,</li>
+                <li>Hizmeti kullanarak ürettiğiniz içeriklerin yasallığından ve doğruluğundan kendinizin sorumlu olduğunu.</li>
               </ul>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">4. Yapay Zeka İçeriği ve Sorumluluk Reddi</h3>
               <p>
-                Tre yapay zeka tarafından üretilen yanıtlar, tavsiyeler, analizler ve görseller bilgilendirme amaçlıdır. Yapay zeka tarafından üretilen hiçbir içerik; tıbbi, hukuki, mali, psikolojik veya profesyonel danışmanlık yerine geçmez. Yapay zeka yanıtlarının doğruluğu, eksiksizliği veya güncelliği garanti edilmez. Kullanıcı, yapay zeka tarafından üretilen içeriklere dayanarak aldığı kararlardan ve bu kararların sonuçlarından tamamen kendisi sorumludur. Treasure şirketi, yapay zeka yanıtlarından kaynaklanan doğrudan veya dolaylı hiçbir zarardan sorumlu tutulamaz.
+                Tre yapay zeka tarafından üretilen yanıtlar, tavsiyeler, analizler ve görseller bilgilendirme amaçlıdır. Yapay zeka tarafından üretilen hiçbir içerik; tıbbi, hukuki, mali, psikolojik veya profesyonel danışmanlık yerine geçmez. Yapay zeka yanıtlarının doğruluğu, eksiksizliği veya güncelliği garanti edilmez. Tre, bir makinedir; hata yapabilir, yanlış anlayabilir veya eksik cevap verebilir. Kullanıcı, yapay zeka tarafından üretilen içeriklere dayanarak aldığı kararlardan ve bu kararların sonuçlarından tamamen kendisi sorumludur. Tre Geliştirici Ekibi, yapay zeka yanıtlarından kaynaklanan doğrudan veya dolaylı hiçbir zarardan sorumlu tutulamaz.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">5. Gizlilik ve Veri İşleme</h3>
               <p>
-                Hizmeti kullanırken sağladığınız kişisel veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve ilgili mevzuat kapsamında işlenir. Sohbet geçmişiniz, yüklediğiniz dosyalar, kamera görüntüleri ve sesli komutlar dahil olmak üzere verileriniz; hizmetin sunulması, iyileştirilmesi ve kişiselleştirilmesi amacıyla toplanır ve işlenir. Treasure şirketi, kullanıcı verilerini yasal zorunluluklar dışında üçüncü şahıslarla paylaşmaz. Verilerinizin güvenliği için endüstri standardı şifreleme ve güvenlik önlemleri uygulanır.
+                Hizmeti kullanırken sağladığınız kişisel veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve ilgili mevzuat kapsamında işlenir. Sohbet geçmişiniz, yüklediğiniz dosyalar, kamera görüntüleri ve sesli komutlar dahil olmak üzere verileriniz; hizmetin sunulması, iyileştirilmesi ve kişiselleştirilmesi amacıyla toplanır ve işlenir. Verileriniz, endüstri standardı şifreleme yöntemleri (AES-256, TLS 1.3) ile korunur. Tre Geliştirici Ekibi, kullanıcı verilerini yasal zorunluluklar dışında üçüncü şahıslarla paylaşmaz.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">6. Fikri Mülkiyet Hakları</h3>
               <p>
-                Tre hizmetinin tüm fikri mülkiyet hakları Treasure şirketine aittir. Yapay zeka tarafından oluşturulan görseller ve içerikler kişisel kullanım amaçlıdır. Kullanıcı tarafından yüklenen içeriklerin telif hakkı sorumluluğu kullanıcıya aittir.
+                Tre hizmetinin tüm fikri mülkiyet hakları Tre Geliştirici Ekibi'ne aittir. Yapay zeka tarafından oluşturulan görseller ve içerikler kişisel kullanım amaçlıdır; ticari kullanım için Tre Geliştirici Ekibi'nden yazılı izin alınması gerekir. Kullanıcı tarafından yüklenen içeriklerin telif hakkı sorumluluğu kullanıcıya aittir.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">7. Sorumluluk Sınırlandırması</h3>
               <p>
-                Treasure şirketi ve Tre hizmeti; hizmetin kesintisiz, hatasız veya güvenli olacağını garanti etmez. Hizmetin kullanımından kaynaklanan doğrudan, dolaylı, arızi, özel, cezai veya sonuç olarak ortaya çıkan hiçbir zarardan (kâr kaybı, veri kaybı, itibar kaybı dahil) sorumlu tutulamaz. Hizmetin kullanılamaması, veri kaybı veya güvenlik ihlali durumlarında sorumluluk kabul etmez. Treasure şirketinin toplam sorumluluğu, her durumda kullanıcının son 12 ayda hizmet için ödediği toplam tutarla sınırlıdır.
+                Tre Geliştirici Ekibi ve Tre hizmeti; hizmetin kesintisiz, hatasız veya güvenli olacağını garanti etmez. Hizmetin kullanımından kaynaklanan doğrudan, dolaylı, arızi, özel, cezai veya sonuç olarak ortaya çıkan hiçbir zarardan (kâr kaybı, veri kaybı, itibar kaybı dahil) sorumlu tutulamaz. Hizmetin kullanılamaması, veri kaybı veya güvenlik ihlali durumlarında sorumluluk kabul etmez.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">8. Tazminat</h3>
               <p>
-                Kullanıcı; bu Sözleşmeyi ihlal etmesi, Hizmeti kötüye kullanması veya üçüncü şahısların haklarını ihlal etmesi durumunda, Treasure şirketini, yöneticilerini, çalışanlarını ve temsilcilerini her türlü talep, dava, zarar ve masrafa (avukatlık ücretleri dahil) karşı tazmin edeceğini kabul eder.
+                Kullanıcı; bu Sözleşmeyi ihlal etmesi, Hizmeti kötüye kullanması veya üçüncü şahısların haklarını ihlal etmesi durumunda, Tre Geliştirici Ekibi'ni, yöneticilerini, çalışanlarını ve temsilcilerini her türlü talep, dava, zarar ve masrafa (avukatlık ücretleri dahil) karşı tazmin edeceğini kabul eder.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">9. Hizmet Değişiklikleri ve Fesih</h3>
               <p>
-                Treasure şirketi, herhangi bir zamanda ve herhangi bir sebeple, önceden bildirimde bulunarak veya bulunmaksızın; Hizmeti değiştirme, askıya alma veya sonlandırma hakkını saklı tutar. Kullanıcı hesabını istediği zaman kapatabilir. Sözleşmenin ihlali durumunda Treasure şirketi hesabı askıya alabilir veya kapatabilir.
+                Tre Geliştirici Ekibi, herhangi bir zamanda ve herhangi bir sebeple; Hizmeti değiştirme, askıya alma veya sonlandırma hakkını saklı tutar. Önemli değişiklikler için kullanıcıya makul süre öncesinden bildirim yapılır. Kullanıcı hesabını istediği zaman kapatabilir. Sözleşmenin ihlali durumunda hesap askıya alınabilir veya kapatılabilir.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">10. Uygulanacak Hukuk ve Uyuşmazlık Çözümü</h3>
               <p>
-                Bu Sözleşme, Türkiye Cumhuriyeti kanunlarına tabi olup, bu Sözleşmeden doğan veya bu Sözleşmeyle ilgili her türlü uyuşmazlıkta İstanbul Mahkemeleri ve İcra Daireleri yetkilidir.
+                Bu Sözleşme, Türkiye Cumhuriyeti kanunlarına tabi olup, bu Sözleşmeden doğan veya bu Sözleşmeyle ilgili her türlü uyuşmazlıkta İstanbul Mahkemeleri ve İcra Daireleri yetkilidir. Tüketici hakem heyetlerine başvuru hakkı saklıdır.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">11. Mücbir Sebepler</h3>
               <p>
-                Treasure şirketi; doğal afetler, savaş, terör, salgın hastalık, internet altyapı sorunları, enerji kesintileri ve benzeri mücbir sebeplerden kaynaklanan hizmet aksaklıklarından sorumlu tutulamaz.
+                Tre Geliştirici Ekibi; doğal afetler, savaş, terör, salgın hastalık, internet altyapı sorunları, enerji kesintileri ve benzeri mücbir sebeplerden kaynaklanan hizmet aksaklıklarından sorumlu tutulamaz.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">12. Sözleşme Değişiklikleri</h3>
               <p>
-                Treasure şirketi bu Sözleşmeyi istediği zaman güncelleme hakkına sahiptir. Değişiklikler uygulama üzerinden duyurulacaktır. Değişiklik sonrasında Hizmeti kullanmaya devam etmeniz, güncellenmiş koşulları kabul ettiğiniz anlamına gelir.
+                Tre Geliştirici Ekibi bu Sözleşmeyi istediği zaman güncelleme hakkına sahiptir. Değişiklikler uygulama üzerinden duyurulacaktır. Önemli değişiklikler için kullanıcıdan yeniden onay alınır. Değişiklik sonrasında Hizmeti kullanmaya devam etmeniz, güncellenmiş koşulları kabul ettiğiniz anlamına gelir.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">13. Erişilebilirlik</h3>
               <p>
-                Tre, tüm kullanıcıların hizmetten eşit şekilde faydalanabilmesi için erişilebilirlik özellikleri sunar. Yüksek kontrast modu, yazı ölçeği ayarlama ve animasyonları azaltma gibi seçenekler kullanıcıların bireysel ihtiyaçlarına göre yapılandırılabilir. Treasure şirketi, erişilebilirlik standartlarını sürekli iyileştirmeyi taahhüt eder.
+                Tre, tüm kullanıcıların hizmetten eşit şekilde faydalanabilmesi için erişilebilirlik özellikleri sunar. Yüksek kontrast modu, yazı ölçeği ayarlama ve animasyonları azaltma gibi seçenekler kullanıcıların bireysel ihtiyaçlarına göre yapılandırılabilir. Tre Geliştirici Ekibi, erişilebilirlik standartlarını sürekli iyileştirmeyi taahhüt eder.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">14. E-posta ve Üçüncü Taraf Hesap Erişimi</h3>
               <p>
-                Kullanıcı, Tre'e Google hesabı gibi üçüncü taraf hesaplarını bağlayarak e-posta okuma, özetleme ve taslak oluşturma gibi ek işlevleri etkinleştirebilir. Bu erişim yalnızca kullanıcının açık onayı ile sağlanır ve kullanıcı istediği zaman erişimi iptal edebilir. Bağlanan hesaplar üzerinden erişilen veriler, yalnızca talep edilen işlevler kapsamında kullanılır ve üçüncü şahıslarla paylaşılmaz. Treasure şirketi, üçüncü taraf hizmetlerinin kesintisiz veya hatasız çalışacağını garanti etmez.
+                Kullanıcı, Tre'e Google hesabı gibi üçüncü taraf hesaplarını bağlayarak e-posta okuma, özetleme ve taslak oluşturma gibi ek işlevleri etkinleştirebilir. Bu erişim yalnızca kullanıcının açık onayı ile sağlanır ve kullanıcı istediği zaman erişimi iptal edebilir. Bağlanan hesaplar üzerinden erişilen veriler, yalnızca talep edilen işlevler kapsamında kullanılır ve üçüncü şahıslarla paylaşılmaz. Tre Geliştirici Ekibi, üçüncü taraf hizmetlerinin kesintisiz veya hatasız çalışacağını garanti etmez.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">15. Kullanıcı Hafızası ve Kişiselleştirme</h3>
               <p>
-                Tre, kullanıcı deneyimini iyileştirmek amacıyla sohbet geçmişinden öğrenilen bilgileri (ilgi alanları, tercihler, hatıralar) saklayabilir. Bu veriler yalnızca ilgili kullanıcının hesabıyla ilişkilendirilir ve kişiselleştirilmiş yanıtlar sunmak için kullanılır. Kullanıcı, hafıza verilerini istediği zaman görüntüleyebilir ve silebilir.
+                Tre, kullanıcı deneyimini iyileştirmek amacıyla sohbet geçmişinden öğrenilen bilgileri (ilgi alanları, tercihler, hatıralar) saklayabilir. Bu veriler yalnızca ilgili kullanıcının hesabıyla ilişkilendirilir ve kişiselleştirilmiş yanıtlar sunmak için kullanılır. Kullanıcı, hafıza verilerini istediği zaman görüntüleyebilir ve silebilir. Duygu durumu kayıtları da dahil olmak üzere tüm kullanıcı verileri, kullanıcı talebiyle silinebilir; bu durumda Tre, geçmiş duygusal bağlamı hatırlayamaz.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">16. İletişim</h3>
               <p>
-                Bu Sözleşme veya Hizmet ile ilgili sorularınız için bizimle iletişime geçebilirsiniz.
+                Bu Sözleşme veya Hizmet ile ilgili sorularınız için Tre Geliştirici Ekibi'ne uygulama üzerinden ulaşabilirsiniz.
               </p>
             </section>
 
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">17. Bildirimler ve Hatırlatıcılar</h3>
               <p>
-                Kullanıcı, Ayarlar &gt; Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Treasure, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
+                Kullanıcı, Ayarlar &gt; Bildirimler menüsünden push bildirim iznini etkinleştirebilir. İzin verildiğinde Tre, doğal dille kurulan hatırlatıcıları zamanı geldiğinde web push bildirimi olarak gönderir. Bildirim aboneliği yalnızca kullanıcının cihazında ve tarayıcısında geçerlidir; kullanıcı istediği zaman ayarlardan veya tarayıcı üzerinden aboneliği iptal edebilir. Tre Geliştirici Ekibi, cihaz/tarayıcı kısıtlamaları veya işletim sistemi kaynaklı gecikmelerden sorumlu değildir.
               </p>
             </section>
 
@@ -188,7 +189,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
 
             <section className="border-t border-border pt-4 mt-4">
               <p className="text-xs text-muted-foreground">
-                Bu Sözleşme, kullanıcı ile Treasure şirketi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.
+                Bu Sözleşme, kullanıcı ile Tre Geliştirici Ekibi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.
               </p>
             </section>
           </div>
