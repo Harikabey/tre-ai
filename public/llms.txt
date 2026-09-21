@@ -1,0 +1,14 @@
+# Tre - Akıllı AI Asistanı
+
+> Tre, kullanıcıyı hatırlayan, duygularını anlayan ve arkadaş gibi davranan bir yapay zeka asistanıdır. Lovable.dev üzerinde geliştirilmiştir.
+
+Tre, 6 farklı kişilik modu (Ayna dahil) ve 114 dil desteği sunar. Kullanıcıların duygusal bağ kurmasını hedefler.
+
+## Temel Özellikler
+- Metin ve sesli sohbet, 6 kişilik modu
+- Görsel/GIF/video/APK/ISO/PPTX üretimi
+- Web arama ve kaynak gösterimi
+- Kişisel hafıza ve duygu analizi
+
+## Teknoloji
+React + TypeScript + Tailwind CSS, Supabase, OpenRouter
