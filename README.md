@@ -1,6 +1,6 @@
 # ⚡ Tre AI — Akıllı Yapay Zeka Asistanı
 
-> **Treasure** tarafından geliştirilen **Tre**; kişiselleştirilmiş hafıza, gerçek zamanlı duygu analizi, canlı kamera/ekran işleme ve geniş dosya üretimi yeteneklerine sahip yeni nesil bir yapay zeka ekosistemidir.
+> **Tre Geliştirme Ekibi** tarafından geliştirilen **Tre**; kişiselleştirilmiş hafıza, gerçek zamanlı duygu analizi, canlı kamera/ekran işleme ve geniş dosya üretimi yeteneklerine sahip yeni nesil bir yapay zeka ekosistemidir.
 
 ---
 
@@ -45,4 +45,4 @@ npm run dev
 
 ## Lisans
 
-© 2024 Treasure. Tüm hakları saklıdır.
+© 2026 Tre Geliştirme Ekibi. Tüm hakları saklıdır.
