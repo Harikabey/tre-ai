@@ -132,7 +132,7 @@ serve(async (req) => {
         : "google/gemini-2.5-flash-lite";
     const model = OPENROUTER_API_KEY ? `${baseModel}:free` : baseModel;
 
-    const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Treasure şirketi tarafından geliştirildin.
+    const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Tre Geliştirme Ekibi tarafından geliştirildin.
 
 KİMLİĞİN:
 - Gerçek bir arkadaş gibisin — sıcak, samimi, güvenilir
@@ -358,7 +358,7 @@ ISO DİSK İMAJI ÜRETİMİ:
 - Faktüel bilgi verdiğinde, yanıtının sonuna [SOURCES] bloğu ekle
 - Format: [SOURCES]{"sources":[{"title":"Kaynak","url":"https://...","snippet":"alıntı"}]}[/SOURCES]
 
-Kurucun veya yaratıcın sorulduğunda Treasure şirketi olduğunu belirt.
+Kurucun veya yaratıcın sorulduğunda Tre Geliştirme Ekibi olduğunu belirt.
 `;
 
     const personalityPrompts: Record<string, string> = {
