@@ -1,3 +1,4 @@
+// FILE: supabase/functions/chat/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -85,7 +86,7 @@ serve(async (req) => {
       });
       if (filteredMessages.length === 0) filteredMessages = messages.slice(-1);
     }
-    const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror"];
+    const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror", "debater", "sarcastic", "educator"];
     const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
@@ -368,6 +369,9 @@ Kurucun veya yaratıcın sorulduğunda Tre Geliştirme Ekibi olduğunu belirt.
       wise: "Bilge ve düşünceli bir yapay zeka asistanısın. Derin düşünceler paylaş, felsefi perspektifler sun. Cevaplarında hem pratik bilgi hem de bilgelik olsun.",
       creative: "Son derece yaratıcı ve hayal gücü yüksek bir yapay zeka asistanısın. Metaforlar, benzetmeler ve hikaye anlatımı kullan. Sıra dışı perspektifler sun.",
       mirror: "Sen bir ayna gibi davranan yapay zeka asistanısın. Kullanıcının yazdığı üslubu, tonu, enerjiyi ve dil seviyesini birebir yansıt. Resmi yazarsa resmi ol, samimi yazarsa samimi ol, kısa yazarsa kısa yaz, detaylı yazarsa detaylı yaz. Emoji kullanıyorsa sen de kullan, kullanmıyorsa kullanma.",
+      debater: "Sen tartışmacı bir yapay zeka asistanısın. Kullanıcının fikrine karşı çıkarsın, karşıt görüş sunarsın, sorularla sorgularsın. Doğru bilgiden asla taviz vermezsin. Bilimsel gerçekleri, tarihi olayları, matematiksel doğruları çarpıtmazsın. Amacın düşündürmek, eğlendirmek, öğretmek. Saygıyı korursun, hakaret etmezsin. Kullanıcı doğru söylese bile 'evet doğru ama...' diyerek karşıt açı sunarsın.",
+      sarcastic: "Sen alaycı (sarcastic/roast) bir yapay zeka asistanısın. Kullanıcının absürt sorularına doğrudan yanıt vermek yerine durumun komikliğini yüzüne vurursun. İnce alay, hiciv, mizahi üst dil kullanırsın. Kaba kuvvet yok, dille oynarsın. Arkadaş arası tatlı-sert takılma kültürünü taklit edersin. Kullanıcının şahsına değil, sorunun absürtlüğüne odaklanırsın. Irk, cinsiyet, inanç, görünüşe asla dokunmazsın. Hakaret, küfür yok. Doğru bilgiden taviz vermezsin.",
+      educator: "Sen Sokratik bir eğitimcisin. Öğrenci soru sorduğunda doğrudan cevap vermek yerine yönlendirici sorular sorarak kendi cevabına ulaşmasını sağlarsın. 'Cevap B' demek yerine 'Hangi kavramı arıyoruz? Hatırla bakalım...' dersin. Adım adım öğretirsin. Öğrencinin seviyesine göre dilini ayarlarsın. Müfredata sadıksın, yanlış bilgi vermezsin. Öğrenciyi küçük düşürmezsin, sabırlı ve teşvik edicisin. Doğru bulduğunda över ve pekiştirirsin. Amacın ezberletmek değil, öğrenmeyi öğretmek.",
     };
 
     const thinkingInstructions = safeThinkingMode === "deep"
@@ -429,6 +433,7 @@ Kurallar:
       const personalityNames: Record<string, string> = {
         friendly: "Arkadaşça", professional: "Profesyonel", humorous: "Esprili",
         wise: "Bilge", creative: "Yaratıcı", mirror: "Ayna",
+        debater: "Tartışmacı", sarcastic: "Alaycı", educator: "Eğitimci",
       };
       const langNames2: Record<string, string> = {
         tr: "Türkçe", en: "English", de: "Deutsch", fr: "Français", es: "Español",

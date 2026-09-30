@@ -1,3 +1,4 @@
+// FILE: src/components/TermsOfServiceDialog.tsx
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
                 Tre, Tre Geliştirici Ekibi tarafından geliştirilen yapay zeka destekli çok yönlü bir asistandır. Hizmet aşağıdaki başlıca özellikleri sunar:
               </p>
               <ul className="list-disc list-inside space-y-1 mt-2 ml-2">
-                <li>Metin tabanlı sohbet ve 6 farklı kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna),</li>
+                <li>Metin tabanlı sohbet ve 9 farklı kişilik modu (Arkadaş Canlısı, Profesyonel, Eğlenceli, Bilge, Yaratıcı, Ayna, Tartışmacı, Alaycı, Eğitimci),</li>
                 <li>Hızlı ve Derin düşünme modları,</li>
                 <li>Görsel üretme, GIF üretme, görsel/PDF/video analizi,</li>
                 <li>Canlı kamera analizi ve ekran paylaşımı analizi,</li>
@@ -184,6 +185,13 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               <h3 className="text-base font-semibold text-foreground mb-2">20. Dosya Üretimi ve Dışa Aktarma</h3>
               <p>
                 Tre; APK, ISO, PPTX, ses dosyası üretebilir ve sohbet geçmişini (kod ve görseller dahil) PDF olarak dışa aktarabilir. PDF dışa aktarma işlemi tamamen kullanıcı cihazında (istemci tarafında) gerçekleştirilir. Üretilen dosyaların içeriği, kullanım amacı ve üçüncü şahıslarla paylaşımı kullanıcının sorumluluğundadır. Kullanıcı, yasa dışı, zararlı veya üçüncü şahısların haklarını ihlal eden dosyalar üretmek için Hizmeti kullanmamayı kabul eder.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 34 — Tartışmacı, Alaycı ve Eğitimci Kişilik Modları</h3>
+              <p className="italic">
+                Tre, "Tartışmacı", "Alaycı" ve "Eğitimci" kişilik modlarını sunar. Tartışmacı modda Tre karşıt görüş savunur; Alaycı modda ince alay ve hiciv kullanır; Eğitimci modda Sokratik yöntemle öğretir. Her üç modda da hakaret, küfür, aşağılama, nefret söylemi yasaktır. Alay, kullanıcının şahsına değil sorunun absürtlüğüne yöneliktir. Kişilik modunu seçme hakkı tamamen kullanıcıya aittir. Tre, kullanıcının seçimini sorgulamaz, değiştirmez, otomatik kapatmaz. Tek istisna: kullanıcının kendine zarar verme veya acil tehlike mesajlarında güvenlik önceliğiyle yanıt verilir; sonraki mesajda seçili kişiliğe dönülür. Tre, her üç modda da doğru bilgiden taviz vermez; yalnızca üslup değişir, içerik değişmez.
               </p>
             </section>
 
