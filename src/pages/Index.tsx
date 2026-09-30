@@ -1,3 +1,4 @@
+// FILE: src/pages/Index.tsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatbot } from '@/hooks/useChatbot';
@@ -44,7 +45,7 @@ const hashPassword = async (pw: string) => {
 };
 
 const AuthenticatedIndex = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   const location = useLocation();

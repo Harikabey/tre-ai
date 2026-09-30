@@ -1,3 +1,4 @@
+// FILE: src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
 import WidgetPreview from "./components/WidgetPreview";
 import ScreenAnalysisTrigger from "./components/ScreenAnalysisTrigger";
 import LocalSchedulerRunner from "./components/LocalSchedulerRunner";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
@@ -33,13 +35,14 @@ const App = () => (
       <LocalSchedulerRunner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/capabilities" element={<Capabilities />} />
           <Route path="/starred" element={<Starred />} />
 
           <Route path="/voice-chat" element={<VoiceChat />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/demo" element={<DemoChat />} />
           <Route path="/demo-chat" element={<DemoChat />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/extension" element={<ExtensionFeaturePreview />} />

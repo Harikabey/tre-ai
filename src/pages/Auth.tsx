@@ -1,5 +1,6 @@
+// FILE: src/pages/Auth.tsx
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +25,21 @@ const Auth = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem('ai_chatbot_language') || 'tr');
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const t = getTranslations(lang);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background text-foreground" aria-live="polite">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
+        <p>Yükleniyor...</p>
+      </main>
+    );
+  }
+
+  if (user) return <Navigate to="/" replace />;
 
   const emailSchema = z.string().email(t.invalidEmailMsg);
   const passwordSchema = z.string().min(6, t.passwordTooShortMsg);
