@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { TypingIndicator } from '@/components/TypingIndicator';
@@ -77,6 +78,17 @@ export const DemoChat = () => {
         <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary">
           Demo Modu
         </span>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Demo modundan çık"
+          className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+          onClick={() => navigate('/auth')}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Mesajlar */}
