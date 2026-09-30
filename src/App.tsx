@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VoiceChat from "./pages/VoiceChat";
 import Capabilities from "./pages/Capabilities";
 import Starred from "./pages/Starred";
+import Stats from "./pages/Stats";
 
 import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
@@ -37,6 +38,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/istatistik" element={<Stats />} />
           <Route path="/capabilities" element={<Capabilities />} />
           <Route path="/starred" element={<Starred />} />
 

@@ -189,9 +189,16 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
             </section>
 
             <section>
-              <h3 className="text-base font-semibold text-foreground mb-2">Madde 34 — Tartışmacı, Alaycı ve Eğitimci Kişilik Modları</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 33 — Tartışmacı, Alaycı ve Eğitimci Kişilik Modları</h3>
               <p className="italic">
                 Tre, "Tartışmacı", "Alaycı" ve "Eğitimci" kişilik modlarını sunar. Tartışmacı modda Tre karşıt görüş savunur; Alaycı modda ince alay ve hiciv kullanır; Eğitimci modda Sokratik yöntemle öğretir. Her üç modda da hakaret, küfür, aşağılama, nefret söylemi yasaktır. Alay, kullanıcının şahsına değil sorunun absürtlüğüne yöneliktir. Kişilik modunu seçme hakkı tamamen kullanıcıya aittir. Tre, kullanıcının seçimini sorgulamaz, değiştirmez, otomatik kapatmaz. Tek istisna: kullanıcının kendine zarar verme veya acil tehlike mesajlarında güvenlik önceliğiyle yanıt verilir; sonraki mesajda seçili kişiliğe dönülür. Tre, her üç modda da doğru bilgiden taviz vermez; yalnızca üslup değişir, içerik değişmez.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 34 — Konuşma Karnesi ve İstatistikler</h3>
+              <p className="italic">
+                Tre, kullanıcının kendi sohbet verisini görselleştiren bir "Konuşma Karnesi" sunar. Karne; toplam mesaj, kelime sayısı, en çok kullanılan kelimeler, konu dağılımı, saatlik aktivite, duygu trendi ve kişisel içgörüleri içerir. Tüm istatistikler yalnızca kullanıcının cihazında (tarayıcı yerel depolama alanında) saklanır; sunucuya iletilmez, üçüncü şahıslarla paylaşılmaz. Kullanıcı istatistiklerini istediği zaman görüntüleyebilir, paylaşabilir veya sıfırlayabilir.
               </p>
             </section>
 

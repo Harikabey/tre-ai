@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
+import { useStats } from './useStats';
 import {
   cacheMessages,
   getCachedPage,
@@ -52,6 +53,7 @@ interface Conversation {
 
 export const useChatbot = () => {
   const { user } = useAuth();
+  const { recordMessage } = useStats();
   const { 
     analyzeAndStore, 
     getMemoryContext, 
@@ -275,6 +277,7 @@ export const useChatbot = () => {
   };
 
   const saveMessage = async (conversationId: string, role: 'user' | 'assistant', content: string) => {
+    if (role === 'assistant') recordMessage(content, 'tre');
     await supabase
       .from('messages')
       .insert({
@@ -806,6 +809,7 @@ export const useChatbot = () => {
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
+    recordMessage(trimmedInput, 'user', currentMood?.mood);
     
     // Save user message to DB and get the actual ID
     const { data: savedMessage } = await supabase
@@ -1128,7 +1132,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
@@ -1241,6 +1245,8 @@ export const useChatbot = () => {
     };
 
     setMessages(prev => [...prev, userMsg, botMsg]);
+    recordMessage(userReactionContent, 'user', currentMood?.mood);
+    recordMessage(reply, 'tre');
 
     if (convId) {
       try {
@@ -1252,7 +1258,7 @@ export const useChatbot = () => {
         console.error('reaction save failed', e);
       }
     }
-  }, [currentConversationId]);
+  }, [currentConversationId, currentMood, recordMessage]);
 
   return {
     messages,

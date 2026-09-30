@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -281,6 +281,21 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => navigate('/istatistik')}
+              className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-muted/40"
+            >
+              <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-foreground">📊 Konuşma Karnen</span>
+                <span className="block text-sm text-muted-foreground">Tre ile olan yolculuğunu gör</span>
+              </span>
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+            </button>
+          </Card>
+
           {/* Language Selection - UI language */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
