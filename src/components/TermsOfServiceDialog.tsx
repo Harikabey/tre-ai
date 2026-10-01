@@ -202,6 +202,13 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               </p>
             </section>
 
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 35 — Kullanıcı Tanımlı Metin Kısayolları</h3>
+              <p className="italic">
+                Tre, kullanıcıların kendi metin kısayollarını tanımlamasına izin verir. Kullanıcı, bir tetikleyici (örn. /ozet) ve genişletilecek metin tanımlar. Sohbet kutusunda tetikleyiciyi yazıp boşluk veya Enter'a basıldığında, tetikleyici otomatik olarak genişletilir. Kısayollar yalnızca kullanıcının cihazında (tarayıcı yerel depolama alanında) saklanır; sunucuya iletilmez. Kullanıcı kısayollarını istediği zaman düzenleyebilir veya silebilir. Kısayol içeriğinin yasallığı ve doğruluğu kullanıcının sorumluluğundadır.
+              </p>
+            </section>
+
             <section className="border-t border-border pt-4 mt-4">
               <p className="text-xs text-muted-foreground">
                 Bu Sözleşme, kullanıcı ile Tre Geliştirici Ekibi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.

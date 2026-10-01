@@ -1,6 +1,11 @@
 // FILE: src/lib/stats-utils.ts
 export type TopicName = 'kod' | 'ödev' | 'duygu' | 'plan' | 'arama' | 'sohbet';
 
+export const normalizeTrigger = (text: string): string => {
+  const trimmed = text.trim().toLocaleLowerCase('tr-TR');
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+
 const stopWords = new Set([
   've', 'bir', 'bu', 'şu', 'o', 'ile', 'için', 'ama', 'ki', 'de', 'da', 'mı', 'mi', 'mu', 'mü',
   'çok', 'daha', 'en', 'gibi', 'kadar', 'sonra', 'önce', 'ise', 'ancak', 'fakat', 'çünkü', 'eğer',

@@ -1,3 +1,4 @@
+// FILE: src/pages/Settings.tsx
 import React, { useState, useEffect, useCallback, useReducer } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
@@ -23,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { getTranslations, translateUIStrings } from '@/utils/translations';
+import { ShortcutsSettings } from '@/components/ShortcutsSettings';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -498,6 +500,8 @@ const Settings = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <ShortcutsSettings />
 
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>

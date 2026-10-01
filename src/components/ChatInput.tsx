@@ -1,6 +1,7 @@
+// FILE: src/components/ChatInput.tsx
 import { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Send, Sparkles, Plus, Zap, Brain, Image, FileText, X, Loader2, Mic, MicOff, Palette, Camera, Video, Film, ScreenShare } from 'lucide-react';
 import { ThinkingMode } from '@/hooks/useChatbot';
 import { setVoiceMode } from '@/hooks/useChatbot';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { VoicePulseAnimation } from '@/components/VoicePulseAnimation';
+import { useUserShortcuts } from '@/hooks/useUserShortcuts';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,8 +49,10 @@ export const ChatInput = ({
   const [isUploading, setIsUploading] = useState(false);
   const [showVoiceAnimation, setShowVoiceAnimation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const haptic = useHapticFeedback();
+  const { getShortcutByTrigger } = useUserShortcuts();
   
   const { 
     isListening, 
@@ -291,7 +295,7 @@ export const ChatInput = ({
       onSend(messageContent);
       setInput('');
       resetTranscript();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Screen share error:', error);
       toast.error('Ekran yakalama başarısız oldu');
     }
@@ -300,7 +304,29 @@ export const ChatInput = ({
   // Video generation is not currently supported by the AI gateway
   // const handleVideoGeneration = () => { ... };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.key === ' ' || e.key === 'Enter') && !e.shiftKey) {
+      const target = e.currentTarget;
+      const caret = target.selectionStart;
+      if (caret !== null && caret > 0) {
+        let tokenStart = caret;
+        while (tokenStart > 0 && !/\s/.test(input[tokenStart - 1])) tokenStart--;
+        const shortcut = getShortcutByTrigger(input.slice(tokenStart, caret));
+        if (shortcut) {
+          e.preventDefault();
+          const separator = e.key === ' ' ? ' ' : '';
+          const nextInput = `${input.slice(0, tokenStart)}${shortcut.actionText}${separator}${input.slice(caret)}`;
+          const nextCaret = tokenStart + shortcut.actionText.length + separator.length;
+          setInput(nextInput);
+          window.setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.setSelectionRange(nextCaret, nextCaret);
+          }, 0);
+          return;
+        }
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -550,13 +576,15 @@ export const ChatInput = ({
 
         {/* Message Input */}
         <div className="relative flex-1">
-          <Input
+          <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isListening ? "Konuşun..." : "Mesajınızı yazın..."}
             disabled={disabled}
-            className="bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base h-9 sm:h-10"
+            rows={1}
+            className="min-h-9 h-9 sm:min-h-10 sm:h-10 max-h-32 resize-none overflow-y-auto bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base"
           />
         </div>
 
