@@ -1,54 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, MonitorUp, X } from "lucide-react";
 
-/**
- * Bildirimdeki "Ekranı Analiz Et" aksiyonu uygulamayı öne getirdiğinde
- * (?screenAnalyze=1) otomatik olarak ekran yakalar, tek kare alır,
- * Tre API'ye gönderir ve cevabı yeni bir bildirim olarak gösterir.
- */
+/** URL ile tetiklendiğinde ekranı yakalar ve analiz sonucunu sayfada gösterir. */
 const PARAM = "screenAnalyze";
-
-export async function requestScreenAnalysisNotification() {
-  if (!("serviceWorker" in navigator) || !("Notification" in window)) return false;
-  if (Notification.permission !== "granted") {
-    const p = await Notification.requestPermission();
-    if (p !== "granted") return false;
-  }
-  const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) return false;
-  await reg.showNotification("Tre", {
-    body: "Ekranını analiz etmemi ister misin?",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    tag: "tre-screen-analyze",
-    requireInteraction: true,
-    data: { url: `/?${PARAM}=1` },
-    actions: [{ action: "analyze-screen", title: "Ekranı Analiz Et" }],
-  } as NotificationOptions);
-  return true;
-}
 
 const ScreenAnalysisTrigger = () => {
   const [status, setStatus] = useState<"idle" | "capturing" | "analyzing" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const startedRef = useRef(false);
-
-  const notify = useCallback(async (title: string, body: string) => {
-    try {
-      if (Notification.permission !== "granted") return;
-      const reg = await navigator.serviceWorker.getRegistration();
-      const options: NotificationOptions = {
-        body: body.slice(0, 500),
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        tag: "tre-screen-result",
-      };
-      if (reg) await reg.showNotification(title, options);
-      else new Notification(title, options);
-    } catch (e) {
-      console.warn("[screen-analyze] notification failed", e);
-    }
-  }, []);
 
   const run = useCallback(async () => {
     setStatus("capturing");
@@ -103,15 +62,13 @@ const ScreenAnalysisTrigger = () => {
       const analysis: string = data.analysis || "Analiz sonucu boş döndü.";
       setStatus("done");
       setMessage(analysis);
-      await notify("Tre — Ekran Analizi", analysis);
     } catch (e: any) {
       if (stream) stream.getTracks().forEach((t) => t.stop());
       const msg = e?.name === "NotAllowedError" ? "Ekran paylaşımı izni verilmedi." : e?.message || "Analiz başarısız.";
       setStatus("error");
       setMessage(msg);
-      await notify("Tre — Ekran Analizi", msg);
     }
-  }, [notify]);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

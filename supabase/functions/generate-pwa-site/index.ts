@@ -165,9 +165,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </head>
 <body>
 ${site.html_body}
-<script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
-</script>
 </body>
 </html>`;
 
@@ -185,14 +182,9 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
       ],
     };
 
-    const sw = `self.addEventListener('install',e=>self.skipWaiting());
-self.addEventListener('activate',e=>self.clients.claim());
-self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});`;
-
     const uploads: Array<[string, Uint8Array | string, string]> = [
       ["index.html", html, "text/html; charset=utf-8"],
       ["manifest.json", JSON.stringify(manifest, null, 2), "application/manifest+json"],
-      ["sw.js", sw, "application/javascript"],
       ["icon-512.png", iconBytes, "image/png"],
       ["icon-192.png", iconBytes, "image/png"],
     ];

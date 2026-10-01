@@ -20,16 +20,7 @@ const WidgetPreview = () => {
     navigator.mediaDevices?.getUserMedia({ audio: true })
       .then((s) => s.getTracks().forEach((t) => t.stop()))
       .catch(() => {});
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
-    }
   }, []);
-
-  const notify = (body: string) => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Tre", { body, icon: "/icon-192.png" });
-    }
-  };
 
   const ask = async (text: string) => {
     setStatus("thinking");
@@ -59,11 +50,9 @@ const WidgetPreview = () => {
       }
       const final = out.trim() || "Şu an yanıt veremedim.";
       setReply(final);
-      notify(final.slice(0, 300));
     } catch {
       const msg = "Yanıt alınamadı. Giriş yapmış olduğundan emin ol.";
       setReply(msg);
-      notify(msg);
     } finally {
       setStatus("idle");
     }

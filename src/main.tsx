@@ -10,7 +10,18 @@ if (!document.querySelector('link[rel="manifest"]')) {
   document.head.appendChild(link);
 }
 
-// Service worker registration is handled by usePushNotifications hook
-// on user opt-in. We do NOT auto-register here to avoid iframe/preview issues.
+if ("serviceWorker" in navigator) {
+  void navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+    await Promise.all(registrations.map(async (registration) => {
+      try {
+        const subscription = await registration.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+      } catch {
+        // Continue unregistering even if the push subscription is unavailable.
+      }
+      await registration.unregister();
+    }));
+  }).catch(() => {});
+}
 
 createRoot(document.getElementById("root")!).render(<App />);

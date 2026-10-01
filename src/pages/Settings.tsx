@@ -1,9 +1,8 @@
 // FILE: src/pages/Settings.tsx
 import React, { useState, useEffect, useCallback, useReducer } from 'react';
-import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Bell, Send, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useLocalScheduler } from '@/hooks/useLocalScheduler';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
@@ -55,11 +54,9 @@ const Settings = () => {
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
   const [wakeWord, setWakeWord] = useState<boolean>(() => isWakeWordEnabled());
-  const [reminders, setReminders] = useState<boolean>(() => localStorage.getItem('ai_chatbot_reminders_enabled') === 'true');
   const [cloudFiles, setCloudFiles] = useState<boolean>(() => localStorage.getItem(CLOUD_FILES_KEY) === 'true');
   const { selectedVoiceId, updateVoice, playText, isLoading } = useVoice();
   const { user } = useAuth();
-  const push = usePushNotifications();
   const scheduler = useLocalScheduler();
   const install = useInstallPrompt();
   const [emailConnected, setEmailConnected] = useState(false);
@@ -723,42 +720,6 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Reminders */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Hatırlatıcılar
-              </CardTitle>
-              <CardDescription>
-                Aktifken Tre sohbette hatırlatıcı kurabilir ve zamanı geldiğinde bildirim gönderir. Bildirimlerin de açık olması gerekir.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
-                <div>
-                  <div className="font-medium text-foreground text-sm">Hatırlatıcı iznini etkinleştir</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    Örn: "Yarın 09:00'da toplantıyı hatırlat" dediğinde Tre hatırlatıcı kurar.
-                  </div>
-                </div>
-                <Switch
-                  checked={reminders}
-                  onCheckedChange={(v) => {
-                    setReminders(v);
-                    localStorage.setItem('ai_chatbot_reminders_enabled', String(v));
-                    if (v && !push.subscribed) {
-                      toast.info('Hatırlatıcılar açıldı. Bildirim almak için "Bildirim ile Sohbet" bölümünden push bildirimlerini de aç.');
-                    } else {
-                      toast.success(v ? 'Hatırlatıcılar aktif' : 'Hatırlatıcılar kapatıldı');
-                    }
-                  }}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Email Access Authorization */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
@@ -920,152 +881,18 @@ const Settings = () => {
 
           <CustomPersonalityInput onClear={() => updatePreference('personality', 'friendly')} />
 
-          {/* Bildirim ile Sohbet */}
+          {/* Otomatik Temizlik */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Bildirim ile Sohbet
-              </CardTitle>
+              <CardTitle>Otomatik Temizlik</CardTitle>
               <CardDescription>
-                Uygulamayı açmadan, bildirimin içindeki cevap kutusundan Tre ile konuşabilirsin.
+                30 gündür kullanılmayan sohbetleri günlük olarak sil. Hafıza ve ayarların korunur.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {push.blockedInPreview && (
-                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-xs text-yellow-200">
-                  ⚠️ Bu özellik Lovable önizlemesinde çalışmaz. Yayınlanmış sürümde
-                  (<span className="font-mono">tre-ai.lovable.app</span>) veya ana ekrana yüklenmiş PWA'da test et.
-                </div>
-              )}
-              {!push.supported && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive-foreground">
-                  Tarayıcın push bildirimlerini desteklemiyor.
-                </div>
-              )}
-              {push.supported && (
-                <>
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-foreground">Push bildirimleri</div>
-                      <div className="text-xs text-muted-foreground">
-                        Durum: {push.subscribed ? 'Aktif' : 'Kapalı'} • İzin: {push.permission}
-                      </div>
-                    </div>
-                    <Switch
-                      checked={push.subscribed}
-                      disabled={push.loading || push.blockedInPreview}
-                      onCheckedChange={(c) => (c ? push.subscribe() : push.unsubscribe())}
-                    />
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={!push.subscribed || push.loading}
-                    onClick={push.sendTest}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Test bildirimi gönder
-                  </Button>
-
-                  <div className="text-[11px] text-muted-foreground leading-relaxed space-y-1">
-                    <p>• <b>Android Chrome / Edge:</b> Bildirimi aşağı kaydırıp genişlet, "Cevap yaz" kutusu çıkar. Yazıp gönderdiğinde Tre yine bildirim olarak cevaplar.</p>
-                    <p>• <b>Android Firefox / Samsung Internet:</b> Bildirim gelir ama bildirim çubuğundan metin cevabı çoğunlukla desteklenmez. Bildirime dokun, uygulama açılsın, oradan cevap ver. (Tam destek için Chrome/Edge öneririz.)</p>
-                    <p>• <b>iOS:</b> Bildirime tıklayınca uygulama açılır. Cevap kutusu iOS'ta desteklenmez. Ana ekrana yüklenmiş PWA gerekir.</p>
-                    <p>• <b>Masaüstü:</b> Sekme kapalı olsa da bildirim gelir; cevap kutusu tarayıcıya göre değişir.</p>
-                  </div>
-                  {typeof navigator !== 'undefined' && /Firefox|FxiOS/i.test(navigator.userAgent) && (
-                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-[11px] text-yellow-200/90">
-                      Firefox kullandığını algıladık. Bildirim çubuğundan doğrudan cevap yazma özelliği Firefox'ta desteklenmiyor olabilir; bildirime dokunup uygulamadan cevap vermen gerekir.
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Otomatik Bildirimler & Temizlik */}
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Otomatik Hatırlatma & Temizlik
-              </CardTitle>
-              <CardDescription>
-                Sabah/akşam bildirimleri, uzun sessizlik uyarısı ve eski sohbetlerin otomatik temizliği. Cihazının saatine göre çalışır.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Sabah / Akşam */}
-              <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-foreground">Sabah / Akşam bildirimi</div>
-                    <div className="text-xs text-muted-foreground">Belirlediğin saatlerde Tre sana seslenir.</div>
-                  </div>
-                  <Switch
-                    checked={scheduler.settings.dailyEnabled}
-                    onCheckedChange={(c) => scheduler.update('dailyEnabled', c)}
-                  />
-                </div>
-                {scheduler.settings.dailyEnabled && (
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Sabah saati</label>
-                        <Input
-                          type="time"
-                          value={scheduler.settings.morningTime}
-                          onChange={(e) => scheduler.update('morningTime', e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Akşam saati</label>
-                        <Input
-                          type="time"
-                          value={scheduler.settings.eveningTime}
-                          onChange={(e) => scheduler.update('eveningTime', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Sabah mesajı</label>
-                      <Input
-                        value={scheduler.settings.morningText}
-                        onChange={(e) => scheduler.update('morningText', e.target.value)}
-                        placeholder="Günaydın!"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Akşam mesajı</label>
-                      <Input
-                        value={scheduler.settings.eveningText}
-                        onChange={(e) => scheduler.update('eveningText', e.target.value)}
-                        placeholder="İyi akşamlar!"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Sessizlik */}
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Uzun sessizlik bildirimi</div>
-                  <div className="text-xs text-muted-foreground">2 gündür sohbet yoksa "Bir şey mi oldu?" bildirimi gelir.</div>
-                </div>
-                <Switch
-                  checked={scheduler.settings.inactivityEnabled}
-                  onCheckedChange={(c) => scheduler.update('inactivityEnabled', c)}
-                />
-              </div>
-
-              {/* Otomatik temizlik */}
+            <CardContent>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-foreground">Otomatik temizlik</div>
-                  <div className="text-xs text-muted-foreground">30 gündür kullanılmayan sohbetler günlük olarak silinir. Hafıza ve ayarların korunur.</div>
                 </div>
                 <Switch
                   checked={scheduler.settings.autoCleanEnabled}
@@ -1075,10 +902,6 @@ const Settings = () => {
                   }}
                 />
               </div>
-
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Bildirimlerin gelmesi için yukarıdaki push bildirimlerinin açık olması gerekir. Uygulama tamamen kapalıyken bildirim gecikebilir; uygulama açıldığında kontrol tekrar yapılır.
-              </p>
             </CardContent>
           </Card>
 
