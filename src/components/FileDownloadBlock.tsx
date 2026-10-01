@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
-import { Download, FileText, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// FILE: src/components/FileDownloadBlock.tsx
+import { useCallback, useMemo } from 'react';
+import { FileText } from 'lucide-react';
+import { FileActionButtons } from '@/components/FileActionButtons';
 
 interface FileBlock {
   fileName: string;
@@ -27,22 +28,10 @@ export const parseFileBlocks = (content: string): { cleanContent: string; files:
 
 interface FileDownloadBlockProps {
   file: FileBlock;
+  onPreview?: (code: string, fileName: string) => void;
 }
 
-export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPreview?: (code: string, fileName: string) => void }) => {
-  const handleDownload = useCallback(() => {
-    const content = typeof file.content === 'string' ? file.content : '';
-    const blob = new Blob([content], { type: getMimeType(file.fileName) });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [file]);
-
+export const FileDownloadBlock = ({ file, onPreview }: FileDownloadBlockProps) => {
   const handlePreview = useCallback(async () => {
     if (!onPreview) return;
 
@@ -76,6 +65,11 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
   const contentSize = typeof file.content === 'string' ? new Blob([file.content]).size : 0;
   const sizeKB = Math.round(contentSize / 1024 * 10) / 10;
   const isPreviewableFile = ['.html', '.htm', '.js', '.css'].some(extName => file.fileName.toLowerCase().endsWith(extName));
+  const fileUrl = useMemo(() => {
+    if (file.fileUrl) return file.fileUrl;
+    if (typeof file.content !== 'string') return '';
+    return URL.createObjectURL(new Blob([file.content], { type: getMimeType(file.fileName) }));
+  }, [file.content, file.fileName, file.fileUrl]);
 
   return (
     <div className="my-2 flex max-w-full items-center gap-3 overflow-hidden rounded-lg border border-border/50 bg-secondary/50 p-3">
@@ -86,28 +80,13 @@ export const FileDownloadBlock = ({ file, onPreview }: { file: FileBlock; onPrev
         <p className="truncate text-sm font-medium break-all">{file.fileName}</p>
         <p className="text-xs text-muted-foreground">{ext.toUpperCase()} • {sizeKB} KB</p>
       </div>
-      {isPreviewableFile && onPreview && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="flex-shrink-0 h-8 w-8 p-1.5 rounded-md"
-          onClick={handlePreview}
-          title="Çalıştır"
-          aria-label="Çalıştır"
-        >
-          <Play className="h-3.5 w-3.5" />
-        </Button>
-      )}
-      <Button
-        variant="outline"
-        size="icon"
-        className="flex-shrink-0 h-8 w-8 p-1.5 rounded-md"
-        onClick={handleDownload}
-        title="İndir"
-        aria-label="İndir"
-      >
-        <Download className="h-3.5 w-3.5" />
-      </Button>
+      <FileActionButtons
+        fileUrl={fileUrl}
+        fileName={file.fileName}
+        fileType={ext}
+        fileContent={file.content ?? undefined}
+        onPreview={isPreviewableFile && onPreview ? () => { void handlePreview(); } : undefined}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
+// FILE: src/components/GeneratedItemsPanel.tsx
 import { useMemo, useState } from 'react';
 import {
-  X, Trash2, Download, Pencil, Search, FolderOpen,
+  X, Trash2, Pencil, Search, FolderOpen,
   Image as ImageIcon, Film, Music, FileText, FileCode, FileArchive, Package, Presentation, FileSpreadsheet, File as FileIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import type { GeneratedItem, GeneratedItemKind } from '@/hooks/useGeneratedItems';
+import { FileActionButtons } from '@/components/FileActionButtons';
 
 interface Props {
   items: GeneratedItem[];
@@ -77,6 +79,10 @@ export const GeneratedItemsPanel = ({ items, isOpen, onClose, onDelete, onRename
   const [renameTarget, setRenameTarget] = useState<GeneratedItem | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const itemUrls = useMemo(
+    () => new Map(isOpen ? items.map((item) => [item.id, URL.createObjectURL(item.blob)]) : []),
+    [isOpen, items],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,17 +90,6 @@ export const GeneratedItemsPanel = ({ items, isOpen, onClose, onDelete, onRename
       .filter((i) => filter === 'all' || i.kind === filter)
       .filter((i) => !q || i.name.toLowerCase().includes(q) || (i.prompt || '').toLowerCase().includes(q));
   }, [items, filter, query]);
-
-  const handleDownload = (item: GeneratedItem) => {
-    const url = URL.createObjectURL(item.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = item.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
 
   const openPreview = (item: GeneratedItem) => {
     if (item.kind === 'image' || item.kind === 'gif') {
@@ -157,7 +152,7 @@ export const GeneratedItemsPanel = ({ items, isOpen, onClose, onDelete, onRename
               filtered.map((item) => (
                 <div
                   key={item.id}
-                  className="group flex items-center gap-3 p-2.5 rounded-lg border border-border/50 bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                  className="group flex flex-wrap items-center gap-3 p-2.5 rounded-lg border border-border/50 bg-secondary/30 hover:bg-secondary/50 transition-colors"
                 >
                   <div
                     className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center cursor-pointer"
@@ -174,7 +169,12 @@ export const GeneratedItemsPanel = ({ items, isOpen, onClose, onDelete, onRename
                       <p className="text-[10px] text-muted-foreground/70 truncate italic">{item.prompt}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <div className="flex w-full sm:w-auto sm:ml-auto items-center justify-end gap-1 flex-shrink-0">
+                    <FileActionButtons
+                      fileUrl={itemUrls.get(item.id) || ''}
+                      fileName={item.name}
+                      fileType={item.name.split('.').pop() || item.kind}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -183,15 +183,6 @@ export const GeneratedItemsPanel = ({ items, isOpen, onClose, onDelete, onRename
                       onClick={() => { setRenameTarget(item); setRenameValue(item.name); }}
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      title="İndir"
-                      onClick={() => handleDownload(item)}
-                    >
-                      <Download className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"

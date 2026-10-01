@@ -1,3 +1,4 @@
+// FILE: src/components/CodeRunner.tsx
 import { useEffect, useRef, useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ export const CodeRunner = ({ code, language, onClose }: { code: string; language
     const srcDoc = language === 'javascript' || language === 'js'
       ? buildJsSrcDoc(code)
       : code;
-    iframe.srcDoc = srcDoc;
+    iframe.srcdoc = srcDoc;
   }, [code, language]);
 
   const handleClear = () => setLogs([]);

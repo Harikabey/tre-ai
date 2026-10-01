@@ -1,3 +1,4 @@
+// FILE: src/components/ChatMessage.tsx
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Message } from '@/types/chatbot';
 import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star, Eye } from 'lucide-react';
@@ -9,6 +10,7 @@ import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
 import { parseFileBlocks, FileDownloadBlock } from '@/components/FileDownloadBlock';
+import { FileActionButtons } from '@/components/FileActionButtons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,8 +54,8 @@ const searchSources = async (query: string): Promise<Citation[]> => {
 
     if (!response.ok) return [];
     
-    const data = await response.json();
-    return (data.sources || []).map((s: any) => ({
+    const data: { sources?: Array<{ title?: string; url?: string; snippet?: string }> } = await response.json();
+    return (data.sources || []).map((s) => ({
       title: s.title || 'Kaynak',
       url: s.url || '#',
       snippet: s.snippet || '',
@@ -83,16 +85,17 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     return () => { active = false; };
   }, [message.id]);
 
-  const fileMatch = message.content.match(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/);
-  const fileName = fileMatch ? fileMatch[1] : null;
-  const fileUrl = fileMatch ? fileMatch[2] : null;
-  const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  const isAudio = fileName?.match(/\.(mp3|wav|ogg|m4a)$/i);
-  const isVideo = fileName?.match(/\.(mp4|webm|mov)$/i);
+  const attachedFiles = Array.from(
+    message.content.matchAll(/\[Ek dosya: ([^\]]+)\]\(([^)]+)\)/g),
+    (match) => ({ fileName: match[1], fileUrl: match[2] }),
+  );
+  const fileName = attachedFiles[0]?.fileName ?? null;
+  const fileUrl = attachedFiles[0]?.fileUrl ?? null;
   
-  const generatedImageMatch = message.content.match(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/);
-  const generatedImageUrl = generatedImageMatch ? generatedImageMatch[2] : null;
-  const generatedImageAlt = generatedImageMatch ? generatedImageMatch[1] : 'Generated image';
+  const generatedImages = Array.from(
+    message.content.matchAll(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/g),
+    (match) => ({ alt: match[1] || 'Görsel', fileUrl: match[2] }),
+  );
 
   const animatedFrames = useMemo(() => {
     const match = message.content.match(/\[ANIMATED_FRAMES\]([\s\S]*?)\[\/ANIMATED_FRAMES\]/);
@@ -113,13 +116,10 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
     return { cleanContent: contentWithoutSources, files: [] };
   }, [contentWithoutSources, isBot]);
 
-  const enrichedDownloadableFiles = downloadableFiles.map((file) => ({
-    ...file,
-    fileUrl: file.fileUrl || fileUrl,
-  }));
+  const enrichedDownloadableFiles = downloadableFiles;
 
   let displayContent = contentWithoutFiles
-    .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/, '')
+    .replace(/\n\n\[Ek dosya: [^\]]+\]\([^)]+\)/g, '')
     .replace(/\n\n--- Görsel Analizi ---[\s\S]*$/, '')
     .replace(/\n\n--- Dosya İçeriği ---[\s\S]*$/, '')
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
@@ -153,7 +153,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
 
   const previewFileName = fileName || (codeLanguage ? `index.${codeLanguage === 'javascript' ? 'js' : codeLanguage}` : 'index.html');
 
-  const handlePreviewClick = async (codeToPreview?: string, explicitFileName?: string) => {
+  const handlePreviewClick = async (codeToPreview?: string, explicitFileName?: string, explicitFileUrl?: string) => {
     if (!onPreview) return;
 
     const fileCode = typeof codeToPreview === 'string' ? codeToPreview.trim() : '';
@@ -162,9 +162,10 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
       return;
     }
 
-    if (fileUrl) {
+    const previewUrl = explicitFileUrl || fileUrl;
+    if (previewUrl) {
       try {
-        const response = await fetch(fileUrl);
+        const response = await fetch(previewUrl);
         if (!response.ok) throw new Error(`Dosya alınamadı: ${response.status}`);
 
         const fetchedText = (await response.text()).trim();
@@ -278,46 +279,48 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
             : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
         )}
       >
-        {fileUrl && (
-          <div className="mb-2">
-            {isImage ? (
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                <img 
-                  src={fileUrl} 
-                  alt={fileName || 'Attached image'} 
-                  className="max-w-full max-h-40 sm:max-h-48 rounded-lg object-cover"
-                />
-              </a>
-            ) : isAudio ? (
-              <div className="mb-2">
-                <audio controls src={fileUrl} className="w-full max-w-sm" />
-              </div>
-            ) : isVideo ? (
-              <div className="mb-2">
-                <video controls src={fileUrl} className="max-w-full max-h-64 rounded-lg" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
-                <button
-                  onClick={() => handlePreviewClick()}
-                  className="flex items-center gap-2 flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
-                  title="Önizle"
-                >
-                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{fileName}</span>
-                </button>
-                {isPreviewable && (
-                  <button
-                    onClick={() => handlePreviewClick()}
-                    title="Çalıştır"
-                    aria-label="Çalıştır"
-                    className="p-1.5 rounded-md hover:bg-primary/20 text-primary transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
+        {attachedFiles.length > 0 && (
+          <div className="mb-2 space-y-2">
+            {attachedFiles.map((file, index) => {
+              const isImageFile = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.fileName);
+              const isAudioFile = /\.(mp3|wav|ogg|m4a)$/i.test(file.fileName);
+              const isVideoFile = /\.(mp4|webm|mov)$/i.test(file.fileName);
+              return (
+                <div key={`${file.fileUrl}-${index}`}>
+                  {isImageFile ? (
+                    <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={file.fileUrl}
+                        alt={file.fileName}
+                        className="max-w-full max-h-40 sm:max-h-48 rounded-lg object-cover"
+                      />
+                    </a>
+                  ) : isAudioFile ? (
+                    <audio controls src={file.fileUrl} className="w-full max-w-sm" />
+                  ) : isVideoFile ? (
+                    <video controls src={file.fileUrl} className="max-w-full max-h-64 rounded-lg" />
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+                      <button
+                        onClick={() => { void handlePreviewClick(undefined, file.fileName, file.fileUrl); }}
+                        className="flex items-center gap-2 flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
+                        title="Önizle"
+                      >
+                        <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{file.fileName}</span>
+                      </button>
+                    </div>
+                  )}
+                  <FileActionButtons
+                    fileUrl={file.fileUrl}
+                    fileName={file.fileName}
+                    fileType={file.fileName.split('.').pop() || ''}
+                    onPreview={isPreviewable ? () => { void handlePreviewClick(undefined, file.fileName, file.fileUrl); } : undefined}
+                    className="mt-2"
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -339,13 +342,29 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
           </div>
         )}
 
-        {generatedImageUrl && (
-          <div className="mb-2">
-            <img 
-              src={generatedImageUrl} 
-              alt={generatedImageAlt} 
-              className="max-w-full max-h-48 sm:max-h-64 rounded-lg object-contain"
-            />
+        {generatedImages.length > 0 && (
+          <div className="mb-2 space-y-2">
+            {generatedImages.map((image, index) => {
+              const imageType = image.fileUrl.match(/^data:image\/([^;,]+)/)?.[1]?.replace('jpeg', 'jpg')
+                || image.fileUrl.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1]?.toLowerCase()
+                || 'png';
+              const imageName = `${image.alt.trim() || `gorsel-${index + 1}`}.${imageType}`;
+              return (
+                <div key={`${image.fileUrl}-${index}`}>
+                  <img
+                    src={image.fileUrl}
+                    alt={image.alt}
+                    className="max-w-full max-h-48 sm:max-h-64 rounded-lg object-contain"
+                  />
+                  <FileActionButtons
+                    fileUrl={image.fileUrl}
+                    fileName={imageName}
+                    fileType={imageType}
+                    className="mt-2"
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 
