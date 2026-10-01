@@ -17,12 +17,15 @@ import { getTranslations } from '@/utils/translations';
 import { languages as LANGUAGES } from '@/types/language';
 import TryTreButton from '@/components/TryTreButton'; // ✅ YENİ
 import { lovable } from '@/integrations/lovable/index';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { evaluatePassword, isPasswordAcceptable } from '@/lib/password-utils';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasswordErrors, setShowPasswordErrors] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem('ai_chatbot_language') || 'tr');
@@ -45,10 +48,10 @@ const Auth = () => {
   const emailSchema = z.string().email(t.invalidEmailMsg);
   const passwordSchema = z.string().min(6, t.passwordTooShortMsg);
 
-  const validateInputs = () => {
+  const validateInputs = (includePassword = true) => {
     try {
       emailSchema.parse(email);
-      passwordSchema.parse(password);
+      if (includePassword) passwordSchema.parse(password);
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -98,7 +101,19 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateInputs()) return;
+    if (!validateInputs(false)) return;
+
+    const passwordEvaluation = evaluatePassword(password, email);
+    if (!isPasswordAcceptable(passwordEvaluation)) {
+      setShowPasswordErrors(true);
+      toast({
+        title: t.validationErrorTitle,
+        description: 'Lütfen şifre kurallarını tamamlayın.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setShowPasswordErrors(false);
 
     if (!termsAccepted) {
       toast({
@@ -114,7 +129,17 @@ const Auth = () => {
 
     if (error) {
       let message = t.signUpFailedMsg;
-      if (error.message.includes('already registered')) {
+      const errorMessage = error.message.toLowerCase();
+      const status = 'status' in error ? error.status : undefined;
+      if (errorMessage.includes('password has been pwned')) {
+        message = 'Bu şifre daha önce bir veri ihlalinde sızmış. Lütfen farklı bir şifre seçin.';
+      } else if (errorMessage.includes('password is too weak')) {
+        message = 'Şifreniz çok zayıf. En az 6 karakter, bir büyük harf, bir rakam içermeli.';
+      } else if (status === 422 || errorMessage.includes('422 unprocessable entity')) {
+        message = 'Şifreniz güvenlik kurallarına uymuyor. Daha güçlü bir şifre seçin veya daha önce sızdırılmış bir şifre kullanmayın.';
+      } else if (status === 429 || errorMessage.includes('too many requests')) {
+        message = 'Çok fazla deneme yaptınız. Lütfen biraz bekleyip tekrar deneyin.';
+      } else if (error.message.includes('already registered')) {
         message = t.emailAlreadyRegisteredMsg;
       }
       toast({
@@ -308,6 +333,11 @@ const Auth = () => {
                       required
                     />
                   </div>
+                  <PasswordStrengthMeter
+                    password={password}
+                    email={email}
+                    showErrors={showPasswordErrors}
+                  />
                 </div>
 
                 <div className="flex items-start space-x-2 mt-2">
