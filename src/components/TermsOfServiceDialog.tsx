@@ -209,6 +209,13 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               </p>
             </section>
 
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 21 — Seri ve Dondurma Sistemi</h3>
+              <p className="italic">
+                Tre, kullanıcıların günlük giriş alışkanlığını teşvik etmek için "seri" (streak) sistemi kullanır. Kullanıcı Tre'yi her gün açtığında seri bir gün artar; bir gün açmazsa seri sıfırlanır. Kullanıcılar ödüllü reklam izleyerek "seri dondurma" kazanabilir. Dondurma, bir günlük giriş yapılmadığında serinin sıfırlanmasını önler. En fazla 5 dondurma biriktirilebilir. Dondurma kazanımı tamamen kullanıcının isteğine bağlıdır; reklam izlemek zorunlu değildir. Seri ve dondurma verileri yalnızca kullanıcının cihazında (tarayıcı yerel depolama) saklanır; sunucuya iletilmez, üçüncü şahıslarla paylaşılmaz.
+              </p>
+            </section>
+
             <section className="border-t border-border pt-4 mt-4">
               <p className="text-xs text-muted-foreground">
                 Bu Sözleşme, kullanıcı ile Tre Geliştirici Ekibi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.

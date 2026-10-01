@@ -1,3 +1,4 @@
+// FILE: src/components/ChatHeader.tsx
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -5,6 +6,7 @@ import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, FolderOpen, Brain
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslations } from '@/utils/translations';
+import { StreakIndicator } from '@/components/StreakIndicator';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface ChatHeaderProps {
@@ -156,6 +158,7 @@ export const ChatHeader = ({
           </Button>
         )}
 
+        <StreakIndicator />
         <Link to="/settings">
           <Button
             variant="ghost"
