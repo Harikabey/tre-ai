@@ -4,6 +4,7 @@ import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
 import { useStats } from './useStats';
+import { useCustomPersonality } from './useCustomPersonality';
 import {
   cacheMessages,
   getCachedPage,
@@ -53,6 +54,7 @@ interface Conversation {
 
 export const useChatbot = () => {
   const { user } = useAuth();
+  const { customPersonality } = useCustomPersonality();
   const { recordMessage } = useStats();
   const { 
     analyzeAndStore, 
@@ -351,6 +353,7 @@ export const useChatbot = () => {
       body: JSON.stringify({ 
         messages: newHistory, 
         personality, 
+        customPersonality,
         thinkingMode,
         memoryContext,
         moodContext,
@@ -426,7 +429,7 @@ export const useChatbot = () => {
     }
     
     return assistantContent;
-  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext]);
+  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext, customPersonality]);
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {

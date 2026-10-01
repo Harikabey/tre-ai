@@ -55,7 +55,7 @@ serve(async (req) => {
 
     // --- Input Validation ---
     const body = await req.json();
-    const { messages, personality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences, showThinking } = body;
+    const { messages, personality, customPersonality, thinkingMode, memoryContext, moodContext, language, connectedAccounts, userPreferences, showThinking } = body;
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
@@ -88,6 +88,7 @@ serve(async (req) => {
     }
     const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror", "debater", "sarcastic", "educator"];
     const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
+    const safeCustomPersonality = typeof customPersonality === "string" ? customPersonality.trim().slice(0, 500) : "";
     const safeThinkingMode = thinkingMode === "deep" ? "deep" : "fast";
     const safeMemoryContext = typeof memoryContext === "string" ? memoryContext.slice(0, 5000) : "";
     const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
@@ -490,6 +491,9 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
     let systemPrompt = datePrefix + baseContext + (personalityPrompts[safePersonality] || personalityPrompts.friendly) + capabilitiesCatalog + thinkingInstructions + voiceInstructions + languageInstruction + dateSuffix + connectedAccountsContext + preferencesContext;
     if (safeMemoryContext) systemPrompt += safeMemoryContext;
     if (safeMoodContext) systemPrompt += safeMoodContext;
+    if (safeCustomPersonality) {
+      systemPrompt += `\n\n[ÖZEL KİŞİLİK TALİMATI]\nKullanıcı sana şu kişiliği verdi: "${safeCustomPersonality}"\nBu talimata göre davran. Diğer kişilik talimatlarından önceliklidir.`;
+    }
 
     console.log("Chat request - personality:", safePersonality, "mode:", safeThinkingMode, "model:", model, "date:", dateStr);
 

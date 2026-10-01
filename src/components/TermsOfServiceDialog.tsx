@@ -216,6 +216,13 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               </p>
             </section>
 
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 32 — Özel Kişilik</h3>
+              <p className="italic">
+                Tre, kullanıcıların Ayarlar menüsünden kendi kişiliklerini tanımlamasına izin verir. Kullanıcı kişilik kutusuna istediği talimatı yazabilir. Tre bu talimatı kalıcı olarak uygular; kullanıcı değiştirene kadar devam eder. Özel kişilik metni kullanıcının cihazında (tarayıcı yerel depolama alanında) saklanır; sohbet yanıtı üretmek için Tre sunucusuna ve kullanılan yapay zeka hizmetine iletilir, reklam veya başka amaçlarla kullanılmaz. Kullanıcı özel kişiliğini istediği zaman düzenleyebilir veya silebilir. Özel kişilik silindiğinde Tre varsayılan kişiliğe döner. Tre özel kişilik talimatını uygularken doğru bilgiden taviz vermez, saygıyı korur, hakaret etmez, yasadışı içerik üretmez. Kullanıcı özel kişilik talimatının içeriğinden kendisi sorumludur.
+              </p>
+            </section>
+
             <section className="border-t border-border pt-4 mt-4">
               <p className="text-xs text-muted-foreground">
                 Bu Sözleşme, kullanıcı ile Tre Geliştirici Ekibi arasındaki anlaşmanın tamamını oluşturur ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.

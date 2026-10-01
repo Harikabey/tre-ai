@@ -25,6 +25,8 @@ import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { getTranslations, translateUIStrings } from '@/utils/translations';
 import { ShortcutsSettings } from '@/components/ShortcutsSettings';
+import { CustomPersonalityInput } from '@/components/CustomPersonalityInput';
+import { useCustomPersonality } from '@/hooks/useCustomPersonality';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -49,6 +51,7 @@ const themeOptions: ThemeOption[] = [
 const Settings = () => {
   const navigate = useNavigate();
   const { preferences, updatePreference } = useUserPreferences();
+  const { clearCustomPersonality } = useCustomPersonality();
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
   const [wakeWord, setWakeWord] = useState<boolean>(() => isWakeWordEnabled());
@@ -219,7 +222,12 @@ const Settings = () => {
   };
 
   const handleSelectPersonality = (id: string) => {
-    updatePreference('personality', id);
+    try {
+      clearCustomPersonality();
+      updatePreference('personality', id);
+    } catch {
+      toast.error('Özel kişilik temizlenemedi.');
+    }
   };
 
   const handleSelectLanguage = async (code: string) => {
@@ -909,6 +917,8 @@ const Settings = () => {
               ))}
             </CardContent>
           </Card>
+
+          <CustomPersonalityInput onClear={() => updatePreference('personality', 'friendly')} />
 
           {/* Bildirim ile Sohbet */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
