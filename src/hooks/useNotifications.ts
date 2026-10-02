@@ -116,7 +116,13 @@ export function useNotifications(onReply?: (reply: string) => void | Promise<voi
   }, [updateSettings]);
 
   const sendTestNotification = useCallback(async () => {
-    await showLocalNotification('Tre bildirimi', 'Bildirimler başarıyla çalışıyor.');
+    const title = 'Tre bildirimi';
+    const body = 'Bildirimler başarıyla çalışıyor.';
+    if (readNotificationSettings().replyEnabled) {
+      await showReplyableNotification(title, body);
+      return;
+    }
+    await showLocalNotification(title, body);
   }, []);
 
   const sendReplyableNotification = useCallback(async (title: string, body: string) => {
