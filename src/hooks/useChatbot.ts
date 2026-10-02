@@ -799,6 +799,7 @@ export const useChatbot = () => {
   const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif', notificationReply = false) => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
+    let notificationResponse = '';
 
     let conversationId = currentConversationId;
     
@@ -827,10 +828,11 @@ export const useChatbot = () => {
         role: 'user',
         content: trimmedInput,
       })
-      .select('id')
+      .select('id, created_at')
       .single();
     
     const actualMessageId = savedMessage?.id || userMessageId;
+    const replyStartedAt = savedMessage?.created_at || userMessage.timestamp.toISOString();
     
     // Update conversation title if first message
     const currentConv = conversations.find(c => c.id === conversationId);
@@ -1069,6 +1071,7 @@ export const useChatbot = () => {
               setMessages(prev => prev.filter(m => m.id !== loadingId));
               
               const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
+              notificationResponse = assistantContent;
               await saveMessage(conversationId!, 'assistant', assistantContent);
             } catch (apiError) {
               console.error('Google API call failed:', apiError);
@@ -1084,13 +1087,29 @@ export const useChatbot = () => {
         } else {
           // Normal chat flow
           const assistantContent = await streamChat(conversationId!, trimmedInput);
+          notificationResponse = assistantContent;
           
           // Save assistant message to DB
           await saveMessage(conversationId!, 'assistant', assistantContent);
-          if (notificationReply && readNotificationSettings().replyEnabled && assistantContent) {
-            await sendReplyableNotification('Tre', assistantContent.slice(0, 500));
-          }
         }
+      }
+
+      if (notificationReply && readNotificationSettings().replyEnabled) {
+        if (!notificationResponse) {
+          const { data: latestReply, error: latestReplyError } = await supabase
+            .from('messages')
+            .select('content')
+            .eq('conversation_id', conversationId)
+            .eq('role', 'assistant')
+            .gt('created_at', replyStartedAt)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (latestReplyError) throw latestReplyError;
+          notificationResponse = latestReply?.content || '';
+        }
+        if (!notificationResponse.trim()) throw new Error('Tre yanıtı alınamadı.');
+        await sendReplyableNotification('Tre', notificationResponse.slice(0, 500));
       }
       
       // Update conversation updated_at
