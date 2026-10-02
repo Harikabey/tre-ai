@@ -1,12 +1,16 @@
+// FILE: src/hooks/useNotifications.ts
 import { useCallback, useEffect, useState } from 'react';
 import {
   getPermissionStatus,
   isNotificationSupported,
+  isNotificationReplySupported,
   NOTIFICATION_SETTINGS_KEY,
   readNotificationSettings,
   registerServiceWorker,
   requestPermission,
   showLocalNotification,
+  showReplyableNotification,
+  onNotificationReply,
   subscribeToPush,
   unsubscribeFromPush,
   writeNotificationSettings,
@@ -18,14 +22,19 @@ export interface UseNotificationsResult {
   permission: NotificationPermission;
   masterEnabled: boolean;
   isSupported: boolean;
+  replyEnabled: boolean;
+  isReplySupported: boolean;
+  setReplyEnabled: (enabled: boolean) => void;
   enableNotifications: () => Promise<void>;
   disableNotifications: () => Promise<void>;
   sendTestNotification: () => Promise<void>;
+  sendReplyableNotification: (title: string, body: string) => Promise<void>;
 }
 
-export function useNotifications(): UseNotificationsResult {
+export function useNotifications(onReply?: (reply: string) => void | Promise<void>): UseNotificationsResult {
   const [settings, setSettings] = useState<NotificationSettings>(readNotificationSettings);
   const [isSupported] = useState(isNotificationSupported);
+  const [isReplySupported] = useState(isNotificationReplySupported);
 
   useEffect(() => {
     const syncSettings = () => {
@@ -43,6 +52,9 @@ export function useNotifications(): UseNotificationsResult {
     };
 
     syncSettings();
+    void registerServiceWorker().then(registration => {
+      registration?.active?.postMessage({ type: 'SET_REPLY_ENABLED', enabled: readNotificationSettings().replyEnabled });
+    });
     const handleStorage = (event: StorageEvent) => {
       if (event.key === NOTIFICATION_SETTINGS_KEY) syncSettings();
     };
@@ -55,6 +67,11 @@ export function useNotifications(): UseNotificationsResult {
       window.removeEventListener('focus', syncSettings);
     };
   }, []);
+
+  useEffect(() => {
+    if (!onReply) return;
+    return onNotificationReply(onReply);
+  }, [onReply]);
 
   const updateSettings = useCallback((next: NotificationSettings) => {
     writeNotificationSettings(next);
@@ -102,12 +119,27 @@ export function useNotifications(): UseNotificationsResult {
     await showLocalNotification('Tre bildirimi', 'Bildirimler başarıyla çalışıyor.');
   }, []);
 
+  const sendReplyableNotification = useCallback(async (title: string, body: string) => {
+    await showReplyableNotification(title, body);
+  }, []);
+
+  const setReplyEnabled = useCallback((enabled: boolean) => {
+    updateSettings({ ...readNotificationSettings(), replyEnabled: enabled });
+    void registerServiceWorker().then(registration => {
+      registration?.active?.postMessage({ type: 'SET_REPLY_ENABLED', enabled });
+    });
+  }, [updateSettings]);
+
   return {
     permission: settings.permission,
     masterEnabled: settings.masterEnabled,
     isSupported,
+    replyEnabled: settings.replyEnabled,
+    isReplySupported,
+    setReplyEnabled,
     enableNotifications,
     disableNotifications,
     sendTestNotification,
+    sendReplyableNotification,
   };
 }

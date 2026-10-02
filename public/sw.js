@@ -1,3 +1,4 @@
+// FILE: public/sw.js
 const CACHE_NAME = "tre-shell-v1";
 const APP_SHELL = [
   "/",
@@ -8,6 +9,36 @@ const APP_SHELL = [
   "/icon-512.png",
   "/favicon.ico",
 ];
+const pendingReplyAcks = new Map();
+const REPLY_SETTINGS_DB = "tre-notification-settings";
+
+function readReplyEnabled() {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("preferences");
+    request.onerror = () => resolve(false);
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("preferences", "readonly");
+      const setting = transaction.objectStore("preferences").get("replyEnabled");
+      setting.onsuccess = () => resolve(setting.result === true);
+      setting.onerror = () => resolve(false);
+    };
+  });
+}
+
+function saveReplyEnabled(enabled) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("preferences");
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("preferences", "readwrite");
+      transaction.objectStore("preferences").put(enabled, "replyEnabled");
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+    };
+  });
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -96,17 +127,89 @@ self.addEventListener("push", (event) => {
     ...(payload.options && typeof payload.options === "object" ? payload.options : {}),
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(readReplyEnabled().then((replyEnabled) => {
+    const supportsActions = typeof self.Notification?.maxActions === "number" && self.Notification.maxActions > 0;
+    if (!replyEnabled || !supportsActions) return self.registration.showNotification(title, options);
+
+    const existingActions = Array.isArray(options.actions) ? options.actions : [];
+    const replyableOptions = {
+      ...options,
+      actions: [...existingActions, { action: "reply", title: "Yanıtla", type: "text" }]
+        .slice(0, self.Notification.maxActions),
+    };
+    return self.registration.showNotification(title, replyableOptions).catch(() =>
+      self.registration.showNotification(title, options),
+    );
+  }));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(self.clients.openWindow("/"));
+  if (event.action !== "reply" || typeof event.reply !== "string") {
+    const targetUrl = event.notification.data?.url || "/";
+    event.waitUntil(self.clients.openWindow(targetUrl));
+    return;
+  }
+
+  event.waitUntil((async () => {
+    const reply = event.reply.slice(0, 500);
+    const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const client = clients[0] || await self.clients.openWindow("/");
+    if (!client) return;
+
+    const replyId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await new Promise((resolve) => {
+      let attempts = 0;
+      const deliver = () => {
+        client.postMessage({ type: "NOTIFICATION_REPLY", replyId, reply });
+        attempts += 1;
+        if (attempts >= 30) {
+          pendingReplyAcks.delete(replyId);
+          resolve();
+          return;
+        }
+        setTimeout(deliver, 250);
+      };
+      pendingReplyAcks.set(replyId, resolve);
+      deliver();
+    });
+  })());
 });
 
 self.addEventListener("message", (event) => {
   const message = event.data;
-  if (!message || typeof message !== "object" || message.type !== "SHOW_NOTIFICATION") return;
+  if (!message || typeof message !== "object") return;
+
+  if (message.type === "NOTIFICATION_REPLY_ACK" && typeof message.replyId === "string") {
+    pendingReplyAcks.get(message.replyId)?.();
+    pendingReplyAcks.delete(message.replyId);
+    return;
+  }
+
+  if (message.type === "SET_REPLY_ENABLED" && typeof message.enabled === "boolean") {
+    event.waitUntil(saveReplyEnabled(message.enabled));
+    return;
+  }
+
+  if (message.type === "SHOW_REPLYABLE_NOTIFICATION") {
+    const title = typeof message.title === "string" ? message.title : "Tre";
+    const body = typeof message.body === "string" ? message.body : "";
+    const options = message.options && typeof message.options === "object" ? message.options : {};
+    const supportsActions = typeof self.Notification?.maxActions === "number" && self.Notification.maxActions > 0;
+    const notificationOptions = { body, ...options };
+    const replyableOptions = {
+      ...notificationOptions,
+      actions: [{ action: "reply", title: "Yanıtla", type: "text" }],
+    };
+    event.waitUntil(supportsActions
+      ? self.registration.showNotification(title, replyableOptions).catch(() =>
+        self.registration.showNotification(title, notificationOptions),
+      )
+      : self.registration.showNotification(title, notificationOptions));
+    return;
+  }
+
+  if (message.type !== "SHOW_NOTIFICATION") return;
 
   const title = typeof message.title === "string" ? message.title : "Tre";
   const body = typeof message.body === "string" ? message.body : "";

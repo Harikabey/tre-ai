@@ -1,5 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+// FILE: src/hooks/useChatbot.ts
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNotifications } from '@/hooks/useNotifications';
+import { readNotificationSettings } from '@/lib/notification-manager';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
@@ -50,6 +54,10 @@ interface Conversation {
 }
 
 export const useChatbot = () => {
+  const notificationReplyHandlerRef = useRef<(reply: string) => Promise<void>>(async () => {});
+  const handleNotificationMessage = useCallback((reply: string) => notificationReplyHandlerRef.current(reply), []);
+  const notifications = useNotifications(handleNotificationMessage);
+  const { sendReplyableNotification } = notifications;
   const { user } = useAuth();
   const { customPersonality } = useCustomPersonality();
   const { recordMessage } = useStats();
@@ -788,7 +796,7 @@ export const useChatbot = () => {
     return details.join('\n\n');
   }, []);
 
-  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
+  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif', notificationReply = false) => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
 
@@ -1079,6 +1087,9 @@ export const useChatbot = () => {
           
           // Save assistant message to DB
           await saveMessage(conversationId!, 'assistant', assistantContent);
+          if (notificationReply && readNotificationSettings().replyEnabled && assistantContent) {
+            await sendReplyableNotification('Tre', assistantContent.slice(0, 500));
+          }
         }
       }
       
@@ -1090,6 +1101,7 @@ export const useChatbot = () => {
         
     } catch (error) {
       console.error('Chat error:', error);
+      if (notificationReply) throw error;
       updateLastBotMessage(
         error instanceof Error 
           ? `❌ ${error.message}` 
@@ -1098,7 +1110,21 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, sendReplyableNotification]);
+
+  const handleNotificationReply = useCallback(async (reply: string) => {
+    if (!readNotificationSettings().replyEnabled) return;
+    try {
+      await sendMessage(reply.slice(0, 500), undefined, undefined, true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Yanıt Tre\'ye gönderilemedi.');
+    }
+  }, [sendMessage]);
+
+  useEffect(() => {
+    notificationReplyHandlerRef.current = handleNotificationReply;
+    return () => { notificationReplyHandlerRef.current = async () => {}; };
+  }, [handleNotificationReply]);
 
   // Drops messages from memory only (used while a chat is locked)
   const hideMessages = useCallback(() => {

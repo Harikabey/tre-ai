@@ -1,3 +1,4 @@
+// FILE: src/lib/notification-manager.ts
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
 
 export const NOTIFICATION_SETTINGS_KEY = 'tre_notification_settings';
@@ -7,12 +8,14 @@ export type NotificationPermission = 'default' | 'granted' | 'denied';
 export interface NotificationSettings {
   permission: NotificationPermission;
   masterEnabled: boolean;
+  replyEnabled: boolean;
   pushSubscription: PushSubscriptionJSON | null;
   lastPermissionRequest: number;
 }
 
 const permissionValues: NotificationPermission[] = ['default', 'granted', 'denied'];
 let registrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
+const handledNotificationReplies = new Set<string>();
 
 function browserPermission(): NotificationPermission {
   if (!isNotificationSupported()) return 'default';
@@ -26,6 +29,7 @@ export function getDefaultNotificationSettings(): NotificationSettings {
   return {
     permission: browserPermission(),
     masterEnabled: false,
+    replyEnabled: false,
     pushSubscription: null,
     lastPermissionRequest: 0,
   };
@@ -46,6 +50,7 @@ export function readNotificationSettings(): NotificationSettings {
     if (
       !permissionValues.includes(parsed.permission as NotificationPermission) ||
       typeof parsed.masterEnabled !== 'boolean' ||
+      (parsed.replyEnabled !== undefined && typeof parsed.replyEnabled !== 'boolean') ||
       !validSubscription ||
       typeof parsed.lastPermissionRequest !== 'number' ||
       !Number.isFinite(parsed.lastPermissionRequest)
@@ -54,6 +59,7 @@ export function readNotificationSettings(): NotificationSettings {
     return {
       permission: parsed.permission as NotificationPermission,
       masterEnabled: parsed.masterEnabled,
+      replyEnabled: parsed.replyEnabled ?? false,
       pushSubscription: parsed.pushSubscription as PushSubscriptionJSON | null,
       lastPermissionRequest: parsed.lastPermissionRequest,
     };
@@ -72,6 +78,36 @@ export function writeNotificationSettings(settings: NotificationSettings): void 
 
 export function isNotificationSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
+}
+
+export function isNotificationReplySupported(): boolean {
+  if (!isNotificationSupported() || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
+  const userAgent = navigator.userAgent;
+  const isChromeOrEdge = /Chrome|Chromium|Edg\//.test(userAgent) && !/Firefox|OPR\//.test(userAgent);
+  const isIOS = /iPad|iPhone|iPod|CriOS|FxiOS/.test(userAgent);
+  const notificationConstructor = Notification as typeof Notification & { readonly maxActions?: number };
+  return isChromeOrEdge && !isIOS && (notificationConstructor.maxActions ?? 0) > 0;
+}
+
+export function onNotificationReply(callback: (reply: string) => void | Promise<void>): () => void {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return () => {};
+
+  const handleMessage = (event: MessageEvent<unknown>) => {
+    const message = event.data;
+    if (!message || typeof message !== 'object') return;
+    const data = message as { type?: unknown; reply?: unknown; replyId?: unknown };
+    if (data.type !== 'NOTIFICATION_REPLY' || typeof data.reply !== 'string' || typeof data.replyId !== 'string') return;
+
+    event.source?.postMessage({ type: 'NOTIFICATION_REPLY_ACK', replyId: data.replyId });
+    if (handledNotificationReplies.has(data.replyId)) return;
+    handledNotificationReplies.add(data.replyId);
+    void Promise.resolve(callback(data.reply.slice(0, 500))).catch((error: unknown) => {
+      console.error('Bildirim yanıtı işlenemedi.', error);
+    });
+  };
+
+  navigator.serviceWorker.addEventListener('message', handleMessage);
+  return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
 }
 
 export function getPermissionStatus(): NotificationPermission {
@@ -207,4 +243,27 @@ export async function showLocalNotification(
     return;
   }
   throw new Error('Bildirim servisi henüz hazır değil.');
+}
+
+export async function showReplyableNotification(title: string, body: string): Promise<void> {
+  if (!isNotificationSupported() || getPermissionStatus() !== 'granted') {
+    throw new Error('Bildirim göndermek için tarayıcı izni gerekiyor.');
+  }
+
+  const registration = await registerServiceWorker() ?? (
+    'serviceWorker' in navigator
+      ? await navigator.serviceWorker.getRegistration('/')
+      : undefined
+  );
+  if (!registration?.active || !isNotificationReplySupported()) {
+    await showLocalNotification(title, body);
+    return;
+  }
+
+  registration.active.postMessage({
+    type: 'SHOW_REPLYABLE_NOTIFICATION',
+    title,
+    body,
+    options: { icon: '/icon-192.png', badge: '/icon-192.png' },
+  });
 }
