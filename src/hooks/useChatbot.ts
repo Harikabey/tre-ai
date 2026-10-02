@@ -7,6 +7,7 @@ import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
 import { useStats } from './useStats';
 import { useCustomPersonality } from './useCustomPersonality';
+import { addReminder, formatReminderTime } from '@/lib/reminders';
 import {
   cacheMessages,
   getCachedPage,
@@ -42,6 +43,23 @@ const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gene
 const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
+
+interface CreateReminderResponse {
+  ok: boolean;
+  reminder: {
+    id: string;
+    title: string;
+    body: string | null;
+    remind_at: string;
+  };
+}
+
+function isReminderRequest(text: string): boolean {
+  const hasTime = /\b(?:bugün|yarın|öbür gün|haftaya|pazartesi|salı|çarşamba|perşembe|cuma|cumartesi|pazar)\b|(?:\d{1,2}[:.]\d{2})|\b(?:saat\s*)?\d{1,2}\s*(?:['’]?\s*(?:de|da|te|ta))\b/i.test(text);
+  const hasReminderIntent = /\b(?:hatırlat(?:ıcı)?|hatirlat(?:ici)?|alarm)\b/i.test(text) ||
+    /\bbeni\b.{0,80}\b(?:ara|uyar)\b/i.test(text);
+  return hasReminderIntent && hasTime;
+}
 
 interface Conversation {
   id: string;
@@ -855,8 +873,33 @@ export const useChatbot = () => {
     }
 
     try {
+      if (isReminderRequest(trimmedInput)) {
+        updateLastBotMessage('⏰ Hatırlatıcın kuruluyor...');
+        const { data, error } = await supabase.functions.invoke<CreateReminderResponse>('create-reminder', {
+          body: {
+            text: trimmedInput,
+            conversationId,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+        });
+        if (error) throw error;
+        if (!data?.ok || !data.reminder) throw new Error('Hatırlatıcı bilgisi alınamadı.');
+
+        const text = [data.reminder.title, data.reminder.body].filter(Boolean).join(' — ');
+        addReminder({
+          id: data.reminder.id,
+          text,
+          dueAt: data.reminder.remind_at,
+          notified: false,
+          createdAt: Date.now(),
+        });
+        const scheduledTime = formatReminderTime(data.reminder.remind_at);
+        toast.success(`Hatırlatıcı kuruldu: ${scheduledTime}`);
+        const responseContent = `Tamam, hatırlatıcını ${scheduledTime} için kurdum: ${data.reminder.title}`;
+        updateLastBotMessage(responseContent);
+        await saveMessage(conversationId, 'assistant', responseContent);
       // Handle image generation request
-      if (generationType === 'image') {
+      } else if (generationType === 'image') {
         const imagePrompt = trimmedInput.replace(/^🎨 Görsel oluştur:\s*/i, '').trim();
         updateLastBotMessage('🎨 Görsel oluşturuluyor...');
         

@@ -239,7 +239,14 @@ export async function showLocalNotification(
   }
 
   if (!import.meta.env.PROD) {
-    new Notification(title, { ...options, body });
+    const notification = new Notification(title, { ...options, body });
+    notification.onclick = () => {
+      const data: unknown = options.data;
+      const targetUrl = data && typeof data === 'object' && 'url' in data && typeof data.url === 'string'
+        ? data.url
+        : '/';
+      window.location.assign(targetUrl);
+    };
     return;
   }
   throw new Error('Bildirim servisi henüz hazır değil.');

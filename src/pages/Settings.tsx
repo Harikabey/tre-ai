@@ -8,6 +8,7 @@ import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useUICustomization, ACCENT_HSL, ACCENT_LABELS, FONT_LABELS, BUBBLE_LABELS, WALLPAPER_LABELS, type AccentColor, type FontFamily, type BubbleStyle, type Wallpaper } from '@/hooks/useUICustomization';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -27,6 +28,7 @@ import { ShortcutsSettings } from '@/components/ShortcutsSettings';
 import { CustomPersonalityInput } from '@/components/CustomPersonalityInput';
 import { useCustomPersonality } from '@/hooks/useCustomPersonality';
 import { useNotifications } from '@/hooks/useNotifications';
+import { deleteReminder, updateReminder } from '@/lib/reminders';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -50,6 +52,7 @@ const themeOptions: ThemeOption[] = [
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { preferences, updatePreference } = useUserPreferences();
   const { clearCustomPersonality } = useCustomPersonality();
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
@@ -61,6 +64,7 @@ const Settings = () => {
   const scheduler = useLocalScheduler();
   const install = useInstallPrompt();
   const notifications = useNotifications();
+  const reminderId = searchParams.get('reminderId');
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailConnecting, setEmailConnecting] = useState(false);
@@ -167,6 +171,13 @@ const Settings = () => {
   useEffect(() => {
     loadEmailStatus();
   }, [loadEmailStatus]);
+
+  useEffect(() => {
+    const reminder = notifications.reminders.find((item) => item.id === reminderId);
+    if (!reminder || reminder.opened) return;
+    updateReminder(reminder.id, { opened: true });
+    toast.info(`Hatırlatıcı detayı: ${reminder.text}`, { duration: 8000 });
+  }, [reminderId, notifications.reminders]);
 
   const handleConnectEmail = async () => {
     if (!user) return;
@@ -557,6 +568,63 @@ const Settings = () => {
               {notifications.permission === 'denied' && (
                 <p className="text-xs text-destructive">Tarayıcı ayarlarından bildirim iznini açman gerekiyor.</p>
               )}
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Hatırlatıcı Bildirimleri</div>
+                  <div className="text-xs text-muted-foreground">
+                    Zamanı gelen hatırlatıcılar bu cihazda bildirim olarak gösterilir.
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.remindersEnabled}
+                  onCheckedChange={notifications.setRemindersEnabled}
+                  disabled={!notifications.isSupported || notifications.permission === 'denied' || !notifications.masterEnabled}
+                  aria-label="Hatırlatıcı Bildirimleri"
+                />
+              </div>
+              {!notifications.masterEnabled && (
+                <p className="text-xs text-muted-foreground">Hatırlatıcı bildirimlerini kullanmak için önce bildirimleri etkinleştir.</p>
+              )}
+              <div className="space-y-2 rounded-lg border border-border/50 p-3">
+                <div className="text-sm font-medium text-foreground">Aktif Hatırlatıcılar</div>
+                {notifications.reminders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Henüz hatırlatıcı yok.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {notifications.reminders
+                      .slice()
+                      .sort((first, second) => Date.parse(first.dueAt) - Date.parse(second.dueAt))
+                      .map((reminder) => (
+                        <li
+                          key={reminder.id}
+                          className={`flex items-start justify-between gap-3 rounded-md border p-2 ${
+                            reminder.id === reminderId ? 'border-primary bg-primary/5' : 'border-border/50'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="break-words text-sm text-foreground">{reminder.text}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(reminder.dueAt).toLocaleString('tr-TR')}
+                              {reminder.missed && !reminder.opened ? ' · Kaçırıldı' : ''}
+                              {reminder.notified && reminder.opened ? ' · Görüldü' : ''}
+                              {reminder.notified && !reminder.missed && !reminder.opened ? ' · Bildirim gönderildi' : ''}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            aria-label="Hatırlatıcıyı sil"
+                            onClick={() => deleteReminder(reminder.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
               <Button
                 variant="outline"
                 className="w-full"

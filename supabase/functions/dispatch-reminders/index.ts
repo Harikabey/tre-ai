@@ -59,6 +59,8 @@ serve(async (req) => {
             title: `⏰ ${r.title}`,
             body: r.body || "Hatırlatıcı zamanı geldi.",
             conversationId: r.conversation_id,
+            type: "reminder",
+            reminderId: r.id,
           }),
         });
         if (!resp.ok) console.error("send-push failed", await resp.text());

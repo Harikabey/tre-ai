@@ -1,4 +1,5 @@
 // FILE: src/App.tsx
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,10 +24,23 @@ import WidgetPreview from "./components/WidgetPreview";
 import ScreenAnalysisTrigger from "./components/ScreenAnalysisTrigger";
 import LocalSchedulerRunner from "./components/LocalSchedulerRunner";
 import { NotificationReplyListener } from "./components/NotificationReplyListener";
+import { useNotifications } from "./hooks/useNotifications";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const queryClient = new QueryClient();
+
+const ReminderNotificationRunner = () => {
+  const { checkReminders } = useNotifications();
+
+  useEffect(() => {
+    void checkReminders(true);
+    const intervalId = window.setInterval(() => void checkReminders(), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [checkReminders]);
+
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -36,6 +50,7 @@ const App = () => (
       <ScreenAnalysisTrigger />
       <LocalSchedulerRunner />
       <NotificationReplyListener />
+      <ReminderNotificationRunner />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

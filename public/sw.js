@@ -172,15 +172,24 @@ self.addEventListener("push", (event) => {
   }
 
   const title = typeof payload.title === "string" ? payload.title : "Tre";
+  const isReminder = payload.type === "reminder";
   const payloadData = payload.data && typeof payload.data === "object" ? payload.data : {};
+  const reminderId = typeof payload.reminderId === "string"
+    ? payload.reminderId
+    : typeof payloadData.reminderId === "string"
+      ? payloadData.reminderId
+      : null;
+  const body = typeof payload.body === "string" ? payload.body : "Yeni bir bildirimin var.";
   const options = {
-    body: typeof payload.body === "string" ? payload.body : "Yeni bir bildirimin var.",
+    body: isReminder && body.length > 180 ? `${body.slice(0, 177)}...` : body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
+    ...(isReminder && reminderId ? { tag: `tre-reminder-${reminderId}` } : {}),
     data: {
       ...payloadData,
-      url: payloadData.url || payload.url || "/",
+      url: payloadData.url || payload.url || (reminderId ? "/settings" : "/"),
       conversationId: payload.conversationId || payloadData.conversationId || null,
+      reminderId,
     },
     ...(payload.options && typeof payload.options === "object" ? payload.options : {}),
   };
@@ -207,8 +216,18 @@ self.addEventListener("notificationclick", (event) => {
     const notificationData = event.notification.data || {};
     const target = new URL(notificationData.url || "/", self.location.origin);
     if (notificationData.conversationId) target.searchParams.set("conversationId", notificationData.conversationId);
-    const targetUrl = target.href;
-    event.waitUntil(self.clients.openWindow(targetUrl));
+    if (notificationData.reminderId) target.searchParams.set("reminderId", notificationData.reminderId);
+    event.waitUntil((async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clients) {
+        if ("focus" in client) {
+          await client.navigate(target.href);
+          await client.focus();
+          return;
+        }
+      }
+      await self.clients.openWindow(target.href);
+    })());
     return;
   }
 

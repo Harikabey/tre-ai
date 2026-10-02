@@ -51,6 +51,8 @@ serve(async (req) => {
     const title = (body.title || "Tre").toString().slice(0, 100);
     const message = (body.body || body.message || "").toString().slice(0, 500);
     const conversationId = body.conversationId || null;
+    const reminderId = typeof body.reminderId === "string" ? body.reminderId : null;
+    const isReminder = body.type === "reminder" && reminderId !== null;
 
     const { data: subs, error: sErr } = await admin
       .from("push_subscriptions")
@@ -69,7 +71,15 @@ serve(async (req) => {
       });
     }
 
-    const payload = JSON.stringify({ title, body: message, conversationId, url: "/" });
+    const payload = JSON.stringify({
+      title,
+      body: message,
+      conversationId,
+      url: isReminder && reminderId
+        ? `/settings?reminderId=${encodeURIComponent(reminderId)}`
+        : "/",
+      ...(isReminder ? { type: "reminder", reminderId, data: { reminderId } } : {}),
+    });
     let sent = 0;
     const deadEndpoints: string[] = [];
 

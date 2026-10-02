@@ -1,5 +1,14 @@
 // FILE: src/hooks/useNotifications.ts
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  areReminderNotificationsEnabled,
+  readReminders,
+  REMINDER_NOTIFICATIONS_ENABLED_KEY,
+  REMINDERS_STORAGE_KEY,
+  REMINDERS_CHANGED_EVENT,
+  writeReminders,
+  type Reminder,
+} from '@/lib/reminders';
 import {
   getPermissionStatus,
   isNotificationSupported,
@@ -29,12 +38,42 @@ export interface UseNotificationsResult {
   disableNotifications: () => Promise<void>;
   sendTestNotification: () => Promise<void>;
   sendReplyableNotification: (title: string, body: string, conversationId?: string) => Promise<void>;
+  remindersEnabled: boolean;
+  reminders: Reminder[];
+  setRemindersEnabled: (enabled: boolean) => void;
+  checkReminders: (onStartup?: boolean) => Promise<void>;
 }
 
 export function useNotifications(onReply?: (reply: string) => void | Promise<void>): UseNotificationsResult {
   const [settings, setSettings] = useState<NotificationSettings>(readNotificationSettings);
   const [isSupported] = useState(isNotificationSupported);
   const [isReplySupported] = useState(isNotificationReplySupported);
+  const [remindersEnabled, setRemindersEnabledState] = useState(areReminderNotificationsEnabled);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const checkingReminders = useRef(false);
+
+  const refreshReminders = useCallback(() => {
+    try {
+      setReminders(readReminders());
+    } catch (error) {
+      console.error('Hatırlatıcılar okunamadı.', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshReminders();
+    const syncReminderSetting = () => setRemindersEnabledState(areReminderNotificationsEnabled());
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === REMINDER_NOTIFICATIONS_ENABLED_KEY) syncReminderSetting();
+      if (event.key === REMINDERS_STORAGE_KEY) refreshReminders();
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(REMINDERS_CHANGED_EVENT, refreshReminders);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(REMINDERS_CHANGED_EVENT, refreshReminders);
+    };
+  }, [refreshReminders]);
 
   useEffect(() => {
     const syncSettings = () => {
@@ -136,6 +175,64 @@ export function useNotifications(onReply?: (reply: string) => void | Promise<voi
     });
   }, [updateSettings]);
 
+  const setRemindersEnabled = useCallback((enabled: boolean) => {
+    localStorage.setItem(REMINDER_NOTIFICATIONS_ENABLED_KEY, String(enabled));
+    setRemindersEnabledState(enabled);
+  }, []);
+
+  const checkReminders = useCallback(async (onStartup = false) => {
+    if (checkingReminders.current) return;
+    checkingReminders.current = true;
+    try {
+      const now = Date.now();
+      let pending = readReminders();
+      if (onStartup) {
+        const updated = pending.map((reminder) =>
+          !reminder.notified && Date.parse(reminder.dueAt) <= now && !reminder.missed
+            ? { ...reminder, missed: true }
+            : reminder,
+        );
+        if (updated.some((reminder, index) => reminder !== pending[index])) {
+          writeReminders(updated);
+          pending = updated;
+        }
+      }
+
+      if (
+        !areReminderNotificationsEnabled() ||
+        !readNotificationSettings().masterEnabled ||
+        getPermissionStatus() !== 'granted'
+      ) return;
+
+      for (const reminder of pending) {
+        if (reminder.notified || Date.parse(reminder.dueAt) > now) continue;
+        const body = reminder.text.length > 180
+          ? `${reminder.text.slice(0, 177)}...`
+          : reminder.text;
+        try {
+          await showLocalNotification('⏰ Tre hatırlatıcısı', body, {
+            tag: `tre-reminder-${reminder.id}`,
+            data: {
+              url: `/settings?reminderId=${encodeURIComponent(reminder.id)}`,
+              reminderId: reminder.id,
+            },
+          });
+          const current = readReminders();
+          writeReminders(current.map((item) =>
+            item.id === reminder.id ? { ...item, notified: true } : item,
+          ));
+        } catch (error) {
+          console.error(`Hatırlatıcı bildirimi gönderilemedi (${reminder.id}).`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Hatırlatıcılar kontrol edilemedi.', error);
+    } finally {
+      checkingReminders.current = false;
+      refreshReminders();
+    }
+  }, [refreshReminders]);
+
   return {
     permission: settings.permission,
     masterEnabled: settings.masterEnabled,
@@ -147,5 +244,9 @@ export function useNotifications(onReply?: (reply: string) => void | Promise<voi
     disableNotifications,
     sendTestNotification,
     sendReplyableNotification,
+    remindersEnabled,
+    reminders,
+    setRemindersEnabled,
+    checkReminders,
   };
 }
