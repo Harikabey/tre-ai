@@ -105,6 +105,7 @@ const AuthenticatedIndex = () => {
     updateMemory,
     addInterest,
     updateInterest,
+    hideMessages,
   } = useChatbot();
 
   const {
@@ -136,6 +137,11 @@ const AuthenticatedIndex = () => {
   const lockedIds = locks.map((l) => l.id);
   const isCurrentLocked = !!currentConversationId && lockedIds.includes(currentConversationId);
   const isCurrentHidden = isCurrentLocked && !unlockedIds.includes(currentConversationId!);
+
+  // Never keep a locked chat's messages in memory while it is locked
+  useEffect(() => {
+    if (isCurrentHidden) hideMessages();
+  }, [isCurrentHidden, messages.length, hideMessages]);
 
   useEffect(() => {
     const relock = () => setUnlockedIds([]);
