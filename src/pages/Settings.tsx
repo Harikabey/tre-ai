@@ -26,6 +26,7 @@ import { getTranslations, translateUIStrings } from '@/utils/translations';
 import { ShortcutsSettings } from '@/components/ShortcutsSettings';
 import { CustomPersonalityInput } from '@/components/CustomPersonalityInput';
 import { useCustomPersonality } from '@/hooks/useCustomPersonality';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -59,6 +60,7 @@ const Settings = () => {
   const { user } = useAuth();
   const scheduler = useLocalScheduler();
   const install = useInstallPrompt();
+  const notifications = useNotifications();
   const [emailConnected, setEmailConnected] = useState(false);
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailConnecting, setEmailConnecting] = useState(false);
@@ -254,6 +256,27 @@ const Settings = () => {
 
   const handleReduceMotionChange = (enabled: boolean) => {
     updatePreference('reduce_motion', enabled);
+  };
+
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        await notifications.enableNotifications();
+      } else {
+        await notifications.disableNotifications();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Bildirim ayarı güncellenemedi.');
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await notifications.sendTestNotification();
+      toast.success('Test bildirimi gönderildi.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Test bildirimi gönderilemedi.');
+    }
   };
 
   const filteredLanguages = languages.filter(l =>
@@ -507,6 +530,43 @@ const Settings = () => {
           </Card>
 
           <ShortcutsSettings />
+
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle>Bildirimler</CardTitle>
+              <CardDescription>Tre'nin sana bildirim göndermesine izin ver.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">Bildirimleri Etkinleştir</div>
+                  <div className="text-xs text-muted-foreground">
+                    İzin: {notifications.permission === 'granted' ? 'Açık' : notifications.permission === 'denied' ? 'Reddedildi' : 'Kapalı'}
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.masterEnabled}
+                  onCheckedChange={(enabled) => void handleNotificationsToggle(enabled)}
+                  disabled={!notifications.isSupported || notifications.permission === 'denied'}
+                  aria-label="Bildirimleri Etkinleştir"
+                />
+              </div>
+              {!notifications.isSupported && (
+                <p className="text-xs text-muted-foreground">Bu tarayıcı bildirimleri desteklemiyor.</p>
+              )}
+              {notifications.permission === 'denied' && (
+                <p className="text-xs text-destructive">Tarayıcı ayarlarından bildirim iznini açman gerekiyor.</p>
+              )}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => void handleTestNotification()}
+                disabled={!notifications.isSupported || notifications.permission !== 'granted'}
+              >
+                Test Bildirimi Gönder
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
