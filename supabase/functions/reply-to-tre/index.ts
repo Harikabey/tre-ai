@@ -137,23 +137,24 @@ serve(async (req) => {
     // Touch conversation
     await admin.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
 
-    // Send push back
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          title: "Tre",
-          body: reply.length > 240 ? reply.slice(0, 240) + "…" : reply,
-          conversationId,
-        }),
-      });
-    } catch (e) {
-      console.error("send-push call failed", e);
+    if (body.sendPush !== false) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            title: "Tre",
+            body: reply.length > 240 ? reply.slice(0, 240) + "…" : reply,
+            conversationId,
+          }),
+        });
+      } catch (e) {
+        console.error("send-push call failed", e);
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, conversationId, reply }), {

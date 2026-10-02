@@ -28,7 +28,7 @@ export interface UseNotificationsResult {
   enableNotifications: () => Promise<void>;
   disableNotifications: () => Promise<void>;
   sendTestNotification: () => Promise<void>;
-  sendReplyableNotification: (title: string, body: string) => Promise<void>;
+  sendReplyableNotification: (title: string, body: string, conversationId?: string) => Promise<void>;
 }
 
 export function useNotifications(onReply?: (reply: string) => void | Promise<void>): UseNotificationsResult {
@@ -125,8 +125,8 @@ export function useNotifications(onReply?: (reply: string) => void | Promise<voi
     await showLocalNotification(title, body);
   }, []);
 
-  const sendReplyableNotification = useCallback(async (title: string, body: string) => {
-    await showReplyableNotification(title, body);
+  const sendReplyableNotification = useCallback(async (title: string, body: string, conversationId?: string) => {
+    await showReplyableNotification(title, body, conversationId);
   }, []);
 
   const setReplyEnabled = useCallback((enabled: boolean) => {

@@ -567,16 +567,16 @@ const Settings = () => {
               </Button>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Bildirimden Yanıtlama</div>
+                  <div className="text-sm font-medium text-foreground">Arka Planda Yanıtla</div>
                   <div className="text-xs text-muted-foreground">
-                    Bildirime yanıt yazarak Tre'yle konuşabilirsin. Sadece Chrome/Edge'de çalışır.
+                    Bildirimden yanıt yazdığında, Tre anında cevap verir. Uygulamayı açmana gerek yok.
                   </div>
                 </div>
                 <Switch
                   checked={notifications.replyEnabled}
                   onCheckedChange={notifications.setReplyEnabled}
                   disabled={!notifications.isReplySupported}
-                  aria-label="Bildirimden Yanıtlama"
+                  aria-label="Arka Planda Yanıtla"
                 />
               </div>
               {!notifications.isReplySupported && (

@@ -155,11 +155,11 @@ const AuthenticatedIndex = () => {
     };
   }, []);
 
-  const openLockDialog = (mode: 'set' | 'enter', convId: string, openAfter = false) => {
+  const openLockDialog = useCallback((mode: 'set' | 'enter', convId: string, openAfter = false) => {
     setPwInput('');
     setPwError('');
     setLockDialog({ mode, convId, openAfter });
-  };
+  }, []);
 
   const handleToggleLock = () => {
     if (!currentConversationId) {
@@ -169,13 +169,22 @@ const AuthenticatedIndex = () => {
     openLockDialog(isCurrentLocked ? 'enter' : 'set', currentConversationId);
   };
 
-  const handleSelectConversation = (id: string) => {
-    if (lockedIds.includes(id) && !unlockedIds.includes(id)) {
+  const handleSelectConversation = useCallback((id: string) => {
+    if (locks.some((lock) => lock.id === id) && !unlockedIds.includes(id)) {
       openLockDialog('enter', id, true);
       return;
     }
     selectConversation(id);
-  };
+  }, [locks, unlockedIds, openLockDialog, selectConversation]);
+
+  const handledNotificationConversationRef = useRef<string | null>(null);
+  useEffect(() => {
+    const conversationId = new URLSearchParams(location.search).get('conversationId');
+    if (!user || !conversationId || handledNotificationConversationRef.current === conversationId) return;
+    if (!conversations.some((conversation) => conversation.id === conversationId)) return;
+    handledNotificationConversationRef.current = conversationId;
+    handleSelectConversation(conversationId);
+  }, [location.search, user, conversations, handleSelectConversation]);
 
   const submitLockDialog = async () => {
     if (!lockDialog) return;

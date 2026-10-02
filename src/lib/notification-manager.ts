@@ -245,7 +245,7 @@ export async function showLocalNotification(
   throw new Error('Bildirim servisi henüz hazır değil.');
 }
 
-export async function showReplyableNotification(title: string, body: string): Promise<void> {
+export async function showReplyableNotification(title: string, body: string, conversationId?: string): Promise<void> {
   if (!isNotificationSupported() || getPermissionStatus() !== 'granted') {
     throw new Error('Bildirim göndermek için tarayıcı izni gerekiyor.');
   }
@@ -256,7 +256,9 @@ export async function showReplyableNotification(title: string, body: string): Pr
       : undefined
   );
   if (!registration?.active || !isNotificationReplySupported()) {
-    await showLocalNotification(title, body);
+    await showLocalNotification(title, body, {
+      data: { url: '/', conversationId: conversationId ?? null },
+    });
     return;
   }
 
@@ -264,6 +266,7 @@ export async function showReplyableNotification(title: string, body: string): Pr
     type: 'SHOW_REPLYABLE_NOTIFICATION',
     title,
     body,
+    conversationId: conversationId ?? null,
     options: { icon: '/icon-192.png', badge: '/icon-192.png' },
   });
 }

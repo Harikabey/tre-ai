@@ -14,8 +14,11 @@ const REPLY_SETTINGS_DB = "tre-notification-settings";
 
 function readReplyEnabled() {
   return new Promise((resolve) => {
-    const request = indexedDB.open(REPLY_SETTINGS_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("preferences");
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 2);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("preferences")) request.result.createObjectStore("preferences");
+      if (!request.result.objectStoreNames.contains("pendingReplies")) request.result.createObjectStore("pendingReplies", { keyPath: "replyId" });
+    };
     request.onerror = () => resolve(false);
     request.onsuccess = () => {
       const transaction = request.result.transaction("preferences", "readonly");
@@ -28,12 +31,62 @@ function readReplyEnabled() {
 
 function saveReplyEnabled(enabled) {
   return new Promise((resolve) => {
-    const request = indexedDB.open(REPLY_SETTINGS_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("preferences");
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 2);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("preferences")) request.result.createObjectStore("preferences");
+      if (!request.result.objectStoreNames.contains("pendingReplies")) request.result.createObjectStore("pendingReplies", { keyPath: "replyId" });
+    };
     request.onerror = () => resolve();
     request.onsuccess = () => {
       const transaction = request.result.transaction("preferences", "readwrite");
       transaction.objectStore("preferences").put(enabled, "replyEnabled");
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+    };
+  });
+}
+
+function savePendingReply(reply) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 2);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("preferences")) request.result.createObjectStore("preferences");
+      if (!request.result.objectStoreNames.contains("pendingReplies")) request.result.createObjectStore("pendingReplies", { keyPath: "replyId" });
+    };
+    request.onerror = () => resolve(false);
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pendingReplies", "readwrite");
+      transaction.objectStore("pendingReplies").put(reply);
+      transaction.oncomplete = () => resolve(true);
+      transaction.onerror = () => resolve(false);
+    };
+  });
+}
+
+function readPendingReplies() {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 2);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("preferences")) request.result.createObjectStore("preferences");
+      if (!request.result.objectStoreNames.contains("pendingReplies")) request.result.createObjectStore("pendingReplies", { keyPath: "replyId" });
+    };
+    request.onerror = () => resolve([]);
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pendingReplies", "readonly");
+      const replies = transaction.objectStore("pendingReplies").getAll();
+      replies.onsuccess = () => resolve(replies.result);
+      replies.onerror = () => resolve([]);
+    };
+  });
+}
+
+function removePendingReply(replyId) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(REPLY_SETTINGS_DB, 2);
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const transaction = request.result.transaction("pendingReplies", "readwrite");
+      transaction.objectStore("pendingReplies").delete(replyId);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => resolve();
     };
@@ -119,11 +172,16 @@ self.addEventListener("push", (event) => {
   }
 
   const title = typeof payload.title === "string" ? payload.title : "Tre";
+  const payloadData = payload.data && typeof payload.data === "object" ? payload.data : {};
   const options = {
     body: typeof payload.body === "string" ? payload.body : "Yeni bir bildirimin var.",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    data: { url: "/", ...(payload.data && typeof payload.data === "object" ? payload.data : {}) },
+    data: {
+      ...payloadData,
+      url: payloadData.url || payload.url || "/",
+      conversationId: payload.conversationId || payloadData.conversationId || null,
+    },
     ...(payload.options && typeof payload.options === "object" ? payload.options : {}),
   };
 
@@ -146,31 +204,45 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action !== "reply" || typeof event.reply !== "string") {
-    const targetUrl = event.notification.data?.url || "/";
+    const notificationData = event.notification.data || {};
+    const target = new URL(notificationData.url || "/", self.location.origin);
+    if (notificationData.conversationId) target.searchParams.set("conversationId", notificationData.conversationId);
+    const targetUrl = target.href;
     event.waitUntil(self.clients.openWindow(targetUrl));
     return;
   }
 
   event.waitUntil((async () => {
-    const reply = event.reply.slice(0, 500);
+    const notificationData = event.notification.data || {};
+    const reply = {
+      replyId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text: event.reply.trim().slice(0, 500),
+      conversationId: typeof notificationData.conversationId === "string" ? notificationData.conversationId : null,
+    };
+    if (!reply.text || !(await savePendingReply(reply))) return;
+
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    const client = clients[0] || await self.clients.openWindow("/");
+    const target = new URL("/", self.location.origin);
+    if (reply.conversationId) target.searchParams.set("conversationId", reply.conversationId);
+    const client = clients[0] || await self.clients.openWindow(target.href);
     if (!client) return;
 
-    const replyId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await new Promise((resolve) => {
       let attempts = 0;
       const deliver = () => {
-        client.postMessage({ type: "NOTIFICATION_REPLY", replyId, reply });
+        client.postMessage({ type: "notification-reply", ...reply });
         attempts += 1;
         if (attempts >= 30) {
-          pendingReplyAcks.delete(replyId);
+          pendingReplyAcks.delete(reply.replyId);
           resolve();
           return;
         }
         setTimeout(deliver, 250);
       };
-      pendingReplyAcks.set(replyId, resolve);
+      pendingReplyAcks.set(reply.replyId, () => {
+        void removePendingReply(reply.replyId);
+        resolve();
+      });
       deliver();
     });
   })());
@@ -186,6 +258,13 @@ self.addEventListener("message", (event) => {
     return;
   }
 
+  if (message.type === "GET_PENDING_NOTIFICATION_REPLIES") {
+    event.waitUntil(readPendingReplies().then((replies) => {
+      event.source?.postMessage({ type: "PENDING_NOTIFICATION_REPLIES", replies });
+    }));
+    return;
+  }
+
   if (message.type === "SET_REPLY_ENABLED" && typeof message.enabled === "boolean") {
     event.waitUntil(saveReplyEnabled(message.enabled));
     return;
@@ -196,7 +275,15 @@ self.addEventListener("message", (event) => {
     const body = typeof message.body === "string" ? message.body : "";
     const options = message.options && typeof message.options === "object" ? message.options : {};
     const supportsActions = typeof self.Notification?.maxActions === "number" && self.Notification.maxActions > 0;
-    const notificationOptions = { body, ...options };
+    const notificationOptions = {
+      body,
+      ...options,
+      data: {
+        ...(options.data && typeof options.data === "object" ? options.data : {}),
+        url: "/",
+        conversationId: typeof message.conversationId === "string" ? message.conversationId : null,
+      },
+    };
     const replyableOptions = {
       ...notificationOptions,
       actions: [{ action: "reply", title: "Yanıtla", type: "text" }],

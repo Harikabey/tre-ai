@@ -2,8 +2,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNotifications } from '@/hooks/useNotifications';
-import { readNotificationSettings } from '@/lib/notification-manager';
 import { Message, KnowledgeItem } from '@/types/chatbot';
 import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
@@ -54,10 +52,6 @@ interface Conversation {
 }
 
 export const useChatbot = () => {
-  const notificationReplyHandlerRef = useRef<(reply: string) => Promise<void>>(async () => {});
-  const handleNotificationMessage = useCallback((reply: string) => notificationReplyHandlerRef.current(reply), []);
-  const notifications = useNotifications(handleNotificationMessage);
-  const { sendReplyableNotification } = notifications;
   const { user } = useAuth();
   const { customPersonality } = useCustomPersonality();
   const { recordMessage } = useStats();
@@ -796,10 +790,9 @@ export const useChatbot = () => {
     return details.join('\n\n');
   }, []);
 
-  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif', notificationReply = false) => {
+  const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
     if (!trimmedInput || !user) return;
-    let notificationResponse = '';
 
     let conversationId = currentConversationId;
     
@@ -832,8 +825,6 @@ export const useChatbot = () => {
       .single();
     
     const actualMessageId = savedMessage?.id || userMessageId;
-    const replyStartedAt = savedMessage?.created_at || userMessage.timestamp.toISOString();
-    
     // Update conversation title if first message
     const currentConv = conversations.find(c => c.id === conversationId);
     if (currentConv?.title === 'Yeni Sohbet') {
@@ -1071,7 +1062,6 @@ export const useChatbot = () => {
               setMessages(prev => prev.filter(m => m.id !== loadingId));
               
               const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
-              notificationResponse = assistantContent;
               await saveMessage(conversationId!, 'assistant', assistantContent);
             } catch (apiError) {
               console.error('Google API call failed:', apiError);
@@ -1087,31 +1077,11 @@ export const useChatbot = () => {
         } else {
           // Normal chat flow
           const assistantContent = await streamChat(conversationId!, trimmedInput);
-          notificationResponse = assistantContent;
-          
           // Save assistant message to DB
           await saveMessage(conversationId!, 'assistant', assistantContent);
         }
       }
 
-      if (notificationReply && readNotificationSettings().replyEnabled) {
-        if (!notificationResponse) {
-          const { data: latestReply, error: latestReplyError } = await supabase
-            .from('messages')
-            .select('content')
-            .eq('conversation_id', conversationId)
-            .eq('role', 'assistant')
-            .gt('created_at', replyStartedAt)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (latestReplyError) throw latestReplyError;
-          notificationResponse = latestReply?.content || '';
-        }
-        if (!notificationResponse.trim()) throw new Error('Tre yanıtı alınamadı.');
-        await sendReplyableNotification('Tre', notificationResponse.slice(0, 500));
-      }
-      
       // Update conversation updated_at
       await supabase
         .from('conversations')
@@ -1120,7 +1090,6 @@ export const useChatbot = () => {
         
     } catch (error) {
       console.error('Chat error:', error);
-      if (notificationReply) throw error;
       updateLastBotMessage(
         error instanceof Error 
           ? `❌ ${error.message}` 
@@ -1129,21 +1098,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, sendReplyableNotification]);
-
-  const handleNotificationReply = useCallback(async (reply: string) => {
-    if (!readNotificationSettings().replyEnabled) return;
-    try {
-      await sendMessage(reply.slice(0, 500), undefined, undefined, true);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Yanıt Tre\'ye gönderilemedi.');
-    }
-  }, [sendMessage]);
-
-  useEffect(() => {
-    notificationReplyHandlerRef.current = handleNotificationReply;
-    return () => { notificationReplyHandlerRef.current = async () => {}; };
-  }, [handleNotificationReply]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood]);
 
   // Drops messages from memory only (used while a chat is locked)
   const hideMessages = useCallback(() => {

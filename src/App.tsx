@@ -22,6 +22,7 @@ import FileHandlerFeaturePreview from "./components/FileHandlerFeaturePreview";
 import WidgetPreview from "./components/WidgetPreview";
 import ScreenAnalysisTrigger from "./components/ScreenAnalysisTrigger";
 import LocalSchedulerRunner from "./components/LocalSchedulerRunner";
+import { NotificationReplyListener } from "./components/NotificationReplyListener";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
@@ -34,6 +35,7 @@ const App = () => (
       <Sonner />
       <ScreenAnalysisTrigger />
       <LocalSchedulerRunner />
+      <NotificationReplyListener />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
