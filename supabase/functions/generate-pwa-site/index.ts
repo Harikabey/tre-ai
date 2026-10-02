@@ -190,7 +190,10 @@ ${site.html_body}
     ];
 
     for (const [name, content, contentType] of uploads) {
-      const uploadBody = new Blob([content], { type: contentType });
+      const uploadBody = new Blob(
+        [content instanceof Uint8Array ? new Uint8Array(content) : content],
+        { type: contentType },
+      );
       const { error } = await adminClient.storage
         .from("generated-files")
         .upload(`${folder}/${name}`, uploadBody, { contentType, upsert: true });

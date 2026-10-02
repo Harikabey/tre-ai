@@ -64,33 +64,6 @@ serve(async (req) => {
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
 
-    // deno-lint-ignore no-unreachable
-    const response: Response | null = null;
-    if (!response) {
-      throw new Error("Görsel oluşturulamadı");
-    }
-
-
-    const data = await response.json();
-    const images = data.choices?.[0]?.message?.images;
-    const textResponse = data.choices?.[0]?.message?.content || "";
-    let imageUrl = null;
-
-    if (images && images.length > 0) {
-      imageUrl = images[0]?.image_url?.url;
-    }
-    if (!imageUrl && textResponse) {
-      const base64Match = textResponse.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
-      if (base64Match) imageUrl = base64Match[0];
-    }
-
-    if (!imageUrl) {
-      throw new Error("Görsel oluşturulamadı - model görsel üretemedi.");
-    }
-
-    return new Response(JSON.stringify({ imageUrl, description: textResponse }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error) {
     console.error("Generate image error:", error);
     return new Response(
