@@ -38,7 +38,7 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!targetLanguage || typeof targetLanguage !== "string") {
+    if (!targetLanguage || typeof targetLanguage !== "string" || !/^[\p{L}\p{M} ()\-]{2,40}$/u.test(targetLanguage.trim())) {
       return new Response(JSON.stringify({ error: "Invalid target language" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

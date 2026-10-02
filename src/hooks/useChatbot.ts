@@ -1100,6 +1100,12 @@ export const useChatbot = () => {
     }
   }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood]);
 
+  // Drops messages from memory only (used while a chat is locked)
+  const hideMessages = useCallback(() => {
+    setMessages([]);
+    setHasMoreMessages(false);
+  }, []);
+
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
       await supabase
@@ -1249,6 +1255,7 @@ export const useChatbot = () => {
     sendMessage,
     reactToMessage,
     clearMessages,
+    hideMessages,
     deleteMessage,
     clearKnowledge,
     learnNewResponse,

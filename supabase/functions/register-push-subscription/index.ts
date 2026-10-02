@@ -35,6 +35,23 @@ serve(async (req) => {
       });
     }
 
+    if (endpoint.length > 2000 || !/^https:\/\//.test(endpoint) || typeof keys.p256dh !== "string" || typeof keys.auth !== "string" || keys.p256dh.length > 300 || keys.auth.length > 300) {
+      return new Response(JSON.stringify({ error: "Invalid subscription" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: existing } = await admin
+      .from("push_subscriptions")
+      .select("user_id")
+      .eq("endpoint", endpoint)
+      .maybeSingle();
+    if (existing && existing.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Subscription already registered" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { error } = await admin
       .from("push_subscriptions")
       .upsert({
@@ -48,7 +65,7 @@ serve(async (req) => {
 
     if (error) {
       console.error("upsert error", error);
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: "Could not save subscription" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

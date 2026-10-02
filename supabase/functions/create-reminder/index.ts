@@ -24,7 +24,9 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const text = (body.text || "").toString().slice(0, 2000);
-    const timezone = (body.timezone || "UTC").toString().slice(0, 100);
+    const rawTz = (body.timezone || "UTC").toString().slice(0, 64);
+    let timezone = "UTC";
+    try { if (/^[A-Za-z0-9_+\-\/]+$/.test(rawTz)) { new Intl.DateTimeFormat("en-US", { timeZone: rawTz }); timezone = rawTz; } } catch { timezone = "UTC"; }
     const conversationId = body.conversationId || null;
     if (!text) return json({ error: "text required" }, 400);
 

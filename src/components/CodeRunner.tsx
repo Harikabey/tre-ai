@@ -51,8 +51,10 @@ export const CodeRunner = ({ code, language, onClose }: { code: string; language
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      if (e.source !== iframeRef.current?.contentWindow) return;
       if (e.data?.type === 'code-run-output') {
-        setLogs(prev => [...prev, { type: e.data.type, args: e.data.args || [] }]);
+        const args = Array.isArray(e.data.args) ? e.data.args.slice(0, 50).map((a: unknown) => String(a).slice(0, 5000)) : [];
+        setLogs(prev => [...prev, { type: e.data.type, args }]);
       }
     };
     window.addEventListener('message', handler);
