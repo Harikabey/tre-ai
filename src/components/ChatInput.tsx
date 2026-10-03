@@ -12,7 +12,6 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { VoicePulseAnimation } from '@/components/VoicePulseAnimation';
 import { useUserShortcuts } from '@/hooks/useUserShortcuts';
-import { isMobileDevice } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +45,7 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
-  const [isMobile, setIsMobile] = useState(isMobileDevice);
+  const [isMobile, setIsMobile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showVoiceAnimation, setShowVoiceAnimation] = useState(false);
@@ -65,13 +64,10 @@ export const ChatInput = ({
   }, [input]);
 
   useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-
-    const pointerQuery = window.matchMedia('(pointer: coarse)');
-    const updateDeviceType = () => setIsMobile(isMobileDevice());
-
-    pointerQuery.addEventListener('change', updateDeviceType);
-    return () => pointerQuery.removeEventListener('change', updateDeviceType);
+    const hasMatchMedia = typeof window.matchMedia === 'function';
+    setIsMobile(hasMatchMedia
+      ? window.matchMedia('(pointer: coarse)').matches
+      : typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
   }, []);
   
   const { 
@@ -350,7 +346,7 @@ export const ChatInput = ({
       }
     }
 
-    if (e.key === 'Enter' && !e.shiftKey && (e.ctrlKey || e.metaKey || !isMobile)) {
+    if (e.key === 'Enter' && !isMobile && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }
@@ -605,8 +601,8 @@ export const ChatInput = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isListening ? "Konuşun..." : isMobile
-              ? "Mesajınızı yazın... (Enter: alt satır)"
-              : "Mesajınızı yazın... (Enter: gönder, Shift+Enter: alt satır)"}
+              ? "Mesajını yaz... (Göndermek için ▶ butonuna bas)"
+              : "Mesajını yaz... (Enter: gönder, Shift+Enter: alt satır)"}
             disabled={disabled}
             rows={1}
             className="min-h-9 max-h-32 resize-none overflow-y-auto bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base"
