@@ -12,6 +12,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { VoicePulseAnimation } from '@/components/VoicePulseAnimation';
 import { useUserShortcuts } from '@/hooks/useUserShortcuts';
+import { isMobileDevice } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
+  const [isMobile, setIsMobile] = useState(isMobileDevice);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showVoiceAnimation, setShowVoiceAnimation] = useState(false);
@@ -53,6 +55,24 @@ export const ChatInput = ({
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const haptic = useHapticFeedback();
   const { getShortcutByTrigger } = useUserShortcuts();
+
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+  }, [input]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+
+    const pointerQuery = window.matchMedia('(pointer: coarse)');
+    const updateDeviceType = () => setIsMobile(isMobileDevice());
+
+    pointerQuery.addEventListener('change', updateDeviceType);
+    return () => pointerQuery.removeEventListener('change', updateDeviceType);
+  }, []);
   
   const { 
     isListening, 
@@ -305,7 +325,10 @@ export const ChatInput = ({
   // const handleVideoGeneration = () => { ... };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.key === ' ' || e.key === 'Enter') && !e.shiftKey) {
+    if (
+      (e.key === ' ' || (e.key === 'Enter' && !isMobile && !e.shiftKey && !e.ctrlKey && !e.metaKey))
+      && !e.shiftKey
+    ) {
       const target = e.currentTarget;
       const caret = target.selectionStart;
       if (caret !== null && caret > 0) {
@@ -327,7 +350,7 @@ export const ChatInput = ({
       }
     }
 
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && (e.ctrlKey || e.metaKey || !isMobile)) {
       e.preventDefault();
       handleSend();
     }
@@ -581,10 +604,12 @@ export const ChatInput = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Konuşun..." : "Mesajınızı yazın..."}
+            placeholder={isListening ? "Konuşun..." : isMobile
+              ? "Mesajınızı yazın... (Enter: alt satır)"
+              : "Mesajınızı yazın... (Enter: gönder, Shift+Enter: alt satır)"}
             disabled={disabled}
             rows={1}
-            className="min-h-9 h-9 sm:min-h-10 sm:h-10 max-h-32 resize-none overflow-y-auto bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base"
+            className="min-h-9 max-h-32 resize-none overflow-y-auto bg-input/50 border-border/50 focus-visible:ring-primary/30 text-sm sm:text-base"
           />
         </div>
 
