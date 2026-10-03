@@ -22,6 +22,7 @@ import { useWakeWord } from '@/hooks/useWakeWord';
 import { exportChatToPdf } from '@/utils/exportChatPdf';
 import { toast } from 'sonner';
 import { ConnectedAccountsPanel } from '@/components/ConnectedAccountsPanel';
+import { ChatBackground } from '@/components/ChatBackground';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,9 +50,6 @@ const AuthenticatedIndex = () => {
   const { preferences } = useUserPreferences();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // ===== ARKA PLAN RESMİ STATE VE EVENT DİNLEYİCİSİ =====
-  const [bgImage] = useState('');
 
   // ===== CANVAS / KOD ÖNİZLEME STATE'LERİ (YENİ) =====
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
@@ -360,16 +358,9 @@ const AuthenticatedIndex = () => {
 
   return (
     <div
-      className="mobile-9-16-frame min-h-screen min-h-[100dvh] bg-background bg-grid overflow-x-hidden"
-      style={{
-        backgroundImage: bgImage
-          ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${bgImage})`
-          : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      }}
+      className="mobile-9-16-frame min-h-screen min-h-[100dvh] bg-grid overflow-x-hidden"
     >
+      <ChatBackground />
       {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-primary/5 via-transparent to-accent/5 pointer-events-none select-none overflow-hidden max-w-full" />
 

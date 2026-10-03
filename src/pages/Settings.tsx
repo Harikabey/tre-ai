@@ -1,5 +1,5 @@
 // FILE: src/pages/Settings.tsx
-import React, { useState, useEffect, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
@@ -29,6 +29,7 @@ import { CustomPersonalityInput } from '@/components/CustomPersonalityInput';
 import { useCustomPersonality } from '@/hooks/useCustomPersonality';
 import { useNotifications } from '@/hooks/useNotifications';
 import { deleteReminder, updateReminder } from '@/lib/reminders';
+import { ChatBackgroundError, useChatBackground } from '@/hooks/useChatBackground';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -79,35 +80,48 @@ const Settings = () => {
   const [importing, setImporting] = useState(false);
   const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
 
-  // ===== ARKA PLAN RESMİ AYARI =====
-  const [bgImage, setBgImage] = useState<string>(localStorage.getItem('chatBg') || '');
-  const [bgError, setBgError] = useState<string>('');
+  const { backgroundImage, setBackground, clearBackground } = useChatBackground();
+  const [backgroundUrl, setBackgroundUrl] = useState('');
+  const backgroundFileRef = useRef<HTMLInputElement>(null);
 
-  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      setBgError('❌ Resim 2 MB\'dan büyük olamaz.');
-      return;
+  const showBackgroundError = (error: unknown) => {
+    if (error instanceof ChatBackgroundError && error.code === 'too-large') {
+      toast.error("Görsel 2 MB'dan büyük olamaz.");
+    } else if (error instanceof ChatBackgroundError && error.code === 'quota') {
+      toast.warning('Depolama alanı dolu; eski arka plan kaldırıldı.');
+    } else {
+      toast.error('Görsel yüklenirken hata oluştu.');
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setBgImage(result);
-      localStorage.setItem('chatBg', result);
-      setBgError('');
-      window.dispatchEvent(new Event('bgImageChanged'));
-    };
-    reader.readAsDataURL(file);
   };
 
-  const removeBgImage = () => {
-    localStorage.removeItem('chatBg');
-    setBgImage('');
-    setBgError('');
-    window.dispatchEvent(new Event('bgImageChanged'));
+  const handleBgImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      await setBackground(file);
+    } catch (error) {
+      showBackgroundError(error);
+    }
+  };
+
+  const handleBackgroundUrl = async () => {
+    if (!backgroundUrl.trim()) return;
+    try {
+      await setBackground(backgroundUrl.trim());
+      setBackgroundUrl('');
+    } catch (error) {
+      showBackgroundError(error);
+    }
+  };
+
+  const handleRemoveBackground = () => {
+    try {
+      clearBackground();
+    } catch (error) {
+      showBackgroundError(error);
+    }
   };
 
   const handleExport = async () => {
@@ -1151,33 +1165,46 @@ const Settings = () => {
                 <ImageIcon className="w-5 h-5 text-primary" />
                 🖼️ Sohbet Arka Planı
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">Kendi arka plan resmini seç (max 2 MB)</p>
-
+              <p className="text-sm text-muted-foreground mb-4">Cihazından görsel seç (max 2 MB) veya bir görsel URL’si gir.</p>
               <input
+                ref={backgroundFileRef}
                 type="file"
                 accept="image/*"
                 onChange={handleBgImageUpload}
-                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                className="hidden"
               />
-
-              {bgError && (
-                <p className="text-sm text-red-500 mt-2">{bgError}</p>
-              )}
-
-              {bgImage && (
-                <div className="mt-4">
-                  <img
-                    src={bgImage}
-                    alt="Arka plan"
-                    className="w-full max-h-[150px] object-cover rounded-lg border border-border/50"
-                  />
-                  <button
-                    onClick={removeBgImage}
-                    className="mt-3 text-sm text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    🗑️ Kaldır
-                  </button>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={() => backgroundFileRef.current?.click()}>
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Görsel Seç
+                </Button>
+                {backgroundImage && (
+                  <Button type="button" variant="ghost" onClick={handleRemoveBackground}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Kaldır
+                  </Button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Input
+                  type="url"
+                  value={backgroundUrl}
+                  onChange={(event) => setBackgroundUrl(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') void handleBackgroundUrl();
+                  }}
+                  aria-label="Sohbet arka planı görsel URL’si"
+                />
+                <Button type="button" variant="outline" onClick={() => void handleBackgroundUrl()}>
+                  URL ile ekle
+                </Button>
+              </div>
+              {backgroundImage && (
+                <img
+                  src={backgroundImage}
+                  alt="Seçili sohbet arka planı önizlemesi"
+                  className="mt-4 max-h-[150px] w-full rounded-lg border border-border/50 object-cover"
+                />
               )}
             </div>
           </div>
