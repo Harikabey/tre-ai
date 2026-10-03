@@ -7,6 +7,7 @@ import { useAuth } from './useAuth';
 import { useUserMemory } from './useUserMemory';
 import { useStats } from './useStats';
 import { useCustomPersonality } from './useCustomPersonality';
+import { useNotifications } from './useNotifications';
 import { addReminder, formatReminderTime } from '@/lib/reminders';
 import {
   cacheMessages,
@@ -73,6 +74,7 @@ export const useChatbot = () => {
   const { user } = useAuth();
   const { customPersonality } = useCustomPersonality();
   const { recordMessage } = useStats();
+  const { checkEasterEgg } = useNotifications();
   const { 
     analyzeAndStore, 
     getMemoryContext, 
@@ -873,7 +875,20 @@ export const useChatbot = () => {
     }
 
     try {
-      if (isReminderRequest(trimmedInput)) {
+      if (trimmedInput.toLocaleLowerCase('tr-TR') === '#tre') {
+        const responseContent = '🎉 Bravo! Gizli bir Easter Egg buldun. Sen gerçek bir Tre uzmanısın!';
+        setMessages((previous) => [
+          ...previous,
+          {
+            id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+            role: 'bot',
+            content: responseContent,
+            timestamp: new Date(),
+          },
+        ]);
+        await saveMessage(conversationId, 'assistant', responseContent);
+        void checkEasterEgg();
+      } else if (isReminderRequest(trimmedInput)) {
         updateLastBotMessage('⏰ Hatırlatıcın kuruluyor...');
         const { data, error } = await supabase.functions.invoke<CreateReminderResponse>('create-reminder', {
           body: {
@@ -1141,7 +1156,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, checkEasterEgg]);
 
   // Drops messages from memory only (used while a chat is locked)
   const hideMessages = useCallback(() => {

@@ -31,6 +31,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { deleteReminder, updateReminder } from '@/lib/reminders';
 import { ChatBackgroundError, useChatBackground } from '@/hooks/useChatBackground';
 import { AvatarSettings } from '@/components/AvatarSettings';
+import { SupportiveNotificationsSettings } from '@/components/SupportiveNotificationsSettings';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -669,6 +670,10 @@ const Settings = () => {
               )}
             </CardContent>
           </Card>
+
+          <SupportiveNotificationsSettings
+            canSendNotifications={notifications.isSupported && notifications.permission === 'granted'}
+          />
 
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>

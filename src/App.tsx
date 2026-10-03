@@ -32,13 +32,17 @@ import "./hooks/useUICustomization"; // Apply UI customization on load (prevent 
 const queryClient = new QueryClient();
 
 const ReminderNotificationRunner = () => {
-  const { checkReminders } = useNotifications();
+  const { checkReminders, checkSupportiveNotifications } = useNotifications();
 
   useEffect(() => {
     void checkReminders(true);
-    const intervalId = window.setInterval(() => void checkReminders(), 60_000);
+    void checkSupportiveNotifications();
+    const intervalId = window.setInterval(() => {
+      void checkReminders();
+      void checkSupportiveNotifications();
+    }, 60_000);
     return () => window.clearInterval(intervalId);
-  }, [checkReminders]);
+  }, [checkReminders, checkSupportiveNotifications]);
 
   return null;
 };
