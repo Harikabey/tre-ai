@@ -7,11 +7,11 @@ export function isMobileDevice(): boolean {
     return false;
   }
 
-  if (typeof window.matchMedia === "function") {
-    return window.matchMedia("(pointer: coarse)").matches;
-  }
+  const hasCoarsePointer =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
 
-  return navigator.maxTouchPoints > 0;
+  return hasCoarsePointer || navigator.maxTouchPoints > 0;
 }
 
 export function cn(...inputs: ClassValue[]) {
