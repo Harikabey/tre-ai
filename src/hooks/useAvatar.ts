@@ -56,14 +56,25 @@ const getInitials = (user: ReturnType<typeof useAuth>['user']): string => {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toLocaleUpperCase('tr-TR') || 'U';
 };
 
+const signAvatar = async (path: string): Promise<string | null> => {
+  const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (error) { console.error('Profil fotoğrafı bağlantısı oluşturulamadı:', error); return null; }
+  return data.signedUrl;
+};
+
 const getAvatarObjectPath = (avatarUrl: string | null, userId: string): string | null => {
   if (!avatarUrl) return null;
+  if (!/^https?:/i.test(avatarUrl)) {
+    const p = avatarUrl.split('?')[0];
+    return p.startsWith(`${userId}.`) ? p : null;
+  }
 
   try {
     const url = new URL(avatarUrl);
-    const bucketMarker = `/storage/v1/object/public/${AVATAR_BUCKET}/`;
-    const markerIndex = url.pathname.indexOf(bucketMarker);
-    if (markerIndex < 0) return null;
+    const match = url.pathname.match(new RegExp(`/storage/v1/object/(?:public|sign)/${AVATAR_BUCKET}/`));
+    if (!match || match.index === undefined) return null;
+    const bucketMarker = match[0];
+    const markerIndex = match.index;
 
     const path = decodeURIComponent(url.pathname.slice(markerIndex + bucketMarker.length));
     return path.startsWith(`${userId}.`) ? path : null;
@@ -75,6 +86,7 @@ const getAvatarObjectPath = (avatarUrl: string | null, userId: string): string |
 const AvatarProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -94,21 +106,25 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
 
     setAvatarUrl(null);
     setLoading(true);
-    void supabase
+    void Promise.resolve(supabase
       .from('profiles')
       .select('avatar_url')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (!active) return;
         if (error) {
           console.error('Profil fotoğrafı alınamadı:', error);
           toast.error('Profil fotoğrafı alınamadı.');
         } else {
-          setAvatarUrl(data?.avatar_url ?? null);
+          const path = getAvatarObjectPath(data?.avatar_url ?? null, user.id);
+          setAvatarPath(path);
+          const signed = path ? await signAvatar(path) : null;
+          if (!active) return;
+          setAvatarUrl(signed);
         }
         setLoading(false);
-      })
+      }))
       .catch((error: unknown) => {
         if (!active) return;
         console.error('Profil fotoğrafı alınamadı:', error);
@@ -147,6 +163,9 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
     setIsUploading(true);
 
     try {
+      if (avatarPath && avatarPath !== objectPath) {
+        await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+      }
       const { error: uploadError } = await supabase.storage
         .from(AVATAR_BUCKET)
         .upload(objectPath, file, {
@@ -156,14 +175,14 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
         });
       if (uploadError) throw uploadError;
 
-      const publicUrl = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(objectPath).data.publicUrl;
-      const nextAvatarUrl = `${publicUrl}?v=${Date.now()}`;
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, avatar_url: nextAvatarUrl }, { onConflict: 'id' });
+        .upsert({ id: user.id, avatar_url: `${objectPath}?v=${Date.now()}` }, { onConflict: 'id' });
       if (profileError) throw profileError;
 
-      setAvatarUrl(nextAvatarUrl);
+      const signed = await signAvatar(objectPath);
+      setAvatarPath(objectPath);
+      setAvatarUrl(signed);
       toast.success('Profil fotoğrafı güncellendi.');
     } catch (error) {
       setAvatarUrl(previousAvatarUrl);
@@ -173,7 +192,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [avatarUrl, user]);
+  }, [avatarPath, avatarUrl, user]);
 
   const deleteAvatar = useCallback(async () => {
     if (!user) throw new Error('Profil fotoğrafını kaldırmak için giriş yapmalısın.');
@@ -183,8 +202,8 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    const previousAvatarUrl = avatarUrl;
-    const objectPath = getAvatarObjectPath(previousAvatarUrl, user.id);
+    const previousAvatarUrl = avatarPath;
+    const objectPath = avatarPath;
     setIsUploading(true);
 
     try {
@@ -207,6 +226,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setAvatarUrl(null);
+      setAvatarPath(null);
       toast.success('Profil fotoğrafı kaldırıldı.');
     } catch (error) {
       console.error('Profil fotoğrafı kaldırılamadı:', error);
@@ -215,7 +235,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [avatarUrl, user]);
+  }, [avatarPath, user]);
 
   const value = useMemo<AvatarContextValue>(() => ({
     avatarUrl,
