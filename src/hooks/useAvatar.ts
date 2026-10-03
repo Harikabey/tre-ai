@@ -106,7 +106,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
 
     setAvatarUrl(null);
     setLoading(true);
-    void supabase
+    void Promise.resolve(supabase
       .from('profiles')
       .select('avatar_url')
       .eq('id', user.id)
@@ -124,7 +124,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
           setAvatarUrl(signed);
         }
         setLoading(false);
-      })
+      }))
       .catch((error: unknown) => {
         if (!active) return;
         console.error('Profil fotoğrafı alınamadı:', error);
