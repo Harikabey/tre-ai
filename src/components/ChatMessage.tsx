@@ -43,11 +43,15 @@ const parseSources = (content: string): { cleanContent: string; sources: Citatio
 
 const searchSources = async (query: string): Promise<Citation[]> => {
   try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return [];
     const response = await fetch(WEB_SEARCH_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ query: query.slice(0, 200) }),
     });
