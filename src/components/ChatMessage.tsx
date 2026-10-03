@@ -1,7 +1,7 @@
 // FILE: src/components/ChatMessage.tsx
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Message } from '@/types/chatbot';
-import { Bot, User, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star, Eye } from 'lucide-react';
+import { Bot, Volume2, VolumeX, Loader2, FileText, Copy, Check, Languages, Brain, ChevronDown, ChevronRight, Smile, Star, Eye } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/types/language';
 import { addStarred, removeStarred, isStarred } from '@/lib/starredDb';
+import { useAvatar } from '@/hooks/useAvatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ChatMessageProps {
   message: Message;
@@ -71,6 +73,7 @@ const searchSources = async (query: string): Promise<Citation[]> => {
 
 export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: ChatMessageProps) => {
   const isBot = message.role === 'bot';
+  const { avatarUrl, avatarInitials } = useAvatar();
   const { playText, stopAudio, isPlaying, isLoading } = useVoice();
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -596,9 +599,12 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
       </div>
       
       {!isBot && (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center mt-1">
-          <User className="w-3.5 h-3.5 sm:w-4 sm:w-4 text-accent" />
-        </div>
+        <Avatar className="mt-1 h-7 w-7 flex-shrink-0 border border-accent/20 sm:h-8 sm:w-8">
+          <AvatarImage src={avatarUrl ?? undefined} alt="Profil fotoğrafın" />
+          <AvatarFallback className="bg-accent/15 text-[10px] font-medium text-accent sm:text-xs">
+            {avatarInitials}
+          </AvatarFallback>
+        </Avatar>
       )}
     </div>
   );

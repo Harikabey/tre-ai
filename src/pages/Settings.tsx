@@ -30,6 +30,7 @@ import { useCustomPersonality } from '@/hooks/useCustomPersonality';
 import { useNotifications } from '@/hooks/useNotifications';
 import { deleteReminder, updateReminder } from '@/lib/reminders';
 import { ChatBackgroundError, useChatBackground } from '@/hooks/useChatBackground';
+import { AvatarSettings } from '@/components/AvatarSettings';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -336,6 +337,8 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
+          {user && <AvatarSettings />}
+
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <button
               type="button"
