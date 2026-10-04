@@ -17,16 +17,21 @@ import {
   FileText,
   Film,
   Globe,
+  HardDrive,
   Heart,
   Image as ImageIcon,
   Languages,
   LockKeyhole,
   MessageCircle,
   Mic,
+  Music,
+  Package,
   Palette,
+  Presentation,
   Puzzle,
   Search,
   Share2,
+  ScreenShare,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -52,6 +57,8 @@ type Capability = {
   description: string;
   to: string;
   note?: string;
+  formats?: string;
+  iconColor?: string;
 };
 
 type CapabilityGroup = {
@@ -96,12 +103,6 @@ const GROUPS: CapabilityGroup[] = [
         title: 'Kullanıcı hafızası',
         description: 'Tre’nin tuttuğu bilgileri ve ilgi alanlarını görüntüle, düzenle veya sil.',
         to: '/',
-      },
-      {
-        icon: Heart,
-        title: 'Duygu analizi',
-        description: 'Mesajlardan duygu durumu çıkarımı yapılır; ruh hâli geçmişi istatistiklerde görüntülenir.',
-        to: '/istatistik',
       },
       {
         icon: Mic,
@@ -167,58 +168,175 @@ const GROUPS: CapabilityGroup[] = [
     ],
   },
   {
-    id: 'creation',
-    title: 'Üretim & Analiz',
+    id: 'production',
+    title: '📄 Üretim',
     icon: ImageIcon,
     items: [
       {
         icon: ImageIcon,
-        title: 'Görsel üretimi ve analizi',
-        description: 'Metinden görsel üret; yüklediğin görseller hakkında soru sor.',
+        title: 'Metinden görsel üretimi',
+        description: 'Sohbetteki isteğini görsele dönüştür ve oluşturulan görseli yanıt olarak al.',
         to: '/',
+        iconColor: 'text-violet-500',
       },
       {
         icon: Film,
         title: 'GIF üretimi',
-        description: 'Metin isteğinden hareketli GIF oluştur.',
+        description: 'Metin isteğinden sıralı karelerle hareketli GIF oluştur.',
         to: '/',
+        formats: 'GIF',
+        iconColor: 'text-fuchsia-500',
       },
       {
-        icon: FileText,
-        title: 'Belge okuma',
-        description: 'Sohbete belge ekle ve içeriğini Tre’ye analiz ettir.',
+        icon: Film,
+        title: 'MP4 / WebM slayt videosu üretimi',
+        description: 'İsteğine göre görsel kareler hazırlar ve bunları tarayıcıda kısa bir slayt videosuna dönüştürür; kayıt biçimi tarayıcı desteğine bağlıdır.',
         to: '/',
+        formats: 'MP4 veya WebM',
+        iconColor: 'text-rose-500',
       },
       {
-        icon: Camera,
-        title: 'Canlı kamera analizi',
-        description: 'Kamera görüntüsünü Tre’ye gösterip görüntü hakkında yardım al.',
+        icon: Music,
+        title: 'MP3 ses ve müzik üretimi',
+        description: 'ElevenLabs ile istekten müzik veya konuşma sesi üretip MP3 dosyası olarak sunar.',
         to: '/',
+        formats: 'MP3',
+        iconColor: 'text-amber-500',
       },
       {
-        icon: Share2,
-        title: 'Canlı ekran paylaşımı',
-        description: 'Ekranını paylaş ve ekrandaki içerik hakkında Tre’den yardım al.',
+        icon: Presentation,
+        title: 'PPTX sunum üretimi',
+        description: 'Tek komutla ders, iş veya proje sunumu oluşturur; slaytları indirilebilir bir sunum dosyası olarak hazırlar.',
         to: '/',
-      },
-      {
-        icon: FileArchive,
-        title: 'Dosya ve medya üretimi',
-        description: 'Sunum (PPTX), ses dosyası, ISO imajı, PWA sitesi ve APK üretim akışlarını kullan.',
-        to: '/',
-        note: 'Bazı üretim türleri girdi veya herkese açık site URL’si gerektirir.',
+        formats: 'PPTX',
+        iconColor: 'text-orange-500',
       },
       {
         icon: FileInput,
         title: 'Sohbeti PDF olarak dışa aktarma',
-        description: 'Sohbeti PDF dosyasına dönüştür.',
+        description: 'Sohbet mesajlarını ve desteklenen içerikleri cihazında PDF dosyasına dönüştür.',
         to: '/',
+        formats: 'PDF',
+        iconColor: 'text-red-500',
+      },
+      {
+        icon: Package,
+        title: 'APK uygulama paketi üretimi',
+        description: 'PWABuilder akışıyla PWA’dan veya oluşturulan PWA sitesinden Android uygulama paketi hazırlar.',
+        to: '/',
+        formats: 'APK ve AAB (ZIP paketi içinde)',
+        iconColor: 'text-green-500',
+      },
+      {
+        icon: HardDrive,
+        title: 'ISO disk imajı üretimi',
+        description: 'Sohbete eklenen dosyalardan ISO disk imajı oluşturur.',
+        to: '/',
+        formats: 'ISO',
+        iconColor: 'text-sky-500',
+      },
+      {
+        icon: Globe,
+        title: 'PWA sitesi üretimi',
+        description: 'İstekten küçük bir yüklenebilir web uygulaması sitesi oluşturur; bu site APK üretim akışında da kullanılabilir.',
+        to: '/',
+        formats: 'PWA (HTML, manifest ve ikon)',
+        iconColor: 'text-teal-500',
+      },
+      {
+        icon: Volume2,
+        title: 'Sesli yanıt (ElevenLabs TTS)',
+        description: 'Tre’nin metin yanıtını ElevenLabs metinden konuşmaya dönüştürme ile sesli dinletir.',
+        to: '/',
+        formats: 'MP3 ses akışı',
+        iconColor: 'text-yellow-600',
       },
       {
         icon: Cloud,
         title: 'Üretilen dosyalar',
         description: 'Oluşturulan çıktıları görüntüle ve yönet; istersen yeni çıktıları buluta yedekle.',
         to: '/',
+        iconColor: 'text-cyan-500',
+      },
+    ],
+  },
+  {
+    id: 'analysis',
+    title: '🔍 Analiz',
+    icon: Search,
+    items: [
+      {
+        icon: FileText,
+        title: '70+ formatta belge okuma',
+        description: 'Belgeleri sohbete ekleyerek içeriklerini Tre’ye okut; metin ve Office belgeleriyle kod dosyalarını analiz ettir.',
+        to: '/',
+        formats: 'PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, ODT/ODS/ODP, RTF, TXT, MD/MDX, JSON, CSV, HTML, CSS, XML/SVG, YAML, TOML, LOG, INI, CFG, ENV ve 70+ dosya/kod formatı (JS, TS, Python vb.)',
+        iconColor: 'text-blue-500',
+      },
+      {
+        icon: FileText,
+        title: 'Belge özetleme',
+        description: 'Yüklenen belgenin ana başlıklarını ve önemli noktalarını Türkçe özetler.',
+        to: '/',
+        iconColor: 'text-indigo-500',
+      },
+      {
+        icon: MessageCircle,
+        title: 'Belge hakkında soru-cevap',
+        description: 'Belgeyi bağlam olarak kullanarak içeriğiyle ilgili sorularını yanıtlar.',
+        to: '/',
+        iconColor: 'text-cyan-600',
+      },
+      {
+        icon: Search,
+        title: 'Belgeden bilgi çıkarma',
+        description: 'Belgede geçen belirli ad, tarih, değer veya diğer bilgileri isteğine göre bulup ayıklar.',
+        to: '/',
+        iconColor: 'text-emerald-600',
+      },
+      {
+        icon: ImageIcon,
+        title: 'Yüklenen görsel analizi',
+        description: 'Yüklenen görseli inceler ve görsel hakkında soru sormanı sağlar.',
+        to: '/',
+        formats: 'JPEG, PNG, GIF, WebP, BMP, TIFF, ICO, AVIF, HEIC/HEIF ve image/*',
+        iconColor: 'text-pink-500',
+      },
+      {
+        icon: Camera,
+        title: 'Canlı kamera analizi',
+        description: 'Kameradan kare yakalar; tek seferlik veya sürekli analizle görüntü hakkında yanıt verir.',
+        to: '/',
+        iconColor: 'text-rose-600',
+      },
+      {
+        icon: ScreenShare,
+        title: 'Ekran paylaşımı analizi',
+        description: 'Paylaşılan ekrandan kare yakalayıp ekrandaki içerik hakkında yanıt verir; sürekli analiz de kullanılabilir.',
+        to: '/',
+        iconColor: 'text-violet-600',
+      },
+      {
+        icon: Film,
+        title: 'Video analizi',
+        description: 'Yüklenen videodan bir kare çıkarıp görsel analizine gönderir; tüm video boyunca otomatik analiz yapmaz.',
+        to: '/',
+        formats: 'MP4, MOV, AVI, WebM, MKV',
+        iconColor: 'text-red-600',
+      },
+      {
+        icon: Globe,
+        title: 'Web arama ve kaynak gösterimi',
+        description: 'Web’de arama yaparak güncel sonuçları yanıtına ekler ve bulunan kaynak bağlantılarını gösterir.',
+        to: '/',
+        iconColor: 'text-sky-600',
+      },
+      {
+        icon: Heart,
+        title: 'Mesajlarda duygu analizi',
+        description: 'Mesajlardan duygu durumu çıkarır; ruh hâli geçmişini istatistiklerde görüntüleyebilirsin.',
+        to: '/istatistik',
+        iconColor: 'text-pink-600',
       },
     ],
   },
@@ -356,8 +474,8 @@ const CapabilityCard = ({ item }: { item: Capability }) => {
       to={item.to}
       className="group flex h-full min-h-32 rounded-2xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-primary/50 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-        <Icon className="h-5 w-5" aria-hidden="true" />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+      <Icon className={`h-5 w-5 ${item.iconColor ?? 'text-primary'}`} aria-hidden="true" />
       </span>
       <span className="ml-3 flex min-w-0 flex-1 flex-col">
         <span className="flex items-start justify-between gap-2">
@@ -369,6 +487,12 @@ const CapabilityCard = ({ item }: { item: Capability }) => {
           )}
         </span>
         <span className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+        {item.formats && (
+          <span className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Biçimler: </span>
+            {item.formats}
+          </span>
+        )}
       </span>
     </Link>
   );
