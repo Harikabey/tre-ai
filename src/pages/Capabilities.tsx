@@ -1,156 +1,456 @@
+// FILE: src/pages/Capabilities.tsx
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Puzzle, Share2, Bell, Mic, Image as ImageIcon, Film, Brain, Search,
-  FileDown, Languages, Camera, ScreenShare, FileText, Smartphone, Package,
-  Presentation, Volume2, Sparkles, Clock, FolderOpen, Code2, LayoutGrid, FileInput,
-  Star, Lock, Palette, Heart, Eye, Mail, Smile, LucideIcon,
-  ArrowUpDown, Minimize2, Cloud, DatabaseBackup, Sunrise, Moon, Eraser
+  Accessibility,
+  Activity,
+  ArrowLeft,
+  Bell,
+  Brain,
+  Camera,
+  ChartNoAxesCombined,
+  Check,
+  Cloud,
+  Code2,
+  FileArchive,
+  FileInput,
+  FileText,
+  Film,
+  Globe,
+  Heart,
+  Image as ImageIcon,
+  Languages,
+  LockKeyhole,
+  MessageCircle,
+  Mic,
+  Palette,
+  Puzzle,
+  Search,
+  Share2,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Star,
+  TextCursorInput,
+  UserRound,
+  Volume2,
+  LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type Capability = {
   icon: LucideIcon;
   title: string;
-  desc: string;
-  to?: string;
-  badge?: string;
+  description: string;
+  to: string;
+  note?: string;
 };
 
-const GROUPS: { group: string; items: Capability[] }[] = [
+type CapabilityGroup = {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  items: Capability[];
+};
+
+const GROUPS: CapabilityGroup[] = [
   {
-    group: 'Sohbet & Zeka',
+    id: 'chat',
+    title: 'Sohbet & Kişilik',
+    icon: MessageCircle,
     items: [
-      { icon: Sparkles, title: 'Kişilikler', desc: '6 farklı persona ile sohbet tonunu değiştir.', to: '/settings' },
-      { icon: Brain, title: 'Hızlı & Derin Düşünme', desc: 'Karmaşık sorularda adım adım akıl yürütme modu.' },
-      { icon: Code2, title: 'Kod Yazma & İç Denetim', desc: 'Kod üretir, kendi içinde test eder, sonra sunar.' },
-      { icon: Search, title: 'Web Arama & Kaynaklar', desc: 'Güncel bilgi için canlı arama ve kaynak gösterimi.' },
-      { icon: Brain, title: 'Hafıza', desc: 'Seni hatırlar; hafızayı görüntüleyip düzenleyebilirsin.' },
-      { icon: Smile, title: 'Emoji Reaksiyonları', desc: 'Mesajlara emoji bırak, Tre duyguya göre yanıt verir.' },
-      { icon: Heart, title: 'Duygu Analizi', desc: 'Ruh halini takip eder, gerektiğinde iyileştirme moduna geçer.' },
-      { icon: Eye, title: 'Düşünce Görünümü', desc: 'Derin düşünmede Tre\'nin adımlarını canlı izle.', to: '/settings' },
-      { icon: ArrowUpDown, title: 'Sonsuz Kaydırma', desc: 'Eski mesajları yukarı kaydırarak 20\'şerli yükler.' },
-      { icon: Minimize2, title: 'Sıkıştırılmış Hafıza', desc: 'Mesajlar LZString ile sıkıştırılıp IndexedDB\'de saklanır.' },
+      {
+        icon: Sparkles,
+        title: 'Metin sohbeti',
+        description: 'Tre ile sohbet et, konuşmalarını ve eski mesajlarını yönet.',
+        to: '/',
+      },
+      {
+        icon: Brain,
+        title: 'Kişilik ve düşünme modları',
+        description: 'Dokuz hazır kişilikten veya özel kişiliğinden birini seç; hızlı ya da derin düşünme modunu kullan.',
+        to: '/settings',
+      },
+      {
+        icon: Languages,
+        title: 'Dil seçimi ve çeviri',
+        description: 'Arayüz dilini seç, sohbet mesajlarını çevir.',
+        to: '/settings',
+      },
+      {
+        icon: Search,
+        title: 'Web arama ve kaynaklar',
+        description: 'Web aramasıyla güncel sonuçlara ve kaynaklara dayalı yanıtlar al.',
+        to: '/',
+      },
+      {
+        icon: UserRound,
+        title: 'Kullanıcı hafızası',
+        description: 'Tre’nin tuttuğu bilgileri ve ilgi alanlarını görüntüle, düzenle veya sil.',
+        to: '/',
+      },
+      {
+        icon: Heart,
+        title: 'Duygu analizi',
+        description: 'Mesajlardan duygu durumu çıkarımı yapılır; ruh hâli geçmişi istatistiklerde görüntülenir.',
+        to: '/istatistik',
+      },
+      {
+        icon: Mic,
+        title: 'Sesli sohbet',
+        description: 'Sesli sohbet ekranında konuşarak Tre ile etkileşime geç.',
+        to: '/voice-chat',
+      },
+      {
+        icon: Volume2,
+        title: 'Sesli yanıt ve uyandırma sözcüğü',
+        description: 'Yanıtları sesli dinle, desteklenen tarayıcılarda “Hey Tre” uyandırma özelliğini kullan.',
+        to: '/settings',
+      },
+      {
+        icon: Code2,
+        title: 'Kod yazma ve önizleme',
+        description: 'Kod içeren yanıtları görüntüle; desteklenen kodu uygulama içi panelde açıp çalıştır.',
+        to: '/',
+      },
     ],
   },
   {
-    group: 'Ses & Canlı',
+    id: 'personalization',
+    title: 'Kişiselleştirme',
+    icon: Palette,
     items: [
-      { icon: Mic, title: 'Sesli Sohbet', desc: 'Tam ekran sesli mod, konuş ve dinle.', to: '/voice-chat' },
-      { icon: Volume2, title: '"Hey Tre" Uyandırma', desc: 'İzin verdiğinde adını duyunca uyanır.', to: '/settings' },
-      { icon: Camera, title: 'Canlı Kamera Analizi', desc: 'Kameranı aç, gördüğünü yorumlasın.' },
-      { icon: ScreenShare, title: 'Ekran Paylaşımı', desc: 'Ekranını paylaş, üzerinde yardım etsin.' },
-      { icon: Bell, title: 'Bildirimden Ekran Analizi', desc: 'Bildirimdeki butonla ekranı yakala, cevabı bildirim olarak al.' },
+      {
+        icon: UserRound,
+        title: 'Profil fotoğrafı',
+        description: 'Hesabına profil fotoğrafı yükle veya kaldır.',
+        to: '/settings',
+      },
+      {
+        icon: Palette,
+        title: 'Tema ve arayüz görünümü',
+        description: 'Açık, koyu veya sistem temasını; vurgu rengini, yazı tipini, baloncuk biçimini ve duvar kâğıdını seç.',
+        to: '/settings',
+      },
+      {
+        icon: ImageIcon,
+        title: 'Sohbet arka planı',
+        description: 'Sohbet için görsel yükle veya görsel URL’si kullan.',
+        to: '/settings',
+      },
+      {
+        icon: TextCursorInput,
+        title: 'Metin kısayolları',
+        description: 'Kendi tetikleyicilerini ve otomatik genişleyecek metinlerini tanımla.',
+        to: '/settings',
+      },
+      {
+        icon: Star,
+        title: 'Yıldızlı mesajlar',
+        description: 'Önemli mesajları kaydet ve tek bir sayfada tekrar bul.',
+        to: '/starred',
+      },
+      {
+        icon: LockKeyhole,
+        title: 'Sohbet kilidi',
+        description: 'Bir konuşmaya parola koy; sayfa gizlenince kilitli konuşma yeniden gizlenir.',
+        to: '/',
+      },
     ],
   },
   {
-    group: 'Üretim',
+    id: 'creation',
+    title: 'Üretim & Analiz',
+    icon: ImageIcon,
     items: [
-      { icon: ImageIcon, title: 'Görsel Üretme', desc: 'Metinden görsel oluşturur ve düzenler.' },
-      { icon: Film, title: 'GIF Üretme', desc: 'Sıralı karelerle hareketli görseller.' },
-      { icon: Presentation, title: 'Sunum (PPTX)', desc: 'Konudan hazır PowerPoint sunumu.' },
-      { icon: Smartphone, title: 'APK Üretme', desc: 'Fikirden PWA site, oradan Android APK.' },
-      { icon: Package, title: 'ISO Üretme', desc: 'Dosyalarından ISO 9660 imajı.' },
-      { icon: Volume2, title: 'Ses / MP3', desc: 'Metinden doğal seslendirme dosyası.' },
-      { icon: FolderOpen, title: 'Üretilen Dosyalar', desc: 'Tüm çıktılar cihazında saklanır, yönetilir.' },
+      {
+        icon: ImageIcon,
+        title: 'Görsel üretimi ve analizi',
+        description: 'Metinden görsel üret; yüklediğin görseller hakkında soru sor.',
+        to: '/',
+      },
+      {
+        icon: Film,
+        title: 'GIF üretimi',
+        description: 'Metin isteğinden hareketli GIF oluştur.',
+        to: '/',
+      },
+      {
+        icon: FileText,
+        title: 'Belge okuma',
+        description: 'Sohbete belge ekle ve içeriğini Tre’ye analiz ettir.',
+        to: '/',
+      },
+      {
+        icon: Camera,
+        title: 'Canlı kamera analizi',
+        description: 'Kamera görüntüsünü Tre’ye gösterip görüntü hakkında yardım al.',
+        to: '/',
+      },
+      {
+        icon: Share2,
+        title: 'Canlı ekran paylaşımı',
+        description: 'Ekranını paylaş ve ekrandaki içerik hakkında Tre’den yardım al.',
+        to: '/',
+      },
+      {
+        icon: FileArchive,
+        title: 'Dosya ve medya üretimi',
+        description: 'Sunum (PPTX), ses dosyası, ISO imajı, PWA sitesi ve APK üretim akışlarını kullan.',
+        to: '/',
+        note: 'Bazı üretim türleri girdi veya herkese açık site URL’si gerektirir.',
+      },
+      {
+        icon: FileInput,
+        title: 'Sohbeti PDF olarak dışa aktarma',
+        description: 'Sohbeti PDF dosyasına dönüştür.',
+        to: '/',
+      },
+      {
+        icon: Cloud,
+        title: 'Üretilen dosyalar',
+        description: 'Oluşturulan çıktıları görüntüle ve yönet; istersen yeni çıktıları buluta yedekle.',
+        to: '/',
+      },
     ],
   },
   {
-    group: 'Entegrasyon & Modüller',
+    id: 'engagement',
+    title: 'Bağlılık & Motivasyon',
+    icon: ChartNoAxesCombined,
     items: [
-      { icon: Puzzle, title: 'Tarayıcı Uzantısı', desc: "Herhangi bir sayfada metin seçip Tre'ye sor.", to: '/extension', badge: 'Önizleme' },
-      { icon: Share2, title: 'Sistem Paylaşım Menüsü', desc: "Başka uygulamalardan Tre'ye içerik paylaş.", to: '/share-target' },
-      { icon: Bell, title: 'Bildirimden Yanıt', desc: 'Uygulamayı açmadan bildirim üzerinden yaz.', to: '/settings' },
-      { icon: Clock, title: 'Hatırlatıcılar', desc: "\"Yarın 9'da hatırlat\" de, zamanında bildirsin.", to: '/settings' },
-      { icon: LayoutGrid, title: "Ana Ekran Widget'ı", desc: 'Sesli komut al, yanıtı bildirim olarak sun.', to: '/widget-preview', badge: 'Önizleme' },
-      { icon: FileInput, title: 'Masaüstü Dosya İşleme', desc: 'Belgeleri doğrudan uygulamada aç ve analiz et.', to: '/file-handler', badge: 'Önizleme' },
-      { icon: Mail, title: 'Google Bağlantısı', desc: 'Gmail ve Drive hesabını bağla, e-posta/dosya erişimi.', to: '/settings' },
-      { icon: Sunrise, title: 'Günaydın / İyi Akşamlar', desc: 'Ayarladığın saatte günlük bildirim al; tıklayınca sohbet açılır.', to: '/settings' },
-      { icon: Moon, title: 'Hareketsizlik Bildirimi', desc: '2 gün mesajlaşmazsan "Bir şey mi oldu?" hatırlatması al.', to: '/settings' },
+      {
+        icon: Activity,
+        title: 'Sohbet serisi',
+        description: 'Günlük kullanım serini ve seri geçmişini takip et.',
+        to: '/',
+      },
+      {
+        icon: ChartNoAxesCombined,
+        title: 'Konuşma istatistikleri',
+        description: 'Mesaj, kelime, konu, duygu ve kullanım etkinliği özetlerini incele.',
+        to: '/istatistik',
+      },
+      {
+        icon: Bell,
+        title: 'Hatırlatıcılar ve bildirimler',
+        description: 'Hatırlatıcı kur, bildirimleri ve bildirimden yanıt vermeyi yönet.',
+        to: '/settings',
+      },
+      {
+        icon: Heart,
+        title: 'Destekleyici bildirimler',
+        description: 'Seri, sohbet yolculuğu ve haftalık ilerleme bildirimlerini; sessiz saatler ve günlük sınırla özelleştir.',
+        to: '/settings',
+      },
     ],
   },
   {
-    group: 'Kişisel & Gizlilik',
+    id: 'platform',
+    title: 'Teknik Altyapı',
+    icon: Smartphone,
     items: [
-      { icon: Star, title: 'Yıldızlı Mesajlar', desc: 'Önemli mesajları yıldızla, tek yerden gör.', to: '/starred' },
-      { icon: Lock, title: 'Sohbet Kilitleme', desc: 'Sohbeti şifrele, gizliliğini koru, otomatik kilit.' },
-      { icon: Palette, title: 'Arayüz Özelleştirme', desc: 'Vurgu rengi, yazı tipi, baloncuk stili, duvar kağıdı.', to: '/settings' },
-      { icon: Cloud, title: 'Bulut Senkronizasyonu', desc: 'İstersen üretilen dosyaları Lovable Cloud\'a yedekle.', to: '/settings' },
-      { icon: DatabaseBackup, title: 'Veri Yedekleme / İçe Aktarma', desc: 'Tüm yerel verileri JSON olarak dışa aktar ve geri yükle.', to: '/settings' },
-      { icon: Eraser, title: 'Otomatik Temizlik', desc: '30 gün hareketsiz sohbeti otomatik sil; tercihler ve hafıza kalır.', to: '/settings' },
+      {
+        icon: Smartphone,
+        title: 'Yüklenebilir web uygulaması',
+        description: 'Desteklenen tarayıcılarda Tre’yi ana ekrana veya masaüstüne yükle.',
+        to: '/settings',
+      },
+      {
+        icon: ShieldCheck,
+        title: 'Çevrimdışı uygulama kabuğu',
+        description: 'Service Worker uygulama kabuğunu ve statik dosyaları önbelleğe alır; bağlantı yoksa çevrimdışı ekranı gösterir.',
+        to: '/',
+      },
+      {
+        icon: Share2,
+        title: 'Uygulamalar arası paylaşım',
+        description: 'Diğer uygulamalardan metin, bağlantı ve desteklenen dosyaları Tre’ye paylaş.',
+        to: '/share-target',
+      },
+      {
+        icon: FileInput,
+        title: 'Dosyayı Tre ile açma',
+        description: 'Desteklenen dosya türlerini işletim sisteminin dosya açma akışından Tre’ye gönder.',
+        to: '/file-handler',
+      },
+      {
+        icon: Globe,
+        title: 'Google hesabı bağlantısı',
+        description: 'Google hesabını bağlayarak izin verdiğin Gmail, Drive ve Takvim işlevlerine eriş.',
+        to: '/settings',
+      },
+      {
+        icon: Cloud,
+        title: 'Veri yedekleme ve geri yükleme',
+        description: 'Uygulama verilerini JSON yedeği olarak dışa aktar veya yedekten geri yükle.',
+        to: '/settings',
+      },
+      {
+        icon: Puzzle,
+        title: 'Tarayıcı uzantısı önizlemesi',
+        description: 'Tarayıcı uzantısı fikrinin uygulama içi önizlemesini görüntüle.',
+        to: '/extension',
+        note: 'Önizleme',
+      },
     ],
   },
   {
-    group: 'Belgeler & Dil',
+    id: 'accessibility',
+    title: 'Erişilebilirlik',
+    icon: Accessibility,
     items: [
-      { icon: FileText, title: 'Belge Okuma', desc: 'PDF ve 70+ dosya türünü okur, özetler.' },
-      { icon: FileDown, title: 'Sohbeti PDF Yap', desc: 'Kod ve görseller dahil sohbeti dışa aktar.' },
-      { icon: Languages, title: '114 Dil Desteği', desc: 'Mesaj çevirisi ve çok dilli arayüz.', to: '/settings' },
+      {
+        icon: Accessibility,
+        title: 'Yüksek kontrast',
+        description: 'Arayüzde yüksek kontrast görünümünü aç veya kapat.',
+        to: '/settings',
+      },
+      {
+        icon: TextCursorInput,
+        title: 'Metin boyutu',
+        description: 'Arayüz metin ölçeğini tercihine göre ayarla.',
+        to: '/settings',
+      },
+      {
+        icon: Check,
+        title: 'Hareketi azalt',
+        description: 'Arayüz animasyonlarını azaltma tercihini etkinleştir.',
+        to: '/settings',
+      },
     ],
+  },
+];
+
+const RELEASE_NOTES = [
+  {
+    date: '4 Ekim 2026',
+    title: 'Paylaşım ve dosya alma',
+    description: 'Başka uygulamalardan metin, bağlantı ve desteklenen dosyaları Tre’ye gönderme akışı eklendi.',
+  },
+  {
+    date: '3 Ekim 2026',
+    title: 'Bildirim tercihleri',
+    description: 'Destekleyici bildirim türleri, sessiz saatler ve günlük bildirim limiti için ayarlar eklendi.',
+  },
+  {
+    date: '3 Ekim 2026',
+    title: 'Profil fotoğrafı',
+    description: 'Ayarlar sayfasına profil fotoğrafı yükleme ve kaldırma alanı eklendi.',
   },
 ];
 
 const CapabilityCard = ({ item }: { item: Capability }) => {
   const Icon = item.icon;
-  const inner = (
-    <div className="group h-full rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-xl transition-all hover:border-primary/40 hover:shadow-glow">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-foreground">{item.title}</h3>
-            {item.badge && (
-              <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
-                {item.badge}
-              </span>
-            )}
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
-        </div>
-      </div>
-    </div>
-  );
 
-  return item.to ? <Link to={item.to} className="block h-full">{inner}</Link> : inner;
+  return (
+    <Link
+      to={item.to}
+      className="group flex h-full min-h-32 rounded-2xl border border-border/60 bg-card/60 p-4 transition-colors hover:border-primary/50 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <span className="ml-3 flex min-w-0 flex-1 flex-col">
+        <span className="flex items-start justify-between gap-2">
+          <span className="text-sm font-semibold text-foreground">{item.title}</span>
+          {item.note && (
+            <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {item.note}
+            </span>
+          )}
+        </span>
+        <span className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+      </span>
+    </Link>
+  );
 };
 
 const Capabilities = () => {
-  const total = GROUPS.reduce((n, g) => n + g.items.length, 0);
+  const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
 
   return (
-    <main className="min-h-[100dvh] w-full px-4 py-6 pb-[env(safe-area-inset-bottom)] sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="mb-6 flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon" className="text-muted-foreground">
-            <Link to="/settings" aria-label="Ayarlara dön">
-              <ArrowLeft className="h-5 w-5" />
+    <main className="min-h-[100dvh] bg-background px-4 py-6 pb-[env(safe-area-inset-bottom)] text-foreground sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl">
+        <header className="mb-8">
+          <Button asChild variant="ghost" className="-ml-3 mb-5 text-muted-foreground">
+            <Link to="/settings">
+              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+              Ayarlara dön
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground text-glow sm:text-2xl">
-              Tre Ne Yapabilir?
-            </h1>
-            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-              {total} yetenek ve modül — dokunarak ilgili bölüme git.
-            </p>
-          </div>
+          <p className="mb-2 text-sm font-medium text-primary">Tre AI</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Tre Neler Yapabilir?
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Senin için tasarlanmış bir yapay zeka arkadaşı.
+          </p>
+        </header>
+
+        <div className="space-y-10">
+          {GROUPS.map((group) => {
+            const GroupIcon = group.icon;
+            return (
+              <section key={group.id} aria-labelledby={`${group.id}-title`}>
+                <h2
+                  id={`${group.id}-title`}
+                  className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
+                >
+                  <GroupIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  {group.title}
+                </h2>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.items.map((item) => (
+                    <CapabilityCard key={item.title} item={item} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
-        <div className="space-y-8">
-          {GROUPS.map((g) => (
-            <section key={g.group}>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary">
-                {g.group}
-              </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {g.items.map((item) => (
-                  <CapabilityCard key={item.title} item={item} />
+        <footer className="mt-12 flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <Button asChild className="w-full sm:w-auto">
+            <Link to="/">
+              <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              Tre’yi Keşfet
+            </Link>
+          </Button>
+
+          <Dialog open={releaseNotesOpen} onOpenChange={setReleaseNotesOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" className="w-full sm:w-auto">
+                Sürüm Notları
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Sürüm Notları</DialogTitle>
+                <DialogDescription>
+                  Depodaki son değişikliklerden doğrulanabilen yenilikler.
+                </DialogDescription>
+              </DialogHeader>
+              <ol className="space-y-5">
+                {RELEASE_NOTES.map((release) => (
+                  <li key={`${release.date}-${release.title}`} className="border-l-2 border-primary/30 pl-4">
+                    <p className="text-xs font-medium text-muted-foreground">{release.date}</p>
+                    <h3 className="mt-1 text-sm font-semibold text-foreground">{release.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{release.description}</p>
+                  </li>
                 ))}
-              </div>
-            </section>
-          ))}
-        </div>
+              </ol>
+            </DialogContent>
+          </Dialog>
+        </footer>
       </div>
     </main>
   );
