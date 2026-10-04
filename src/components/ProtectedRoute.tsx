@@ -1,6 +1,6 @@
 // FILE: src/components/ProtectedRoute.tsx
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 type ProtectedRouteProps = {
@@ -9,6 +9,7 @@ type ProtectedRouteProps = {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { session, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -19,7 +20,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  return session ? <>{children}</> : <Navigate to="/auth" replace />;
+  return session
+    ? <>{children}</>
+    : <Navigate
+      to="/auth"
+      replace
+      state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+    />;
 };
 
 export default ProtectedRoute;

@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { getSharedFiles } from "@/lib/shared-files";
+import { toast } from "sonner";
 
 const ShareTargetFeaturePreview = () => {
   const [params] = useSearchParams();
@@ -18,6 +20,21 @@ const ShareTargetFeaturePreview = () => {
   const [content, setContent] = useState(initial);
 
   useEffect(() => setContent(initial), [initial]);
+
+  useEffect(() => {
+    let active = true;
+    void getSharedFiles()
+      .then((files) => {
+        if (active && files.length > 0) navigate("/?shared=true", { replace: true });
+        else if (active && !initial) navigate("/", { replace: true });
+      })
+      .catch((error: unknown) => {
+        console.error("Paylaşılan dosyalar okunamadı.", error);
+        toast.error("Paylaşılan dosya açılamadı");
+        if (active) navigate("/", { replace: true });
+      });
+    return () => { active = false; };
+  }, [initial, navigate]);
 
   const handleAsk = () => {
     const value = content.trim();

@@ -11,6 +11,64 @@ const APP_SHELL = [
 ];
 const pendingReplyAcks = new Map();
 const REPLY_SETTINGS_DB = "tre-notification-settings";
+const SHARED_FILES_DB = "tre-shared-files";
+
+async function saveSharedFiles(files, canRecover = true) {
+  try {
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open(SHARED_FILES_DB, 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains("shared_files")) {
+          request.result.createObjectStore("shared_files", { keyPath: "id" });
+        }
+      };
+      request.onerror = () => reject(request.error || new Error("Paylaşılan dosya veritabanı açılamadı."));
+      request.onsuccess = () => {
+        let db;
+        try {
+          db = request.result;
+          const transaction = db.transaction("shared_files", "readwrite");
+          const store = transaction.objectStore("shared_files");
+          for (const file of files) {
+            store.put({
+              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              file,
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              createdAt: Date.now(),
+            });
+          }
+          transaction.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          transaction.onerror = () => {
+            db.close();
+            reject(transaction.error || new Error("Paylaşılan dosyalar kaydedilemedi."));
+          };
+          transaction.onabort = () => {
+            db.close();
+            reject(transaction.error || new Error("Paylaşılan dosyalar kaydedilemedi."));
+          };
+        } catch (error) {
+          db?.close();
+          reject(error);
+        }
+      };
+    });
+  } catch (error) {
+    const errorName = error && typeof error === "object" && "name" in error ? error.name : "";
+    if (!canRecover || !["InvalidStateError", "NotFoundError", "UnknownError"].includes(errorName)) throw error;
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(SHARED_FILES_DB);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error || error);
+      request.onblocked = () => reject(new Error("Bozuk paylaşılan dosya veritabanı sıfırlanamadı."));
+    });
+    await saveSharedFiles(files, false);
+  }
+}
 
 function readReplyEnabled() {
   return new Promise((resolve) => {
@@ -114,6 +172,38 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+  if (request.method === "POST") {
+    const url = new URL(request.url);
+    if (url.origin === self.location.origin && ["/share-target", "/file-handler"].includes(url.pathname)) {
+      event.respondWith((async () => {
+        try {
+          const formData = await request.formData();
+          const files = formData.getAll("file").filter((value) => value instanceof File);
+          if (files.some((file) => file.size > 10 * 1024 * 1024)) {
+            return Response.redirect(new URL("/?sharedError=too-large", self.location.origin), 303);
+          }
+          if (files.length) {
+            await saveSharedFiles(files);
+            return Response.redirect(new URL("/?shared=true", self.location.origin), 303);
+          }
+
+          const sharedText = new URLSearchParams();
+          for (const key of ["title", "text", "url"]) {
+            const value = formData.get(key);
+            if (typeof value === "string" && value) sharedText.set(key, value);
+          }
+          return Response.redirect(
+            new URL(`/share-target${sharedText.size ? `?${sharedText}` : ""}`, self.location.origin),
+            303,
+          );
+        } catch (error) {
+          console.error("Paylaşılan dosya alınamadı.", error);
+          return Response.redirect(new URL("/?sharedError=storage", self.location.origin), 303);
+        }
+      })());
+    }
+    return;
+  }
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);

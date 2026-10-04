@@ -27,6 +27,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  clearSharedFiles,
+  deleteSharedFile,
+  getSharedFiles,
+  MAX_SHARED_FILE_SIZE,
+} from '@/lib/shared-files';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +51,48 @@ const hashPassword = async (pw: string) => {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 };
+
+const extractSharedVideoFrame = (file: File): Promise<string | null> => new Promise((resolve) => {
+  const video = document.createElement('video');
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  const objectUrl = URL.createObjectURL(file);
+  const cleanup = () => {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  video.onloadedmetadata = () => {
+    video.currentTime = Number.isFinite(video.duration) ? Math.min(1, video.duration / 2) : 0;
+  };
+  video.onseeked = () => {
+    try {
+      if (!context || !video.videoWidth || !video.videoHeight) {
+        resolve(null);
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    } catch {
+      resolve(null);
+    } finally {
+      cleanup();
+    }
+  };
+  video.onerror = () => {
+    cleanup();
+    resolve(null);
+  };
+  video.src = objectUrl;
+  video.load();
+});
 
 const AuthenticatedIndex = () => {
   const { user, loading: authLoading } = useAuth();
@@ -228,7 +277,176 @@ const AuthenticatedIndex = () => {
     navigate('/voice-chat');
   });
 
+  useEffect(() => {
+    const pendingRedirect = sessionStorage.getItem('tre-post-auth-redirect');
+    if (!pendingRedirect) return;
+    sessionStorage.removeItem('tre-post-auth-redirect');
+    if (!pendingRedirect.startsWith('/') || pendingRedirect.startsWith('//')) {
+      console.error('Giriş sonrası yönlendirme adresi geçersiz.');
+      return;
+    }
+
+    const target = new URL(pendingRedirect, window.location.origin);
+    if (target.origin === window.location.origin) {
+      navigate(`${target.pathname}${target.search}${target.hash}`, { replace: true });
+    }
+  }, [location.hash, location.pathname, location.search, navigate]);
+
   const sharedHandledRef = useRef(false);
+  const sharedErrorHandledRef = useRef(false);
+  useEffect(() => {
+    const search = new URLSearchParams(location.search);
+    const sharedError = search.get('sharedError');
+    if (sharedError && !sharedErrorHandledRef.current) {
+      sharedErrorHandledRef.current = true;
+      toast.error(sharedError === 'too-large'
+        ? 'Dosya boyutu 10 MB sınırını aşıyor'
+        : 'Paylaşılan dosya alınamadı');
+      navigate('/', { replace: true });
+      return;
+    }
+
+    if (search.get('shared') !== 'true' || sharedHandledRef.current || !user) return;
+    sharedHandledRef.current = true;
+    void (async () => {
+      let files;
+      try {
+        files = await getSharedFiles();
+      } catch (error) {
+        console.error('Paylaşılan dosyalar okunamadı.', error);
+        toast.error('Paylaşılan dosyalar açılamadı');
+        navigate('/', { replace: true });
+        return;
+      }
+
+      if (files.length === 0) {
+        toast.info('Tre ile paylaşılmış dosya bulunamadı');
+        navigate('/', { replace: true });
+        return;
+      }
+
+      let allFilesHandled = true;
+      for (const record of files) {
+        const file = record.file;
+        if (file.size > MAX_SHARED_FILE_SIZE) {
+          toast.error(`${file.name}: Dosya boyutu 10 MB sınırını aşıyor`);
+          try {
+            await deleteSharedFile(record.id);
+          } catch (error) {
+            console.error(`${file.name} yerel paylaşımdan silinemedi.`, error);
+            allFilesHandled = false;
+          }
+          continue;
+        }
+
+        try {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError || !sessionData.session) throw new Error('Dosyayı yüklemek için oturum açılamadı.');
+
+          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${encodeURIComponent(file.name)}`;
+          const filePath = `${user.id}/${fileName}`;
+          const { error: uploadError } = await supabase.storage
+            .from('chat-attachments')
+            .upload(filePath, file, { contentType: file.type, upsert: false });
+          if (uploadError) throw uploadError;
+
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from('chat-attachments')
+            .createSignedUrl(filePath, 3600);
+          if (signedUrlError) throw signedUrlError;
+
+          let fileDetails = '';
+          const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name);
+          const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(file.name);
+
+          if (isImage) {
+            try {
+              const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                  Authorization: `Bearer ${sessionData.session.access_token}`,
+                },
+                body: JSON.stringify({ imageUrl: signedUrlData.signedUrl, prompt: `Bu dosyayı analiz et: ${file.name}` }),
+              });
+              if (!response.ok) throw new Error(`Görsel analizi başarısız: HTTP ${response.status}`);
+              const result: { analysis?: string } = await response.json();
+              fileDetails = result.analysis ? `\n\n--- Görsel Analizi ---\n${result.analysis}` : '';
+            } catch (error) {
+              console.error(`${file.name} görsel olarak analiz edilemedi.`, error);
+              toast.error(`${file.name}: Görsel analiz edilemedi`);
+            }
+          } else if (isVideo) {
+            const frame = await extractSharedVideoFrame(file);
+            if (!frame) {
+              toast.error(`${file.name}: Video karesi çıkarılamadı`);
+            } else {
+              try {
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                    Authorization: `Bearer ${sessionData.session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    imageUrl: frame,
+                    prompt: `Bu video karesini analiz et. Kaynak dosya: ${file.name}`,
+                  }),
+                });
+                if (!response.ok) throw new Error(`Video karesi analizi başarısız: HTTP ${response.status}`);
+                const result: { analysis?: string } = await response.json();
+                fileDetails = result.analysis ? `\n\n--- Video Analizi ---\n${result.analysis}` : '';
+              } catch (error) {
+                console.error(`${file.name} video karesi analiz edilemedi.`, error);
+                toast.error(`${file.name}: Video analiz edilemedi`);
+              }
+            }
+          } else {
+            try {
+              const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/read-document`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                  Authorization: `Bearer ${sessionData.session.access_token}`,
+                },
+                body: JSON.stringify({
+                  fileUrl: signedUrlData.signedUrl,
+                  fileName: file.name,
+                  mimeType: file.type,
+                }),
+              });
+              if (!response.ok) throw new Error(`Dosya içeriği okunamadı: HTTP ${response.status}`);
+              const result: { content?: string } = await response.json();
+              fileDetails = result.content
+                ? `\n\n--- Dosya İçeriği ---\n${result.content.slice(0, 20000)}`
+                : '';
+            } catch (error) {
+              console.error(`${file.name} içeriği okunamadı.`, error);
+              toast.error(`${file.name}: Dosya içeriği okunamadı`);
+            }
+          }
+
+          const displayName = file.name.replace(/[\]\r\n]/g, '_');
+          const message = `Bu dosyayı analiz et: ${file.name}\n\n[Ek dosya: ${displayName}](${signedUrlData.signedUrl})${fileDetails}`;
+          await sendMessage(message);
+          await deleteSharedFile(record.id);
+        } catch (error) {
+          console.error(`${file.name} Tre'ye aktarılamadı.`, error);
+          toast.error(`${file.name} Tre'ye yüklenemedi`);
+          allFilesHandled = false;
+        }
+      }
+
+      if (allFilesHandled) {
+        await clearSharedFiles();
+        navigate('/', { replace: true });
+      }
+    })();
+  }, [location.search, navigate, sendMessage, user]);
+
   useEffect(() => {
     const sharedText = (location.state as { sharedText?: string } | null)?.sharedText;
     if (!sharedText || sharedHandledRef.current || !user) return;

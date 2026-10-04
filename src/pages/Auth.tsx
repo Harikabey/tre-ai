@@ -1,6 +1,6 @@
 // FILE: src/pages/Auth.tsx
-import { useState } from 'react';
-import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +31,25 @@ const Auth = () => {
   const [lang, setLang] = useState(() => localStorage.getItem('ai_chatbot_language') || 'tr');
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const t = getTranslations(lang);
+  const stateFrom = (location.state as { from?: unknown } | null)?.from;
+  const storedFrom = sessionStorage.getItem('tre-post-auth-redirect');
+  const safeRedirect = [stateFrom, storedFrom].find((path): path is string =>
+    typeof path === 'string' &&
+    path.startsWith('/') &&
+    !path.startsWith('//') &&
+    !path.startsWith('/auth'),
+  ) || '/';
+  const navigateAfterAuth = () => {
+    sessionStorage.removeItem('tre-post-auth-redirect');
+    navigate(safeRedirect);
+  };
+
+  useEffect(() => {
+    if (user) sessionStorage.removeItem('tre-post-auth-redirect');
+  }, [user]);
 
   if (loading) {
     return (
@@ -43,7 +60,7 @@ const Auth = () => {
     );
   }
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={safeRedirect} replace />;
 
   const emailSchema = z.string().email(t.invalidEmailMsg);
   const passwordSchema = z.string().min(6, t.passwordTooShortMsg);
@@ -95,7 +112,7 @@ const Auth = () => {
         title: t.welcomeBackTitle,
         description: t.welcomeBackDesc,
       });
-      navigate('/');
+      navigateAfterAuth();
     }
   };
 
@@ -152,12 +169,13 @@ const Auth = () => {
         title: t.accountCreatedTitle,
         description: t.accountCreatedDesc,
       });
-      navigate('/');
+      navigateAfterAuth();
     }
   };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    sessionStorage.setItem('tre-post-auth-redirect', safeRedirect);
     try {
       const result = await lovable.auth.signInWithOAuth('google', {
         redirect_uri: window.location.origin,
@@ -176,7 +194,7 @@ const Auth = () => {
       if (result.redirected) return; // Google sayfasına yönlendiriliyor
 
       // Oturum kuruldu, ana sayfaya geç
-      navigate('/');
+      navigateAfterAuth();
     } catch {
       setIsLoading(false);
       toast({
