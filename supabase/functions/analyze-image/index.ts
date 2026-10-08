@@ -80,7 +80,7 @@ serve(async (req) => {
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: withFreeModel(requestBody),
+        body: withFreeModel(requestBody, "vision"),
       });
       if (!response.ok) {
         console.error("OpenRouter error:", response.status, "- falling back to Lovable gateway");
