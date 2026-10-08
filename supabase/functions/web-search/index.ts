@@ -1,3 +1,4 @@
+import { withFreeModel } from "../_shared/freeAi.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -112,7 +113,7 @@ SADECE JSON döndür.`,
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
+        body: withFreeModel(requestBody),
       });
       if (!response.ok) {
         console.error("OpenRouter error:", response.status, "- falling back");

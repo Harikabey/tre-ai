@@ -1,3 +1,4 @@
+import { withFreeModel } from "../_shared/freeAi.ts";
 // FILE: supabase/functions/chat/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
@@ -132,7 +133,7 @@ serve(async (req) => {
       : safeThinkingMode === "deep"
         ? "google/gemini-2.5-pro"
         : "google/gemini-2.5-flash-lite";
-    const model = OPENROUTER_API_KEY ? `${baseModel}:free` : baseModel;
+    const model = baseModel;
 
     const baseContext = `Sen Tre adlı gelişmiş yapay zeka asistanısın. Tre Geliştirme Ekibi tarafından geliştirildin.
 
@@ -513,43 +514,12 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
       (requestBody.reasoning as Record<string, unknown>).summary = "auto";
     }
 
+    const freeKind = looksLikeCode || safeThinkingMode === "deep" ? "reasoning" : "chat";
     let response = await fetch(apiUrl, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      body: OPENROUTER_API_KEY ? withFreeModel(JSON.stringify(requestBody), freeKind) : JSON.stringify(requestBody),
     });
-
-    // Fallback: if OpenRouter fails (e.g. no credits), try Lovable gateway with a supported model
-    if (!response.ok && OPENROUTER_API_KEY && LOVABLE_API_KEY) {
-      console.warn("OpenRouter failed with", response.status, "- falling back to Lovable gateway");
-      const lovableModel = looksLikeCode || safeThinkingMode === "deep"
-        ? "google/gemini-2.5-pro"
-        : "google/gemini-2.5-flash";
-      const lovableBody: Record<string, unknown> = { ...requestBody, model: lovableModel };
-      delete lovableBody.reasoning;
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify(lovableBody),
-      });
-    }
-
-    // Final fallback: DeepSeek (OpenAI-compatible). Maps to deepseek-reasoner for deep/code, else deepseek-chat.
-    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
-    if (!response.ok && DEEPSEEK_API_KEY) {
-      console.warn("Primary providers failed with", response.status, "- falling back to DeepSeek");
-      const deepseekModel = (safeThinkingMode === "deep" || looksLikeCode) ? "deepseek-reasoner" : "deepseek-chat";
-      const deepseekBody: Record<string, unknown> = {
-        model: deepseekModel,
-        messages: requestBody.messages,
-        stream: true,
-      };
-      response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify(deepseekBody),
-      });
-    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -558,7 +528,7 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
         return streamErrorMessage("⚠️ Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.");
       }
       if (response.status === 402) {
-        return streamErrorMessage("⚠️ Yapay zeka sağlayıcısının kullanım limiti dolduğu için şu an yanıt üretemiyorum. Lütfen OpenRouter bakiyenizi veya Lovable AI bakiyenizi kontrol edip tekrar deneyin.");
+        return streamErrorMessage("⚠️ Yapay zeka sağlayıcısının kullanım limiti dolduğu için şu an yanıt üretemiyorum. Ücretsiz modeller şu an dolu, lütfen birazdan tekrar deneyin.");
       }
       return streamErrorMessage("⚠️ AI servisi şu anda kullanılamıyor. Lütfen biraz sonra tekrar deneyin.");
     }
