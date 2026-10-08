@@ -1,3 +1,4 @@
+import { withFreeModel } from "../_shared/freeAi.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -127,7 +128,7 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: attempt.name === "OpenRouter"
-              ? requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"')
+              ? withFreeModel(requestBody)
               : requestBody,
           });
 

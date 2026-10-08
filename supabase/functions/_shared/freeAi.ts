@@ -6,15 +6,19 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /** Free models actually served by OpenRouter (verified against /v1/models). */
 export const FREE_MODELS = {
-  /** General chat, vision-capable, very large context. */
-  chat: "minimax/minimax-m3:free",
-  /** Fast/lightweight replies. */
-  fast: "minimax/minimax-m3:free",
-  /** Code writing & deep reasoning. */
+  chat: "nvidia/nemotron-3.5-lightning:free",
+  fast: "nvidia/nemotron-3.5-lightning:free",
   reasoning: "nvidia/nemotron-3-ultra-550b-a55b:free",
-  /** Image / document understanding (multimodal input). */
-  vision: "minimax/minimax-m3:free",
+  vision: "google/gemma-4-31b-it:free",
 } as const;
+
+/** Ordered fallbacks sent via OpenRouter `models`; last entry is the auto free router (never goes stale). */
+export const FREE_FALLBACKS: Record<keyof typeof FREE_MODELS, string[]> = {
+  chat: ["nvidia/nemotron-3.5-lightning:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free", "openrouter/free"],
+  fast: ["nvidia/nemotron-3.5-lightning:free", "google/gemma-4-26b-a4b-it:free", "openrouter/free"],
+  reasoning: ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "openrouter/free"],
+  vision: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "thinkingmachines/inkling:free", "openrouter/free"],
+};
 
 export const FREE_BUSY_MESSAGE =
   "Ücretsiz model şu anda meşgul, lütfen birazdan tekrar deneyin.";
@@ -32,7 +36,14 @@ export function toFreeModel(id: string): string {
  * `kind` picks the free replacement when the original model has no free variant.
  */
 export function withFreeModel(body: string, kind: keyof typeof FREE_MODELS = "chat"): string {
-  return body.replace(/"model"\s*:\s*"[^"]+"/, `"model":"${FREE_MODELS[kind]}"`);
+  try {
+    const o = JSON.parse(body);
+    o.model = FREE_MODELS[kind];
+    o.models = FREE_FALLBACKS[kind];
+    return JSON.stringify(o);
+  } catch {
+    return body.replace(/"model"\s*:\s*"[^"]+"/, `"model":"${FREE_MODELS[kind]}"`);
+  }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

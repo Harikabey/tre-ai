@@ -1,3 +1,4 @@
+import { withFreeModel } from "../_shared/freeAi.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -120,7 +121,7 @@ SADECE JSON döndür.`,
     response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
+      body: withFreeModel(requestBody),
     });
     if (!response.ok) {
       console.error("OpenRouter mood error:", response.status, "- falling back");
@@ -193,7 +194,7 @@ Eğer önemli bilgi yoksa boş array döndür.`,
     response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody.replace(/"model":"([^"]+)"/, '"model":"$1:free"'),
+      body: withFreeModel(requestBody),
     });
     if (!response.ok) {
       console.error("OpenRouter memory error:", response.status, "- falling back");
