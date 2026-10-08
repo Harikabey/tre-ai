@@ -14,10 +14,10 @@ export const FREE_MODELS = {
 
 /** Ordered fallbacks sent via OpenRouter `models`; last entry is the auto free router (never goes stale). */
 export const FREE_FALLBACKS: Record<keyof typeof FREE_MODELS, string[]> = {
-  chat: ["nvidia/nemotron-3.5-lightning:free", "nvidia/nemotron-3-super-120b-a12b:free", "google/gemma-4-31b-it:free", "openrouter/free"],
+  chat: ["nvidia/nemotron-3.5-lightning:free", "google/gemma-4-31b-it:free", "openrouter/free"],
   fast: ["nvidia/nemotron-3.5-lightning:free", "google/gemma-4-26b-a4b-it:free", "openrouter/free"],
   reasoning: ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-super-120b-a12b:free", "openrouter/free"],
-  vision: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "thinkingmachines/inkling:free", "openrouter/free"],
+  vision: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "openrouter/free"],
 };
 
 export const FREE_BUSY_MESSAGE =
