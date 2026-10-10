@@ -1,5 +1,5 @@
 // FILE: src/pages/Settings.tsx
-import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, BarChart3, ChevronRight, Check, Bot, Sun, Moon, Monitor, Volume2, Globe, Search, ScreenShare, Mic, Mail, Shield, Loader2, CheckCircle2, Link2, Unlink, Type, Eye, Zap, Trash2, Palette, MessageSquare, Image as ImageIcon, RotateCcw, Brain, Download, Smartphone, Sparkles, CloudUpload, Upload, DatabaseBackup } from 'lucide-react';
 import { exportAllData, shareOrDownloadExport, importAllData, parseExportFile, getCooldownRemainingMs, markExported } from '@/lib/dataExportImport';
 import { CLOUD_FILES_KEY } from '@/hooks/useGeneratedItems';
@@ -23,7 +23,11 @@ import { isWakeWordEnabled, setWakeWordEnabled } from '@/hooks/useWakeWord';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
-import { getTranslations, translateUIStrings } from '@/utils/translations';
+import { translateUIStrings } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import i18n from '@/i18n/config';
+import type { TFunction } from 'i18next';
 import { ShortcutsSettings } from '@/components/ShortcutsSettings';
 import { CustomPersonalityInput } from '@/components/CustomPersonalityInput';
 import { useCustomPersonality } from '@/hooks/useCustomPersonality';
@@ -57,6 +61,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { preferences, updatePreference } = useUserPreferences();
+  const { language, setLanguage } = useLanguage();
   const { clearCustomPersonality } = useCustomPersonality();
   const { ui, update: updateUI, reset: resetUI } = useUICustomization();
   const [languageSearch, setLanguageSearch] = useState('');
@@ -73,7 +78,6 @@ const Settings = () => {
   const [emailConnecting, setEmailConnecting] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [connectedAccountId, setConnectedAccountId] = useState<string | null>(null);
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [translating, setTranslating] = useState(false);
   const [showThinking, setShowThinking] = useState(
     () => localStorage.getItem('ai_chatbot_show_thinking') === 'true'
@@ -88,11 +92,11 @@ const Settings = () => {
 
   const showBackgroundError = (error: unknown) => {
     if (error instanceof ChatBackgroundError && error.code === 'too-large') {
-      toast.error("Görsel 2 MB'dan büyük olamaz.");
+      toast.error(t("Görsel 2 MB'dan büyük olamaz."));
     } else if (error instanceof ChatBackgroundError && error.code === 'quota') {
-      toast.warning('Depolama alanı dolu; eski arka plan kaldırıldı.');
+      toast.warning(t('Depolama alanı dolu; eski arka plan kaldırıldı.'));
     } else {
-      toast.error('Görsel yüklenirken hata oluştu.');
+      toast.error(t('Görsel yüklenirken hata oluştu.'));
     }
   };
 
@@ -134,9 +138,9 @@ const Settings = () => {
       await shareOrDownloadExport(payload);
       markExported();
       setCooldownMs(getCooldownRemainingMs());
-      toast.success('Yedek dosyası oluşturuldu.');
+      toast.success(t('Yedek dosyası oluşturuldu.'));
     } catch (e) {
-      toast.error('Dışa aktarma başarısız: ' + (e as Error).message);
+      toast.error(t('Dışa aktarma başarısız: {{message}}', { message: (e as Error).message }));
     } finally {
       setExporting(false);
     }
@@ -148,10 +152,10 @@ const Settings = () => {
       const text = await file.text();
       const payload = parseExportFile(text);
       await importAllData(payload);
-      toast.success('Veriler içe aktarıldı. Sayfa yenileniyor…');
+      toast.success(t('Veriler içe aktarıldı. Sayfa yenileniyor…'));
       setTimeout(() => window.location.reload(), 800);
     } catch (e) {
-      toast.error('İçe aktarma başarısız: ' + (e as Error).message);
+      toast.error(t('İçe aktarma başarısız: {{message}}', { message: (e as Error).message }));
       setImporting(false);
     }
   };
@@ -161,7 +165,13 @@ const Settings = () => {
     localStorage.setItem('ai_chatbot_show_thinking', String(enabled));
   };
 
-  const t = getTranslations(preferences.language);
+  const t = useT();
+
+  useEffect(() => {
+    if (preferences.language !== language) {
+      void setLanguage(preferences.language);
+    }
+  }, [language, preferences.language, setLanguage]);
 
   const loadEmailStatus = useCallback(async () => {
     if (!user) { setEmailLoading(false); return; }
@@ -192,8 +202,8 @@ const Settings = () => {
     const reminder = notifications.reminders.find((item) => item.id === reminderId);
     if (!reminder || reminder.opened) return;
     updateReminder(reminder.id, { opened: true });
-    toast.info(`Hatırlatıcı detayı: ${reminder.text}`, { duration: 8000 });
-  }, [reminderId, notifications.reminders]);
+    toast.info(t('Hatırlatıcı detayı: {{text}}', { text: reminder.text }), { duration: 8000 });
+  }, [reminderId, notifications.reminders, t]);
 
   const handleConnectEmail = async () => {
     if (!user) return;
@@ -213,19 +223,19 @@ const Settings = () => {
           is_active: true,
         }, { onConflict: 'user_id,provider' });
         if (error) {
-          toast.error(t.signOutError);
+          toast.error(t("signOutError"));
         } else {
-          toast.success(t.emailActive + '!');
+          toast.success(t("emailActive") + '!');
           loadEmailStatus();
         }
       } else {
         const { error } = await lovable.auth.signInWithOAuth("google", {
           redirect_uri: window.location.origin + '/settings',
         });
-        if (error) toast.error(t.error);
+        if (error) toast.error(t("error"));
       }
     } catch {
-      toast.error(t.error);
+      toast.error(t("error"));
     } finally {
       setEmailConnecting(false);
     }
@@ -241,9 +251,9 @@ const Settings = () => {
       setEmailConnected(false);
       setConnectedEmail(null);
       setConnectedAccountId(null);
-      toast.success(t.remove + '!');
+      toast.success(t("remove") + '!');
     } else {
-      toast.error(t.error);
+      toast.error(t("error"));
     }
   };
 
@@ -252,19 +262,23 @@ const Settings = () => {
       clearCustomPersonality();
       updatePreference('personality', id);
     } catch {
-      toast.error('Özel kişilik temizlenemedi.');
+      toast.error(t('Özel kişilik temizlenemedi.'));
     }
   };
 
   const handleSelectLanguage = async (code: string) => {
+    await setLanguage(code);
     updatePreference('language', code);
-    const hardcoded = ['tr', 'en', 'de', 'fr', 'es'];
-    if (!hardcoded.includes(code)) {
+    const bundledLanguages = ['tr', 'en', 'de', 'fr', 'es'];
+    if (!bundledLanguages.includes(code)) {
       setTranslating(true);
-      const result = await translateUIStrings(code);
-      setTranslating(false);
-      if (result) {
-        forceUpdate();
+      try {
+        const result = await translateUIStrings(code);
+        if (result) {
+          i18n.addResourceBundle(code, 'translation', result, true, true);
+        }
+      } finally {
+        setTranslating(false);
       }
     }
   };
@@ -293,16 +307,16 @@ const Settings = () => {
         await notifications.disableNotifications();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Bildirim ayarı güncellenemedi.');
+      toast.error(error instanceof Error ? error.message : t('Bildirim ayarı güncellenemedi.'));
     }
   };
 
   const handleTestNotification = async () => {
     try {
       await notifications.sendTestNotification();
-      toast.success('Test bildirimi gönderildi.');
+      toast.success(t('Test bildirimi gönderildi.'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Test bildirimi gönderilemedi.');
+      toast.error(error instanceof Error ? error.message : t('Test bildirimi gönderilemedi.'));
     }
   };
 
@@ -332,8 +346,8 @@ const Settings = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t.settings}</h1>
-            <p className="text-muted-foreground text-sm">{t.customizeApp}</p>
+            <h1 className="text-2xl font-bold text-foreground">{t("settings")}</h1>
+            <p className="text-muted-foreground text-sm">{t("customizeApp")}</p>
           </div>
         </div>
 
@@ -348,8 +362,8 @@ const Settings = () => {
             >
               <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-foreground">📊 Konuşma Karnen</span>
-                <span className="block text-sm text-muted-foreground">Tre ile olan yolculuğunu gör</span>
+                <span className="block font-semibold text-foreground">{t("📊 Konuşma Karnen")}</span>
+                <span className="block text-sm text-muted-foreground">{t("Tre ile olan yolculuğunu gör")}</span>
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
             </button>
@@ -360,15 +374,15 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
-                {t.language}
+                {t("language")}
               </CardTitle>
               <CardDescription>
                 {translating ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    {t.languageDesc}
+                    {t("languageDesc")}
                   </span>
-                ) : t.languageDesc}
+                ) : t("languageDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -376,7 +390,7 @@ const Settings = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder={t.searchLanguage}
+                    placeholder={t("searchLanguage")}
                     value={languageSearch}
                     onChange={(e) => setLanguageSearch(e.target.value)}
                     className="pl-9 bg-input/50 border-border/50"
@@ -393,7 +407,7 @@ const Settings = () => {
                   />
                 ))}
                 {filteredLanguages.length === 0 && (
-                  <p className="text-sm text-muted-foreground col-span-full text-center py-4">{t.noResults}</p>
+                  <p className="text-sm text-muted-foreground col-span-full text-center py-4">{t("noResults")}</p>
                 )}
               </div>
             </CardContent>
@@ -404,10 +418,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sun className="h-5 w-5 text-primary" />
-                {t.theme}
+                {t("theme")}
               </CardTitle>
               <CardDescription>
-                {t.themeDesc}
+                {t("themeDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-3 gap-3">
@@ -428,24 +442,22 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5 text-primary" />
-                Arayüz Özelleştirme
-              </CardTitle>
+                {t("Arayüz Özelleştirme")}</CardTitle>
               <CardDescription>
-                Vurgu rengi, yazı tipi, sohbet baloncuğu stili ve duvar kağıdı seç
-              </CardDescription>
+                {t("Vurgu rengi, yazı tipi, sohbet baloncuğu stili ve duvar kağıdı seç")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Accent Color */}
               <div>
                 <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-primary" /> Vurgu Rengi
+                  <Palette className="w-4 h-4 text-primary" /> {t("Vurgu Rengi")}
                 </div>
                 <div className="grid grid-cols-6 gap-2">
                   {(Object.keys(ACCENT_HSL) as AccentColor[]).map((c) => (
                     <button
                       key={c}
                       onClick={() => updateUI('accent', c)}
-                      title={ACCENT_LABELS[c]}
+                      title={t(ACCENT_LABELS[c])}
                       className={`h-10 rounded-lg border-2 transition-all ${
                         ui.accent === c ? 'border-foreground scale-105' : 'border-border/50 hover:border-foreground/50'
                       }`}
@@ -460,8 +472,7 @@ const Settings = () => {
               {/* Font Family */}
               <div>
                 <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Type className="w-4 h-4 text-primary" /> Yazı Tipi
-                </div>
+                  <Type className="w-4 h-4 text-primary" /> {t("Yazı Tipi")}</div>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(FONT_LABELS) as FontFamily[]).map((f) => (
                     <button
@@ -480,7 +491,7 @@ const Settings = () => {
                       }}
                     >
                       <div className="text-sm font-medium">Aa Bb Cc</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">{FONT_LABELS[f]}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{t(FONT_LABELS[f])}</div>
                     </button>
                   ))}
                 </div>
@@ -489,8 +500,7 @@ const Settings = () => {
               {/* Bubble Style */}
               <div>
                 <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-primary" /> Sohbet Baloncuğu
-                </div>
+                  <MessageSquare className="w-4 h-4 text-primary" /> {t("Sohbet Baloncuğu")}</div>
                 <div className="grid grid-cols-3 gap-2">
                   {(Object.keys(BUBBLE_LABELS) as BubbleStyle[]).map((b) => (
                     <button
@@ -509,7 +519,7 @@ const Settings = () => {
                           b === 'square' ? 'rounded-sm' : b === 'minimal' ? 'rounded-none bg-transparent border-b border-primary/40' : 'rounded-xl'
                         }`}
                       />
-                      <div className="text-[10px] text-muted-foreground">{BUBBLE_LABELS[b]}</div>
+                      <div className="text-[10px] text-muted-foreground">{t(BUBBLE_LABELS[b])}</div>
                     </button>
                   ))}
                 </div>
@@ -518,7 +528,7 @@ const Settings = () => {
               {/* Wallpaper */}
               <div>
                 <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-primary" /> Arka Plan
+                  <ImageIcon className="w-4 h-4 text-primary" /> {t("Arka Plan")}
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {(Object.keys(WALLPAPER_LABELS) as Wallpaper[]).map((w) => {
@@ -532,7 +542,7 @@ const Settings = () => {
                       <button
                         key={w}
                         onClick={() => updateUI('wallpaper', w)}
-                        title={WALLPAPER_LABELS[w]}
+                        title={t(WALLPAPER_LABELS[w])}
                         className={`h-14 rounded-lg border-2 transition-all relative overflow-hidden ${
                           ui.wallpaper === w ? 'border-primary scale-105' : 'border-border/50 hover:border-primary/50'
                         }`}
@@ -544,7 +554,7 @@ const Settings = () => {
                           </span>
                         )}
                         <span className="absolute bottom-0 inset-x-0 text-[9px] bg-background/70 text-foreground py-0.5">
-                          {WALLPAPER_LABELS[w]}
+                          {t(WALLPAPER_LABELS[w])}
                         </span>
                       </button>
                     );
@@ -553,8 +563,7 @@ const Settings = () => {
               </div>
 
               <Button variant="outline" size="sm" onClick={resetUI} className="w-full">
-                <RotateCcw className="w-3.5 h-3.5 mr-2" /> Varsayılana Sıfırla
-              </Button>
+                <RotateCcw className="w-3.5 h-3.5 mr-2" /> {t("Varsayılana Sıfırla")}</Button>
             </CardContent>
           </Card>
 
@@ -563,50 +572,49 @@ const Settings = () => {
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle>Bildirimler</CardTitle>
-              <CardDescription>Tre'nin sana bildirim göndermesine izin ver.</CardDescription>
+              <CardDescription>{t("Tre'nin sana bildirim göndermesine izin ver.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Bildirimleri Etkinleştir</div>
+                  <div className="text-sm font-medium text-foreground">{t("Bildirimleri Etkinleştir")}</div>
                   <div className="text-xs text-muted-foreground">
-                    İzin: {notifications.permission === 'granted' ? 'Açık' : notifications.permission === 'denied' ? 'Reddedildi' : 'Kapalı'}
+                    {t('settings.permission')}{notifications.permission === 'granted' ? t('settings.permissionGranted') : notifications.permission === 'denied' ? t('settings.permissionDenied') : t('settings.permissionClosed')}
                   </div>
                 </div>
                 <Switch
                   checked={notifications.masterEnabled}
                   onCheckedChange={(enabled) => void handleNotificationsToggle(enabled)}
                   disabled={!notifications.isSupported || notifications.permission === 'denied'}
-                  aria-label="Bildirimleri Etkinleştir"
+                  aria-label={t("Bildirimleri Etkinleştir")}
                 />
               </div>
               {!notifications.isSupported && (
-                <p className="text-xs text-muted-foreground">Bu tarayıcı bildirimleri desteklemiyor.</p>
+                <p className="text-xs text-muted-foreground">{t("Bu tarayıcı bildirimleri desteklemiyor.")}</p>
               )}
               {notifications.permission === 'denied' && (
-                <p className="text-xs text-destructive">Tarayıcı ayarlarından bildirim iznini açman gerekiyor.</p>
+                <p className="text-xs text-destructive">{t("Tarayıcı ayarlarından bildirim iznini açman gerekiyor.")}</p>
               )}
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Hatırlatıcı Bildirimleri</div>
+                  <div className="text-sm font-medium text-foreground">{t("Hatırlatıcı Bildirimleri")}</div>
                   <div className="text-xs text-muted-foreground">
-                    Zamanı gelen hatırlatıcılar bu cihazda bildirim olarak gösterilir.
-                  </div>
+                    {t("Zamanı gelen hatırlatıcılar bu cihazda bildirim olarak gösterilir.")}</div>
                 </div>
                 <Switch
                   checked={notifications.remindersEnabled}
                   onCheckedChange={notifications.setRemindersEnabled}
                   disabled={!notifications.isSupported || notifications.permission === 'denied' || !notifications.masterEnabled}
-                  aria-label="Hatırlatıcı Bildirimleri"
+                  aria-label={t("Hatırlatıcı Bildirimleri")}
                 />
               </div>
               {!notifications.masterEnabled && (
-                <p className="text-xs text-muted-foreground">Hatırlatıcı bildirimlerini kullanmak için önce bildirimleri etkinleştir.</p>
+                <p className="text-xs text-muted-foreground">{t("Hatırlatıcı bildirimlerini kullanmak için önce bildirimleri etkinleştir.")}</p>
               )}
               <div className="space-y-2 rounded-lg border border-border/50 p-3">
-                <div className="text-sm font-medium text-foreground">Aktif Hatırlatıcılar</div>
+                <div className="text-sm font-medium text-foreground">{t("Aktif Hatırlatıcılar")}</div>
                 {notifications.reminders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Henüz hatırlatıcı yok.</p>
+                  <p className="text-xs text-muted-foreground">{t("Henüz hatırlatıcı yok.")}</p>
                 ) : (
                   <ul className="space-y-2">
                     {notifications.reminders
@@ -623,9 +631,9 @@ const Settings = () => {
                             <p className="break-words text-sm text-foreground">{reminder.text}</p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(reminder.dueAt).toLocaleString('tr-TR')}
-                              {reminder.missed && !reminder.opened ? ' · Kaçırıldı' : ''}
-                              {reminder.notified && reminder.opened ? ' · Görüldü' : ''}
-                              {reminder.notified && !reminder.missed && !reminder.opened ? ' · Bildirim gönderildi' : ''}
+                              {reminder.missed && !reminder.opened ? ` · ${t('settings.reminderMissed')}` : ''}
+                              {reminder.notified && reminder.opened ? ` · ${t('settings.reminderSeen')}` : ''}
+                              {reminder.notified && !reminder.missed && !reminder.opened ? ` · ${t('settings.reminderNotified')}` : ''}
                             </p>
                           </div>
                           <Button
@@ -633,7 +641,7 @@ const Settings = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 shrink-0"
-                            aria-label="Hatırlatıcıyı sil"
+                            aria-label={t("Hatırlatıcıyı sil")}
                             onClick={() => deleteReminder(reminder.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -649,24 +657,22 @@ const Settings = () => {
                 onClick={() => void handleTestNotification()}
                 disabled={!notifications.isSupported || notifications.permission !== 'granted'}
               >
-                Test Bildirimi Gönder
-              </Button>
+                {t("Test Bildirimi Gönder")}</Button>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Arka Planda Yanıtla</div>
+                  <div className="text-sm font-medium text-foreground">{t("Arka Planda Yanıtla")}</div>
                   <div className="text-xs text-muted-foreground">
-                    Bildirimden yanıt yazdığında, Tre anında cevap verir. Uygulamayı açmana gerek yok.
-                  </div>
+                    {t("Bildirimden yanıt yazdığında, Tre anında cevap verir. Uygulamayı açmana gerek yok.")}</div>
                 </div>
                 <Switch
                   checked={notifications.replyEnabled}
                   onCheckedChange={notifications.setReplyEnabled}
                   disabled={!notifications.isReplySupported}
-                  aria-label="Arka Planda Yanıtla"
+                  aria-label={t("Arka Planda Yanıtla")}
                 />
               </div>
               {!notifications.isReplySupported && (
-                <p className="text-xs text-destructive">Tarayıcın bu özelliği desteklemiyor. Chrome veya Edge kullan.</p>
+                <p className="text-xs text-destructive">{t("Tarayıcın bu özelliği desteklemiyor. Chrome veya Edge kullan.")}</p>
               )}
             </CardContent>
           </Card>
@@ -679,10 +685,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Type className="h-5 w-5 text-primary" />
-                {t.textScale}
+                {t("textScale")}
               </CardTitle>
               <CardDescription>
-                {t.textScaleDesc}
+                {t("textScaleDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -704,13 +710,13 @@ const Settings = () => {
                       Aa
                     </span>
                     <span className="block text-[10px] text-muted-foreground mt-1">
-                      {t[option.labelKey]}
+                      {t(option.labelKey)}
                     </span>
                   </button>
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                {t.currentScale}: {Math.round(preferences.text_scale * 100)}%
+                {t("currentScale")}: {Math.round(preferences.text_scale * 100)}%
               </p>
             </CardContent>
           </Card>
@@ -720,10 +726,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5 text-primary" />
-                {t.accessibility}
+                {t("accessibility")}
               </CardTitle>
               <CardDescription>
-                {t.accessibilityDesc}
+                {t("accessibilityDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -731,10 +737,10 @@ const Settings = () => {
                 <div>
                   <div className="font-medium text-foreground text-sm flex items-center gap-2">
                     <Eye className="w-4 h-4 text-primary" />
-                    {t.highContrast}
+                    {t("highContrast")}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {t.highContrastDesc}
+                    {t("highContrastDesc")}
                   </div>
                 </div>
                 <Switch
@@ -747,10 +753,10 @@ const Settings = () => {
                 <div>
                   <div className="font-medium text-foreground text-sm flex items-center gap-2">
                     <Zap className="w-4 h-4 text-primary" />
-                    {t.reduceMotion}
+                    {t("reduceMotion")}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {t.reduceMotionDesc}
+                    {t("reduceMotionDesc")}
                   </div>
                 </div>
                 <Switch
@@ -767,19 +773,16 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
-                Tre'nin Düşüncesini Göster
-              </CardTitle>
+                {t("Tre'nin Düşüncesini Göster")}</CardTitle>
               <CardDescription>
-                Derin düşünme modu açıkken Tre'nin yanıtı oluştururken aklından geçenleri katlanabilir bir blok olarak gör.
-              </CardDescription>
+                {t("Derin düşünme modu açıkken Tre'nin yanıtı oluştururken aklından geçenleri katlanabilir bir blok olarak gör.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
-                  <div className="font-medium text-foreground text-sm">Düşünce sürecini göster</div>
+                  <div className="font-medium text-foreground text-sm">{t("Düşünce sürecini göster")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Sadece "Derin Düşünce" modu seçiliyken etkindir.
-                  </div>
+                    {t("Sadece \"Derin Düşünce\" modu seçiliyken etkindir.")}</div>
                 </div>
                 <Switch
                   checked={showThinking}
@@ -795,18 +798,18 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trash2 className="h-5 w-5 text-primary" />
-                {t.swipeToDelete}
+                {t("swipeToDelete")}
               </CardTitle>
               <CardDescription>
-                {t.swipeToDeleteDesc}
+                {t("swipeToDeleteDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
-                  <div className="font-medium text-foreground text-sm">{t.enableSwipe}</div>
+                  <div className="font-medium text-foreground text-sm">{t("enableSwipe")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {t.enableSwipeDesc}
+                    {t("enableSwipeDesc")}
                   </div>
                 </div>
                 <Switch
@@ -823,18 +826,18 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ScreenShare className="h-5 w-5 text-primary" />
-                {t.screenShare}
+                {t("screenShare")}
               </CardTitle>
               <CardDescription>
-                {t.screenShareDesc}
+                {t("screenShareDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
-                  <div className="font-medium text-foreground text-sm">{t.enableScreenShare}</div>
+                  <div className="font-medium text-foreground text-sm">{t("enableScreenShare")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {t.enableScreenShareDesc}
+                    {t("enableScreenShareDesc")}
                   </div>
                 </div>
                 <Switch
@@ -851,19 +854,16 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
-                "Hey Tre" Uyandırma
-              </CardTitle>
+                {t("\"Hey Tre\" Uyandırma")}</CardTitle>
               <CardDescription>
-                Aktifken mikrofon sürekli dinler; "Hey Tre" dediğinde sesli sohbet otomatik açılır.
-              </CardDescription>
+                {t("Aktifken mikrofon sürekli dinler; \"Hey Tre\" dediğinde sesli sohbet otomatik açılır.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
-                  <div className="font-medium text-foreground text-sm">Sesle Uyandırmayı Etkinleştir</div>
+                  <div className="font-medium text-foreground text-sm">{t("Sesle Uyandırmayı Etkinleştir")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Mikrofon izni gereklidir. Tarayıcı sekmesi açık olmalıdır.
-                  </div>
+                    {t("Mikrofon izni gereklidir. Tarayıcı sekmesi açık olmalıdır.")}</div>
                 </div>
                 <Switch
                   checked={wakeWord}
@@ -873,13 +873,13 @@ const Settings = () => {
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                         stream.getTracks().forEach((t) => t.stop());
                       } catch {
-                        toast.error('Mikrofon izni reddedildi');
+                        toast.error(t('Mikrofon izni reddedildi'));
                         return;
                       }
                     }
                     setWakeWord(v);
                     setWakeWordEnabled(v);
-                    toast.success(v ? '"Hey Tre" dinleniyor' : 'Uyandırma kapatıldı');
+                    toast.success(v ? t('"Hey Tre" dinleniyor') : t('Uyandırma kapatıldı'));
                   }}
                   className="data-[state=checked]:bg-primary"
                 />
@@ -892,10 +892,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-primary" />
-                {t.emailAccess}
+                {t("emailAccess")}
               </CardTitle>
               <CardDescription>
-                {t.emailAccessDesc}
+                {t("emailAccessDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -911,7 +911,7 @@ const Settings = () => {
                         <CheckCircle2 className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <div className="font-medium text-foreground text-sm">{t.emailActive}</div>
+                        <div className="font-medium text-foreground text-sm">{t("emailActive")}</div>
                         {connectedEmail && (
                           <div className="text-xs text-muted-foreground mt-0.5">{connectedEmail}</div>
                         )}
@@ -924,12 +924,12 @@ const Settings = () => {
                       onClick={handleDisconnectEmail}
                     >
                       <Unlink className="w-3.5 h-3.5 mr-1" />
-                      {t.remove}
+                      {t("remove")}
                     </Button>
                   </div>
                   <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
                     <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                    <p>{t.emailSecurityNote}</p>
+                    <p>{t("emailSecurityNote")}</p>
                   </div>
                 </div>
               ) : (
@@ -940,9 +940,9 @@ const Settings = () => {
                         <Mail className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <div className="font-medium text-foreground text-sm">{t.notConnected}</div>
+                        <div className="font-medium text-foreground text-sm">{t("notConnected")}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {t.connectGoogleDesc}
+                          {t("connectGoogleDesc")}
                         </div>
                       </div>
                     </div>
@@ -956,12 +956,12 @@ const Settings = () => {
                       ) : (
                         <Link2 className="w-4 h-4 mr-2" />
                       )}
-                      {t.connectGoogle}
+                      {t("connectGoogle")}
                     </Button>
                   </div>
                   <div className="flex items-start gap-2 text-[10px] text-muted-foreground/70 px-1">
                     <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                    <p>{t.accountSecurityNote}</p>
+                    <p>{t("accountSecurityNote")}</p>
                   </div>
                 </div>
               )}
@@ -973,10 +973,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
-                {t.voiceChat}
+                {t("voiceChat")}
               </CardTitle>
               <CardDescription>
-                {t.voiceChatDesc}
+                {t("voiceChatDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -988,9 +988,9 @@ const Settings = () => {
                   <Mic className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-foreground text-sm">{t.startVoiceChat}</div>
+                  <div className="font-medium text-foreground text-sm">{t("startVoiceChat")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {t.startVoiceChatDesc}
+                    {t("startVoiceChatDesc")}
                   </div>
                 </div>
                 <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
@@ -1002,10 +1002,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-primary" />
-                {t.voiceSelection}
+                {t("voiceSelection")}
               </CardTitle>
               <CardDescription>
-                {t.voiceSelectionDesc}
+                {t("voiceSelectionDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -1017,7 +1017,7 @@ const Settings = () => {
                   onSelect={() => handleSelectVoice(voice.id)}
                   onTest={() => testVoice(voice)}
                   isLoading={isLoading}
-                  testLabel={t.test}
+                  testLabel={t("test")}
                 />
               ))}
             </CardContent>
@@ -1028,10 +1028,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-primary" />
-                {t.botPersonality}
+                {t("botPersonality")}
               </CardTitle>
               <CardDescription>
-                {t.botPersonalityDesc}
+                {t("botPersonalityDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
@@ -1051,21 +1051,20 @@ const Settings = () => {
           {/* Otomatik Temizlik */}
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Otomatik Temizlik</CardTitle>
+              <CardTitle>{t("Otomatik Temizlik")}</CardTitle>
               <CardDescription>
-                30 gündür kullanılmayan sohbetleri günlük olarak sil. Hafıza ve ayarların korunur.
-              </CardDescription>
+                {t("30 gündür kullanılmayan sohbetleri günlük olarak sil. Hafıza ve ayarların korunur.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Otomatik temizlik</div>
+                  <div className="text-sm font-medium text-foreground">{t("Otomatik temizlik")}</div>
                 </div>
                 <Switch
                   checked={scheduler.settings.autoCleanEnabled}
                   onCheckedChange={(c) => {
                     scheduler.update('autoCleanEnabled', c);
-                    if (c) toast.info('30 günden eski sohbetler bundan sonra otomatik silinecek.');
+                    if (c) toast.info(t('30 günden eski sohbetler bundan sonra otomatik silinecek.'));
                   }}
                 />
               </div>
@@ -1077,19 +1076,17 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CloudUpload className="h-5 w-5 text-primary" />
-                Dosya Depolama
+                {t("Dosya Depolama")}
               </CardTitle>
               <CardDescription>
-                Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.
-              </CardDescription>
+                {t("Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground">Dosyaları bulutta sakla</div>
+                  <div className="text-sm font-medium text-foreground">{t("Dosyaları bulutta sakla")}</div>
                   <div className="text-xs text-muted-foreground">
-                    Açık olduğunda yeni üretilen dosyalar hesabına da yedeklenir.
-                  </div>
+                    {t("Açık olduğunda yeni üretilen dosyalar hesabına da yedeklenir.")}</div>
                 </div>
                 <Switch
                   checked={cloudFiles}
@@ -1107,11 +1104,10 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DatabaseBackup className="h-5 w-5 text-primary" />
-                Veri Yedekleme
+                {t('settings.dataBackup')}
               </CardTitle>
               <CardDescription>
-                Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.
-              </CardDescription>
+                {t("Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-col gap-2">
@@ -1128,12 +1124,11 @@ const Settings = () => {
                   )}
                   {cooldownMs > 0
                     ? `Tekrar dışa aktarmak için bekle: ${Math.ceil(cooldownMs / 3600000)} saat`
-                    : 'Tüm Verileri Dışa Aktar (JSON)'}
+                    : t('settings.exportJson')}
                 </Button>
                 {cooldownMs > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.
-                  </p>
+                    {t("Veri güvenliği için dışa aktarma 12 saatte bir yapılabilir.")}</p>
                 )}
                 <Button
                   variant="outline"
@@ -1146,8 +1141,7 @@ const Settings = () => {
                   ) : (
                     <Upload className="h-4 w-4 mr-2" />
                   )}
-                  Yedekten İçe Aktar
-                </Button>
+                  {t("Yedekten İçe Aktar")}</Button>
                 <input
                   id="tre-import-input"
                   type="file"
@@ -1160,8 +1154,7 @@ const Settings = () => {
                   }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.
-                </p>
+                  {t("İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.")}</p>
               </div>
             </CardContent>
           </Card>
@@ -1171,9 +1164,8 @@ const Settings = () => {
             <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4">
               <h3 className="text-lg font-medium text-foreground mb-2 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-primary" />
-                🖼️ Sohbet Arka Planı
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">Cihazından görsel seç (max 2 MB) veya bir görsel URL’si gir.</p>
+                {t("🖼️ Sohbet Arka Planı")}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t("Cihazından görsel seç (max 2 MB) veya bir görsel URL’si gir.")}</p>
               <input
                 ref={backgroundFileRef}
                 type="file"
@@ -1184,13 +1176,11 @@ const Settings = () => {
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => backgroundFileRef.current?.click()}>
                   <ImageIcon className="mr-2 h-4 w-4" />
-                  Görsel Seç
-                </Button>
+                  {t("Görsel Seç")}</Button>
                 {backgroundImage && (
                   <Button type="button" variant="ghost" onClick={handleRemoveBackground}>
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Kaldır
-                  </Button>
+                    {t("Kaldır")}</Button>
                 )}
               </div>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -1201,7 +1191,7 @@ const Settings = () => {
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') void handleBackgroundUrl();
                   }}
-                  aria-label="Sohbet arka planı görsel URL’si"
+                  aria-label={t("Sohbet arka planı görsel URL’si")}
                 />
                 <Button type="button" variant="outline" onClick={() => void handleBackgroundUrl()}>
                   URL ile ekle
@@ -1210,7 +1200,7 @@ const Settings = () => {
               {backgroundImage && (
                 <img
                   src={backgroundImage}
-                  alt="Seçili sohbet arka planı önizlemesi"
+                  alt={t("Seçili sohbet arka planı önizlemesi")}
                   className="mt-4 max-h-[150px] w-full rounded-lg border border-border/50 object-cover"
                 />
               )}
@@ -1222,30 +1212,26 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5 text-primary" />
-                Uygulamayı Yükle
-              </CardTitle>
+                {t("Uygulamayı Yükle")}</CardTitle>
               <CardDescription>
-                Tre'yi telefonunun ana ekranına ekle, tam ekran ve hızlı erişim.
-              </CardDescription>
+                {t("Tre'yi telefonunun ana ekranına ekle, tam ekran ve hızlı erişim.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {install.installed ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
-                  ✓ Uygulama yüklü olarak çalışıyor.
-                </div>
+                  {t("✓ Uygulama yüklü olarak çalışıyor.")}</div>
               ) : install.canInstall ? (
                 <Button className="w-full" onClick={install.promptInstall}>
                   <Download className="h-4 w-4 mr-2" />
-                  Ana ekrana ekle
+                  {t('settings.addToHomeScreen')}
                 </Button>
               ) : install.isIOS ? (
                 <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
-                  iOS'ta yüklemek için: Safari'de <b>Paylaş</b> butonuna dokun → <b>Ana Ekrana Ekle</b>.
+                  {t('settings.iosInstallSafari')}<b>{t('settings.share')}</b> {t('settings.tapThen')} → <b>{t('settings.addToHomeScreenTitle')}</b>.
                 </div>
               ) : (
                 <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
-                  Tarayıcı menüsünden <b>"Ana ekrana ekle"</b> / <b>"Uygulamayı yükle"</b> seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde (tre-ai.lovable.app) görünür.
-                </div>
+                  {t("Tarayıcı menüsünden")}<b>{t('settings.addToHomeScreen')}</b> / <b>{t("\"Uygulamayı yükle\"")}</b> {t("seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde (tre-ai.lovable.app) görünür.")}</div>
               )}
             </CardContent>
           </Card>
@@ -1259,9 +1245,9 @@ const Settings = () => {
             <Link to="/capabilities">
               <span className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Tre Ne Yapabilir?
+                {t("Tre Ne Yapabilir?")}
               </span>
-              <span className="text-xs text-muted-foreground">Tüm yetenekler →</span>
+              <span className="text-xs text-muted-foreground">{t("Tüm yetenekler →")}</span>
             </Link>
           </Button>
 
@@ -1274,9 +1260,8 @@ const Settings = () => {
             <Link to="/starred">
               <span className="flex items-center gap-2">
                 <span className="text-base leading-none">⭐</span>
-                Yıldızlı Mesajlar
-              </span>
-              <span className="text-xs text-muted-foreground">Kaydedilenler →</span>
+                {t("Yıldızlı Mesajlar")}</span>
+              <span className="text-xs text-muted-foreground">{t("Kaydedilenler →")}</span>
             </Link>
           </Button>
 
@@ -1292,8 +1277,7 @@ const Settings = () => {
               rel="noopener noreferrer"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
-              Geri Bildirim Gönder
-            </a>
+              {t("Geri Bildirim Gönder")}</a>
           </Button>
         </div>
       </div>
@@ -1305,7 +1289,7 @@ interface ThemeCardProps {
   option: ThemeOption;
   isSelected: boolean;
   onSelect: () => void;
-  t: ReturnType<typeof getTranslations>;
+  t: TFunction;
 }
 
 const ThemeCard = ({ option, isSelected, onSelect, t }: ThemeCardProps) => {
@@ -1321,8 +1305,8 @@ const ThemeCard = ({ option, isSelected, onSelect, t }: ThemeCardProps) => {
       }`}
     >
       <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-      <div className="font-medium text-foreground text-xs sm:text-sm">{t[option.nameKey]}</div>
-      <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{t[option.descKey]}</div>
+      <div className="font-medium text-foreground text-xs sm:text-sm">{t(option.nameKey)}</div>
+      <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{t(option.descKey)}</div>
       {isSelected && (
         <div className="h-4 w-4 sm:h-5 w-5 rounded-full bg-primary flex items-center justify-center mt-1">
           <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary-foreground" />

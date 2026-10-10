@@ -26,6 +26,7 @@ import LocalSchedulerRunner from "./components/LocalSchedulerRunner";
 import { NotificationReplyListener } from "./components/NotificationReplyListener";
 import { useNotifications } from "./hooks/useNotifications";
 import { AvatarProvider } from "./hooks/useAvatar";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
@@ -48,40 +49,42 @@ const ReminderNotificationRunner = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <ScreenAnalysisTrigger />
-      <LocalSchedulerRunner />
-      <NotificationReplyListener />
-      <ReminderNotificationRunner />
-      <BrowserRouter>
-        <AvatarProvider>
-          <Routes>
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/istatistik" element={<Stats />} />
-            <Route path="/capabilities" element={<Capabilities />} />
-            <Route path="/starred" element={<Starred />} />
+  <LanguageProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <ScreenAnalysisTrigger />
+        <LocalSchedulerRunner />
+        <NotificationReplyListener />
+        <ReminderNotificationRunner />
+        <BrowserRouter>
+          <AvatarProvider>
+            <Routes>
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/istatistik" element={<Stats />} />
+              <Route path="/capabilities" element={<Capabilities />} />
+              <Route path="/starred" element={<Starred />} />
 
-            <Route path="/voice-chat" element={<VoiceChat />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/demo" element={<DemoChat />} />
-            <Route path="/demo-chat" element={<DemoChat />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/extension" element={<ExtensionFeaturePreview />} />
-            <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
-            <Route path="/widget-preview" element={<WidgetPreview />} />
-            <Route path="/file-handler" element={<FileHandlerFeaturePreview />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AvatarProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              <Route path="/voice-chat" element={<VoiceChat />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/demo" element={<DemoChat />} />
+              <Route path="/demo-chat" element={<DemoChat />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/extension" element={<ExtensionFeaturePreview />} />
+              <Route path="/share-target" element={<ShareTargetFeaturePreview />} />
+              <Route path="/widget-preview" element={<WidgetPreview />} />
+              <Route path="/file-handler" element={<FileHandlerFeaturePreview />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AvatarProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </LanguageProvider>
 );
 
 export default App;

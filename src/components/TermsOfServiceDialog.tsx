@@ -43,7 +43,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
                 <li>Canlı kamera analizi ve ekran paylaşımı analizi,</li>
                 <li>70+ formatta belge okuma, özetleme ve soru-cevap,</li>
                 <li>Web arama ve kaynak (citation) gösterimi,</li>
-                <li>114 dil desteği ve mesaj bazında çeviri,</li>
+                <li>103 dil desteği ve mesaj bazında çeviri,</li>
                 <li>Sesli sohbet (STT/TTS), tam ekran sesli mod ve "Hey Tre" uyandırma sözcüğü,</li>
                 <li>Doğal dille hatırlatıcı kurma ve push bildirimle hatırlatma,</li>
                 <li>Google (Gmail/Drive) gibi üçüncü taraf hesap bağlantıları,</li>

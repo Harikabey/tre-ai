@@ -1,5 +1,5 @@
 import { Sparkles, Brain, Image, MessageSquare } from 'lucide-react';
-import { getTranslations } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
 import aiLogo from '@/assets/ai-logo.jpg';
 
 interface EmptyStateProps {
@@ -7,13 +7,13 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
-  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
+  const t = useT();
   
   const suggestions = [
-    { icon: MessageSquare, text: t.askAnything, color: "text-primary" },
-    { icon: Brain, text: t.teachMe, color: "text-accent" },
-    { icon: Image, text: t.generateImage, color: "text-primary" },
-    { icon: Sparkles, text: t.writeStory, color: "text-accent" },
+    { icon: MessageSquare, text: t('askAnything'), color: "text-primary" },
+    { icon: Brain, text: t('teachMe'), color: "text-accent" },
+    { icon: Image, text: t('generateImage'), color: "text-primary" },
+    { icon: Sparkles, text: t('writeStory'), color: "text-accent" },
   ];
 
   return (
@@ -27,7 +27,7 @@ export const EmptyState = ({ onSuggestionClick }: EmptyStateProps) => {
       </h2>
       
       <p className="text-sm text-muted-foreground max-w-sm mb-6 sm:mb-8">
-        {t.emptyStateDesc}
+        {t('emptyStateDesc')}
       </p>
 
       {onSuggestionClick && (

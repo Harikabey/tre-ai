@@ -13,7 +13,8 @@ import { Bot, Mail, Lock, User, ArrowLeft, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { TermsOfServiceDialog } from '@/components/TermsOfServiceDialog';
-import { getTranslations } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { languages as LANGUAGES } from '@/types/language';
 import TryTreButton from '@/components/TryTreButton'; // ✅ YENİ
 import { lovable } from '@/integrations/lovable/index';
@@ -28,12 +29,12 @@ const Auth = () => {
   const [showPasswordErrors, setShowPasswordErrors] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-  const [lang, setLang] = useState(() => localStorage.getItem('ai_chatbot_language') || 'tr');
+  const { language: lang, setLanguage } = useLanguage();
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const t = getTranslations(lang);
+  const t = useT();
   const stateFrom = (location.state as { from?: unknown } | null)?.from;
   const storedFrom = sessionStorage.getItem('tre-post-auth-redirect');
   const safeRedirect = [stateFrom, storedFrom].find((path): path is string =>
@@ -62,8 +63,8 @@ const Auth = () => {
 
   if (user) return <Navigate to={safeRedirect} replace />;
 
-  const emailSchema = z.string().email(t.invalidEmailMsg);
-  const passwordSchema = z.string().min(6, t.passwordTooShortMsg);
+  const emailSchema = z.string().email(t("invalidEmailMsg"));
+  const passwordSchema = z.string().min(6, t("passwordTooShortMsg"));
 
   const validateInputs = (includePassword = true) => {
     try {
@@ -73,7 +74,7 @@ const Auth = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
-          title: t.validationErrorTitle,
+          title: t("validationErrorTitle"),
           description: error.errors[0].message,
           variant: 'destructive',
         });
@@ -83,8 +84,7 @@ const Auth = () => {
   };
 
   const handleLangChange = (val: string) => {
-    localStorage.setItem('ai_chatbot_language', val);
-    setLang(val);
+    void setLanguage(val);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -96,21 +96,21 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
-      let message = t.signInFailedMsg;
+      let message = t("signInFailedMsg");
       if (error.message.includes('Invalid login credentials')) {
-        message = t.invalidCredentialsMsg;
+        message = t("invalidCredentialsMsg");
       } else if (error.message.includes('Email not confirmed')) {
-        message = t.emailNotConfirmedMsg;
+        message = t("emailNotConfirmedMsg");
       }
       toast({
-        title: t.error,
+        title: t("error"),
         description: message,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: t.welcomeBackTitle,
-        description: t.welcomeBackDesc,
+        title: t("welcomeBackTitle"),
+        description: t("welcomeBackDesc"),
       });
       navigateAfterAuth();
     }
@@ -124,7 +124,7 @@ const Auth = () => {
     if (!isPasswordAcceptable(passwordEvaluation)) {
       setShowPasswordErrors(true);
       toast({
-        title: t.validationErrorTitle,
+        title: t("validationErrorTitle"),
         description: 'Lütfen şifre kurallarını tamamlayın.',
         variant: 'destructive',
       });
@@ -134,8 +134,8 @@ const Auth = () => {
 
     if (!termsAccepted) {
       toast({
-        title: t.termsRequiredTitle,
-        description: t.termsRequiredDesc,
+        title: t("termsRequiredTitle"),
+        description: t("termsRequiredDesc"),
         variant: 'destructive',
       });
       return;
@@ -145,7 +145,7 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
-      let message = t.signUpFailedMsg;
+      let message = t("signUpFailedMsg");
       const errorMessage = error.message.toLowerCase();
       const status = 'status' in error ? error.status : undefined;
       if (errorMessage.includes('password has been pwned')) {
@@ -157,17 +157,17 @@ const Auth = () => {
       } else if (status === 429 || errorMessage.includes('too many requests')) {
         message = 'Çok fazla deneme yaptınız. Lütfen biraz bekleyip tekrar deneyin.';
       } else if (error.message.includes('already registered')) {
-        message = t.emailAlreadyRegisteredMsg;
+        message = t("emailAlreadyRegisteredMsg");
       }
       toast({
-        title: t.error,
+        title: t("error"),
         description: message,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: t.accountCreatedTitle,
-        description: t.accountCreatedDesc,
+        title: t("accountCreatedTitle"),
+        description: t("accountCreatedDesc"),
       });
       navigateAfterAuth();
     }
@@ -184,8 +184,8 @@ const Auth = () => {
       if (result.error) {
         setIsLoading(false);
         toast({
-          title: t.error,
-          description: t.signInFailedMsg,
+          title: t("error"),
+          description: t("signInFailedMsg"),
           variant: 'destructive',
         });
         return;
@@ -198,8 +198,8 @@ const Auth = () => {
     } catch {
       setIsLoading(false);
       toast({
-        title: t.error,
-        description: t.signInFailedMsg,
+        title: t("error"),
+        description: t("signInFailedMsg"),
         variant: 'destructive',
       });
     }
@@ -227,7 +227,7 @@ const Auth = () => {
           <div className="absolute right-4 top-4">
             <Select value={lang} onValueChange={handleLangChange}>
               <SelectTrigger
-                aria-label={t.selectLanguageLabel}
+                aria-label={t("selectLanguageLabel")}
                 className="h-9 w-auto min-w-[110px] gap-1.5 rounded-full border-border/60 bg-background/60 px-3 text-xs"
               >
                 <Globe className="h-3.5 w-3.5 opacity-70" />
@@ -247,26 +247,26 @@ const Auth = () => {
             <Bot className="w-8 h-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">Tre</CardTitle>
-          <CardDescription>{t.authTagline}</CardDescription>
+          <CardDescription>{t("authTagline")}</CardDescription>
         </CardHeader>
 
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin">{t.signInTab}</TabsTrigger>
-              <TabsTrigger value="signup">{t.signUpTab}</TabsTrigger>
+              <TabsTrigger value="signin">{t("signInTab")}</TabsTrigger>
+              <TabsTrigger value="signup">{t("signUpTab")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">{t.emailLabel}</Label>
+                  <Label htmlFor="signin-email">{t("emailLabel")}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signin-email"
                       type="email"
-                      placeholder={t.emailPlaceholder}
+                      placeholder={t("emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
@@ -276,13 +276,13 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">{t.passwordLabel}</Label>
+                  <Label htmlFor="signin-password">{t("passwordLabel")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signin-password"
                       type="password"
-                      placeholder={t.passwordPlaceholder}
+                      placeholder={t("passwordPlaceholder")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
@@ -293,12 +293,12 @@ const Auth = () => {
 
                 <div className="flex items-center justify-between">
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? t.signingInBtn : t.signInBtn}
+                    {isLoading ? t("signingInBtn") : t("signInBtn")}
                   </Button>
                 </div>
                 <div className="text-center">
                   <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                    {t.forgotPasswordLink}
+                    {t("forgotPasswordLink")}
                   </Link>
                 </div>
               </form>
@@ -307,13 +307,13 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-username">{t.usernameLabel}</Label>
+                  <Label htmlFor="signup-username">{t("usernameLabel")}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signup-username"
                       type="text"
-                      placeholder={t.usernamePlaceholder}
+                      placeholder={t("usernamePlaceholder")}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="pl-10"
@@ -322,13 +322,13 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">{t.emailLabel}</Label>
+                  <Label htmlFor="signup-email">{t("emailLabel")}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder={t.emailPlaceholder}
+                      placeholder={t("emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
@@ -338,13 +338,13 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">{t.passwordLabel}</Label>
+                  <Label htmlFor="signup-password">{t("passwordLabel")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder={t.passwordPlaceholder}
+                      placeholder={t("passwordPlaceholder")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
@@ -366,20 +366,20 @@ const Auth = () => {
                     className="mt-0.5"
                   />
                   <Label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                    {t.termsPrefix}
+                    {t("termsPrefix")}
                     <button
                       type="button"
                       onClick={() => setShowTerms(true)}
                       className="text-primary hover:underline font-medium"
                     >
-                      {t.termsLinkText}
+                      {t("termsLinkText")}
                     </button>
-                    {t.termsSuffix}
+                    {t("termsSuffix")}
                   </Label>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading || !termsAccepted}>
-                  {isLoading ? t.signingUpBtn : t.signUpBtn}
+                  {isLoading ? t("signingUpBtn") : t("signUpBtn")}
                 </Button>
               </form>
             </TabsContent>

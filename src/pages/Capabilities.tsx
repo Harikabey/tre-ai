@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/dialog';
 import { personalities } from '@/types/personality';
 import { languages } from '@/types/language';
+import { useT } from '@/hooks/useTranslations';
 
 type Capability = {
   icon: LucideIcon;
@@ -628,6 +629,7 @@ const RELEASE_NOTES = [
 
 const CapabilityCard = ({ item }: { item: Capability }) => {
   const Icon = item.icon;
+  const t = useT();
 
   return (
     <Link
@@ -639,18 +641,18 @@ const CapabilityCard = ({ item }: { item: Capability }) => {
       </span>
       <span className="ml-3 flex min-w-0 flex-1 flex-col">
         <span className="flex items-start justify-between gap-2">
-          <span className="text-sm font-semibold text-foreground">{item.title}</span>
+          <span className="text-sm font-semibold text-foreground">{t(item.title)}</span>
           {item.note && (
             <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {item.note}
+              {t(item.note)}
             </span>
           )}
         </span>
-        <span className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+        <span className="mt-1 text-xs leading-relaxed text-muted-foreground">{t(item.description)}</span>
         {item.formats && (
           <span className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Biçimler: </span>
-            {item.formats}
+            <span className="font-medium text-foreground">{t('capabilities.formatsLabel')} </span>
+            {t(item.formats)}
           </span>
         )}
       </span>
@@ -660,6 +662,7 @@ const CapabilityCard = ({ item }: { item: Capability }) => {
 
 const Capabilities = () => {
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
+  const t = useT();
 
   return (
     <main className="min-h-[100dvh] bg-background px-4 py-6 pb-[env(safe-area-inset-bottom)] text-foreground sm:px-6 sm:py-8 lg:px-8">
@@ -668,15 +671,15 @@ const Capabilities = () => {
           <Button asChild variant="ghost" className="-ml-3 mb-5 text-muted-foreground">
             <Link to="/settings">
               <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Ayarlara dön
+              {t('capabilities.back')}
             </Link>
           </Button>
           <p className="mb-2 text-sm font-medium text-primary">Tre AI</p>
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Tre Neler Yapabilir?
+            {t('capabilities.title')}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Senin için tasarlanmış bir yapay zeka arkadaşı.
+            {t('capabilities.subtitle')}
           </p>
         </header>
 
@@ -690,7 +693,7 @@ const Capabilities = () => {
                   className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
                 >
                   <GroupIcon className="h-5 w-5 text-primary" aria-hidden="true" />
-                  {group.title}
+                  {t(group.title)}
                 </h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {group.items.map((item) => (
@@ -707,7 +710,7 @@ const Capabilities = () => {
               className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
             >
               <Brain className="h-5 w-5 text-primary" aria-hidden="true" />
-              Kişilik Modları
+              {t('capabilities.personalities')}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {personalities.map((personality) => (
@@ -717,8 +720,8 @@ const Capabilities = () => {
                 >
                   <span className="text-2xl" aria-hidden="true">{personality.icon}</span>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground">{personality.name}</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{personality.description}</p>
+                    <h3 className="text-sm font-semibold text-foreground">{t(personality.name)}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t(personality.description)}</p>
                   </div>
                 </div>
               ))}
@@ -731,12 +734,12 @@ const Capabilities = () => {
               className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
             >
               <Languages className="h-5 w-5 text-primary" aria-hidden="true" />
-              Desteklenen Diller
+              {t('capabilities.languages')}
             </h2>
             <div className="rounded-2xl border border-border/60 bg-card/60 p-4 sm:p-5">
-              <p className="text-base font-semibold text-foreground">{languages.length} dil desteği</p>
+              <p className="text-base font-semibold text-foreground">{t('capabilities.languageCount', { count: languages.length })}</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Sohbet dilini seçerek Tre’den {languages.length} farklı dilde yanıt alabilirsin.
+                {t('capabilities.languageDescription', { count: languages.length })}
               </p>
             </div>
           </section>
@@ -747,7 +750,7 @@ const Capabilities = () => {
               className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
             >
               <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
-              Desteklenen Dosya Formatları
+              {t('capabilities.formatsTitle')}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {FILE_FORMAT_GROUPS.map((group) => (
@@ -755,9 +758,9 @@ const Capabilities = () => {
                   key={group.title}
                   className="min-w-0 rounded-2xl border border-border/60 bg-card/60 p-4"
                 >
-                  <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{t(group.title)}</h3>
                   <p className="mt-1 break-words text-xs leading-relaxed text-muted-foreground">{group.formats}</p>
-                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{group.detail}</p>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{t(group.detail)}</p>
                 </div>
               ))}
             </div>
@@ -768,29 +771,29 @@ const Capabilities = () => {
           <Button asChild className="w-full sm:w-auto">
             <Link to="/">
               <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-              Tre’yi Keşfet
+              {t('capabilities.explore')}
             </Link>
           </Button>
 
           <Dialog open={releaseNotesOpen} onOpenChange={setReleaseNotesOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline" className="w-full sm:w-auto">
-                Sürüm Notları
+                {t('capabilities.releaseNotes')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Sürüm Notları</DialogTitle>
+                <DialogTitle>{t('capabilities.releaseNotes')}</DialogTitle>
                 <DialogDescription>
-                  Depodaki son değişikliklerden doğrulanabilen yenilikler.
+                  {t('capabilities.releaseHistory')}
                 </DialogDescription>
               </DialogHeader>
               <ol className="space-y-5">
                 {RELEASE_NOTES.map((release) => (
                   <li key={`${release.date}-${release.title}`} className="border-l-2 border-primary/30 pl-4">
-                    <p className="text-xs font-medium text-muted-foreground">{release.date}</p>
-                    <h3 className="mt-1 text-sm font-semibold text-foreground">{release.title}</h3>
-                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{release.description}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t(release.date)}</p>
+                    <h3 className="mt-1 text-sm font-semibold text-foreground">{t(release.title)}</h3>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{t(release.description)}</p>
                   </li>
                 ))}
               </ol>

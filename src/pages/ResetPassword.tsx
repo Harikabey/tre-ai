@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getTranslations } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -16,7 +16,7 @@ const ResetPassword = () => {
   const [isValidSession, setIsValidSession] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
+  const t = useT();
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -40,8 +40,8 @@ const ResetPassword = () => {
 
     if (password.length < 6) {
       toast({
-        title: t.error,
-        description: t.passwordTooShortMsg,
+        title: t("error"),
+        description: t("passwordTooShortMsg"),
         variant: 'destructive',
       });
       return;
@@ -49,8 +49,8 @@ const ResetPassword = () => {
 
     if (password !== confirmPassword) {
       toast({
-        title: t.error,
-        description: t.passwordsDontMatchMsg,
+        title: t("error"),
+        description: t("passwordsDontMatchMsg"),
         variant: 'destructive',
       });
       return;
@@ -62,14 +62,14 @@ const ResetPassword = () => {
 
     if (error) {
       toast({
-        title: t.error,
-        description: t.passwordUpdateErrorDesc,
+        title: t("error"),
+        description: t("passwordUpdateErrorDesc"),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: t.success,
-        description: t.passwordUpdatedDesc,
+        title: t("success"),
+        description: t("passwordUpdatedDesc"),
       });
       navigate('/');
     }
@@ -84,30 +84,30 @@ const ResetPassword = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
             <Bot className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">{t.newPasswordTitle}</CardTitle>
-          <CardDescription>{t.newPasswordDesc}</CardDescription>
+          <CardTitle className="text-2xl">{t("newPasswordTitle")}</CardTitle>
+          <CardDescription>{t("newPasswordDesc")}</CardDescription>
         </CardHeader>
 
         <CardContent>
           {!isValidSession ? (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                {t.invalidRecoveryLinkMsg}
+                {t("invalidRecoveryLinkMsg")}
               </p>
               <Button variant="outline" className="w-full" onClick={() => navigate('/forgot-password')}>
-                {t.forgotPasswordLink}
+                {t("forgotPasswordLink")}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-password">{t.newPasswordLabel}</Label>
+                <Label htmlFor="new-password">{t("newPasswordLabel")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="new-password"
                     type="password"
-                    placeholder={t.passwordPlaceholder}
+                    placeholder={t("passwordPlaceholder")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -117,13 +117,13 @@ const ResetPassword = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password">{t.confirmPasswordLabel}</Label>
+                <Label htmlFor="confirm-password">{t("confirmPasswordLabel")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm-password"
                     type="password"
-                    placeholder={t.passwordPlaceholder}
+                    placeholder={t("passwordPlaceholder")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
@@ -133,7 +133,7 @@ const ResetPassword = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? t.updatingBtn : t.updatePasswordBtn}
+                {isLoading ? t("updatingBtn") : t("updatePasswordBtn")}
               </Button>
             </form>
           )}

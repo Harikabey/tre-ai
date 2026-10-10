@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Mail, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getTranslations } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
-  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
+  const t = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +28,15 @@ const ForgotPassword = () => {
 
     if (error) {
       toast({
-        title: t.error,
-        description: t.resetEmailErrorDesc,
+        title: t("error"),
+        description: t("resetEmailErrorDesc"),
         variant: 'destructive',
       });
     } else {
       setSent(true);
       toast({
-        title: t.resetEmailSentTitle,
-        description: t.resetEmailSentDesc,
+        title: t("resetEmailSentTitle"),
+        description: t("resetEmailSentDesc"),
       });
     }
   };
@@ -55,9 +55,9 @@ const ForgotPassword = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
             <Bot className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">{t.forgotPasswordTitle}</CardTitle>
+          <CardTitle className="text-2xl">{t("forgotPasswordTitle")}</CardTitle>
           <CardDescription>
-            {sent ? t.forgotPasswordSentDesc : t.forgotPasswordDesc}
+            {sent ? t("forgotPasswordSentDesc") : t("forgotPasswordDesc")}
           </CardDescription>
         </CardHeader>
 
@@ -66,24 +66,24 @@ const ForgotPassword = () => {
             <div className="text-center space-y-4">
               <Mail className="w-12 h-12 text-primary mx-auto" />
               <p className="text-sm text-muted-foreground">
-                {t.checkEmailInstruction}
+                {t("checkEmailInstruction")}
               </p>
               <Link to="/auth">
                 <Button variant="outline" className="w-full">
-                  {t.backToSignInBtn}
+                  {t("backToSignInBtn")}
                 </Button>
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reset-email">{t.emailLabel}</Label>
+                <Label htmlFor="reset-email">{t("emailLabel")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder={t.emailPlaceholder}
+                    placeholder={t("emailPlaceholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -93,7 +93,7 @@ const ForgotPassword = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? t.sendingBtn : t.sendResetLinkBtn}
+                {isLoading ? t("sendingBtn") : t("sendResetLinkBtn")}
               </Button>
             </form>
           )}

@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Sparkles, Trash2, PanelRight, Settings, Menu, LogOut, FolderOpen, Brain, Link2, FileDown, Lock, LockOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getTranslations } from '@/utils/translations';
+import { useT } from '@/hooks/useTranslations';
 import { StreakIndicator } from '@/components/StreakIndicator';
 import aiLogo from '@/assets/ai-logo.jpg';
 
@@ -45,20 +45,20 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
-  const t = getTranslations(localStorage.getItem('ai_chatbot_language') || 'tr');
+  const t = useT();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
       toast({
-        title: t.error,
-        description: t.signOutError,
+        title: t('error'),
+        description: t('signOutError'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: t.goodbye,
-        description: t.signOutSuccess,
+        title: t('goodbye'),
+        description: t('signOutSuccess'),
       });
     }
   };
@@ -89,7 +89,7 @@ export const ChatHeader = ({
         {/* Learning mode - hidden on small screens */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
           <Sparkles className={`w-4 h-4 transition-colors ${isLearningMode ? 'text-accent' : 'text-muted-foreground'}`} />
-          <span className="text-xs text-muted-foreground">{t.learning}</span>
+          <span className="text-xs text-muted-foreground">{t('learning')}</span>
           <Switch
             checked={isLearningMode}
             onCheckedChange={onLearningModeChange}
@@ -104,7 +104,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onToggleMemoryPanel}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9 relative"
-            title="Tre Hafızası"
+            title={t('treMemory')}
           >
             <Brain className="w-4 h-4" />
             {memoryCount > 0 && (
@@ -122,7 +122,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onToggleImageHistory}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9 relative"
-            title="Üretilen Dosyalar"
+            title={t('imageHistory')}
           >
             <FolderOpen className="w-4 h-4" />
             {imageHistoryCount > 0 && (
@@ -140,7 +140,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onToggleConnectedAccounts}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
-            title="Bağlı Hesaplar"
+            title={t('connectedAccounts')}
           >
             <Link2 className="w-4 h-4" />
           </Button>
@@ -152,7 +152,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onToggleLock}
             className={`h-8 w-8 sm:h-9 sm:w-9 ${isChatLocked ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
-            title={isChatLocked ? 'Sohbet kilidi açık (kilitli)' : 'Sohbeti kilitle'}
+            title={isChatLocked ? t('chatLockOpen') : t('lockChat')}
           >
             {isChatLocked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
           </Button>
@@ -175,7 +175,7 @@ export const ChatHeader = ({
             size="icon"
             onClick={onExportPdf}
             className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
-            title="Sohbeti PDF olarak indir"
+            title={t('downloadChatPdf')}
           >
             <FileDown className="w-4 h-4" />
           </Button>
@@ -197,7 +197,7 @@ export const ChatHeader = ({
           size="icon"
           onClick={onTogglePanel}
           className={`h-8 w-8 sm:h-9 sm:w-9 ${isPanelOpen ? 'bg-primary/20 border-primary/30' : ''}`}
-          title="Bilgi Tabanı"
+          title={t('knowledgeBase')}
         >
           <PanelRight className="w-4 h-4" />
         </Button>
@@ -207,7 +207,7 @@ export const ChatHeader = ({
           size="icon"
           onClick={handleSignOut}
           className="text-muted-foreground hover:text-destructive h-8 w-8 sm:h-9 sm:w-9"
-          title="Çıkış Yap"
+          title={t('signOut')}
         >
           <LogOut className="w-4 h-4" />
         </Button>
