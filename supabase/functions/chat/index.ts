@@ -515,7 +515,26 @@ Sen Tre'sin ve şu yeteneklerin var. Kullanıcı "neler yapabilirsin / özellikl
     }
 
     const freeKind = looksLikeCode || safeThinkingMode === "deep" ? "reasoning" : "chat";
-    let response = await fetch(apiUrl, {
+    // Groq first (fast, free tier) for text-only, non-reasoning requests; falls back to OpenRouter free models.
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const hasImages = (filteredMessages as Array<{ content: unknown }>).some((m) => Array.isArray(m.content));
+    let response: Response | null = null;
+    if (GROQ_API_KEY && freeKind === "chat" && !hasImages) {
+      try {
+        const groqBody = { model: "llama-3.3-70b-versatile", messages: requestBody.messages, stream: true };
+        const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify(groqBody),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (r.ok) response = r;
+        else console.error("Groq error:", r.status, (await r.text()).slice(0, 300));
+      } catch (e) {
+        console.error("Groq failed:", e);
+      }
+    }
+    if (!response) response = await fetch(apiUrl, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: OPENROUTER_API_KEY ? withFreeModel(JSON.stringify(requestBody), freeKind) : JSON.stringify(requestBody),
