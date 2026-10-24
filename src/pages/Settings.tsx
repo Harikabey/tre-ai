@@ -21,7 +21,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { isWakeWordEnabled, setWakeWordEnabled } from '@/hooks/useWakeWord';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { translateUIStrings } from '@/utils/translations';
 import { useT } from '@/hooks/useTranslations';
@@ -230,8 +229,9 @@ const Settings = () => {
           loadEmailStatus();
         }
       } else {
-        const { error } = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin + '/settings',
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin + '/settings' },
         });
         if (error) toast.error(t("error"));
       }

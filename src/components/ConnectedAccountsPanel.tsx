@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -149,8 +148,9 @@ export const ConnectedAccountsPanel = ({ isOpen, onClose }: ConnectedAccountsPan
           }
         } else {
           // Need to sign in with Google first
-          const { error } = await lovable.auth.signInWithOAuth("google", {
-            redirect_uri: window.location.origin,
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: window.location.origin },
           });
           if (error) {
             toast.error('Google ile bağlantı kurulamadı');
