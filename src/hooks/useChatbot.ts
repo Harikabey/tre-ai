@@ -8,6 +8,9 @@ import { useUserMemory } from './useUserMemory';
 import { useStats } from './useStats';
 import { useCustomPersonality } from './useCustomPersonality';
 import { useNotifications } from './useNotifications';
+import { readModelSelection } from './useModelSelection';
+import { useLocalModel } from './useLocalModel';
+import { detectWebGPU } from './useWebGPU';
 import { addReminder, formatReminderTime } from '@/lib/reminders';
 import {
   cacheMessages,
@@ -72,6 +75,11 @@ interface Conversation {
 
 export const useChatbot = () => {
   const { user } = useAuth();
+  const {
+    isLoading: isLocalModelLoading,
+    isReady: isLocalModelReady,
+    generateResponse: generateLocalResponse,
+  } = useLocalModel();
   const { customPersonality } = useCustomPersonality();
   const { recordMessage } = useStats();
   const { checkEasterEgg } = useNotifications();
@@ -361,6 +369,7 @@ export const useChatbot = () => {
     
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const modelSelection = readModelSelection();
     
    const resp = await fetch(CHAT_URL, {
       method: "POST",
@@ -380,12 +389,34 @@ export const useChatbot = () => {
         connectedAccounts,
         userPreferences,
         showThinking: localStorage.getItem('ai_chatbot_show_thinking') === 'true',
+        provider: modelSelection.provider,
+        ...(modelSelection.provider === 'byok' && {
+          apiProvider: modelSelection.apiProvider,
+          apiKey: modelSelection.apiKey,
+        }),
       }),
     });
 
     if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({ error: 'Bağlantı hatası' }));
-      throw new Error(errorData.error || `HTTP ${resp.status}`);
+      const errorData: unknown = await resp.json().catch(() => null);
+      if (
+        modelSelection.provider === 'byok' &&
+        typeof errorData === 'object' &&
+        errorData !== null &&
+        'code' in errorData &&
+        errorData.code === 'INVALID_API_KEY'
+      ) {
+        toast.error('Anahtar geçersiz');
+        throw new Error('Anahtar geçersiz');
+      }
+      const errorMessage =
+        typeof errorData === 'object' &&
+        errorData !== null &&
+        'error' in errorData &&
+        typeof errorData.error === 'string'
+          ? errorData.error
+          : `HTTP ${resp.status}`;
+      throw new Error(errorMessage);
     }
 
     if (!resp.body) throw new Error("Stream desteklenmiyor");
@@ -1070,6 +1101,33 @@ export const useChatbot = () => {
           await saveMessage(conversationId, 'assistant', msg);
         }
       } else {
+        const modelSelection = readModelSelection();
+        if (modelSelection.provider === 'local') {
+          const gpuStatus = detectWebGPU();
+          if (!gpuStatus.isSupported) {
+            const responseContent = gpuStatus.errorMessage ?? 'Bu tarayıcı WebGPU desteklemiyor.';
+            toast.error(responseContent);
+            updateLastBotMessage(responseContent);
+            await saveMessage(conversationId, 'assistant', responseContent);
+          } else if (isLocalModelLoading) {
+            const responseContent = 'Model yükleniyor... Lütfen model yüklemesinin tamamlanmasını bekle.';
+            updateLastBotMessage(responseContent);
+            await saveMessage(conversationId, 'assistant', responseContent);
+          } else if (!isLocalModelReady) {
+            const responseContent = 'Yerel model henüz yüklenmedi. Lütfen Ayarlar’dan modeli indirin.';
+            toast.error(responseContent);
+            updateLastBotMessage(responseContent);
+            await saveMessage(conversationId, 'assistant', responseContent);
+          } else {
+            const localMessages = (conversationHistory ?? []).map((message) => ({
+              role: message.role === 'user' ? 'user' as const : 'assistant' as const,
+              content: message.content,
+            }));
+            const responseContent = await generateLocalResponse(localMessages);
+            updateLastBotMessage(responseContent);
+            await saveMessage(conversationId, 'assistant', responseContent);
+          }
+        } else {
         const googleAction = connectedAccounts.length > 0 ? detectGoogleAction(trimmedInput) : null;
 
         if (googleAction) {
@@ -1138,6 +1196,7 @@ export const useChatbot = () => {
           // Save assistant message to DB
           await saveMessage(conversationId!, 'assistant', assistantContent);
         }
+        }
       }
 
       // Update conversation updated_at
@@ -1156,7 +1215,7 @@ export const useChatbot = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, checkEasterEgg]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, checkEasterEgg, isLocalModelLoading, isLocalModelReady, generateLocalResponse]);
 
   // Drops messages from memory only (used while a chat is locked)
   const hideMessages = useCallback(() => {

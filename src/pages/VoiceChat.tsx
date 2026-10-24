@@ -1,3 +1,4 @@
+// FILE: src/pages/VoiceChat.tsx
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Settings } from 'lucide-react';
@@ -9,6 +10,9 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { readModelSelection } from '@/hooks/useModelSelection';
+import { useLocalModel } from '@/hooks/useLocalModel';
+import { detectWebGPU } from '@/hooks/useWebGPU';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import aiLogo from '@/assets/ai-logo.jpg';
@@ -36,6 +40,11 @@ const VoiceChat = () => {
   const { playText, stopAudio, isPlaying, isLoading: ttsLoading, selectedVoiceId } = useVoice();
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
   const haptic = useHapticFeedback();
+  const {
+    isLoading: isLocalModelLoading,
+    isReady: isLocalModelReady,
+    generateResponse: generateLocalResponse,
+  } = useLocalModel();
   
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -91,6 +100,28 @@ const VoiceChat = () => {
 
       const personality = localStorage.getItem('ai_chatbot_personality') || 'friendly';
       const language = localStorage.getItem('ai_chatbot_language') || 'tr';
+      const modelSelection = readModelSelection();
+      let botReply: string;
+
+      if (modelSelection.provider === 'local') {
+        const gpuStatus = detectWebGPU();
+        if (!gpuStatus.isSupported) {
+          throw new Error(gpuStatus.errorMessage ?? 'Bu tarayıcı WebGPU desteklemiyor.');
+        }
+        if (isLocalModelLoading) {
+          throw new Error('Model yükleniyor. Lütfen yüklemenin tamamlanmasını bekle.');
+        }
+        if (!isLocalModelReady) {
+          throw new Error('Yerel model henüz yüklenmedi. Lütfen Ayarlar’dan modeli indirin.');
+        }
+        botReply = await generateLocalResponse([
+          ...messages.slice(-6).map((message) => ({
+            role: message.role === 'user' ? 'user' as const : 'assistant' as const,
+            content: message.content,
+          })),
+          { role: 'user', content: text.trim() },
+        ]);
+      } else {
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
@@ -98,27 +129,74 @@ const VoiceChat = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-voice-mode': 'true',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            message: text.trim(),
+            messages: [
+              ...messages.slice(-6).map((message) => ({
+                role: message.role === 'user' ? 'user' : 'assistant',
+                content: message.content,
+              })),
+              { role: 'user', content: text.trim() },
+            ],
             personality,
             language,
-            voiceMode: true,
             thinkingMode: 'fast',
-            conversationHistory: messages.slice(-6).map(m => ({
-              role: m.role === 'user' ? 'user' : 'assistant',
-              content: m.content,
-            })),
+            provider: modelSelection.provider,
+            ...(modelSelection.provider === 'byok' && {
+              apiProvider: modelSelection.apiProvider,
+              apiKey: modelSelection.apiKey,
+            }),
           }),
         }
       );
 
-      if (!response.ok) throw new Error('Yanıt alınamadı');
-      
-      const data = await response.json();
-      const botReply = data.reply || data.response || 'Yanıt alınamadı.';
+      if (!response.ok) {
+        const errorData: unknown = await response.json().catch(() => null);
+        if (
+          modelSelection.provider === 'byok' &&
+          typeof errorData === 'object' &&
+          errorData !== null &&
+          'code' in errorData &&
+          errorData.code === 'INVALID_API_KEY'
+        ) {
+          throw new Error('Anahtar geçersiz');
+        }
+        throw new Error('Yanıt alınamadı');
+      }
+
+      const stream = await response.text();
+      botReply = '';
+      for (const line of stream.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') break;
+        try {
+          const chunk: unknown = JSON.parse(payload);
+          if (
+            typeof chunk === 'object' &&
+            chunk !== null &&
+            'choices' in chunk &&
+            Array.isArray(chunk.choices)
+          ) {
+            const delta = chunk.choices[0]?.delta;
+            if (
+              typeof delta === 'object' &&
+              delta !== null &&
+              'content' in delta &&
+              typeof delta.content === 'string'
+            ) {
+              botReply += delta.content;
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+      botReply = botReply.trim() || 'Yanıt alınamadı.';
+      }
 
       const botMsg: VoiceMessage = {
         id: (Date.now() + 1).toString(),
@@ -134,7 +212,7 @@ const VoiceChat = () => {
       }
     } catch (error) {
       console.error('Voice chat error:', error);
-      toast.error('Sesli sohbet hatası');
+      toast.error(error instanceof Error ? error.message : 'Sesli sohbet hatası');
     } finally {
       setIsProcessing(false);
     }

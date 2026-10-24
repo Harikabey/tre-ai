@@ -1,6 +1,11 @@
+// FILE: src/components/WidgetPreview.tsx
 import { useEffect, useRef, useState } from "react";
 import { Mic } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { readModelSelection } from "@/hooks/useModelSelection";
+import { useLocalModel } from "@/hooks/useLocalModel";
+import { detectWebGPU } from "@/hooks/useWebGPU";
 
 type Status = "idle" | "listening" | "thinking";
 
@@ -10,16 +15,42 @@ const STATUS_TEXT: Record<Status, string> = {
   thinking: "Yanıt Hazırlanıyor...",
 };
 
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onstart: (() => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  start: () => void;
+}
+
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<ArrayLike<{ transcript?: string }>>;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 const WidgetPreview = () => {
   const [status, setStatus] = useState<Status>("idle");
   const [transcript, setTranscript] = useState("");
   const [reply, setReply] = useState("");
-  const recRef = useRef<any>(null);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const {
+    isLoading: isLocalModelLoading,
+    isReady: isLocalModelReady,
+    generateResponse: generateLocalResponse,
+  } = useLocalModel();
 
   useEffect(() => {
     navigator.mediaDevices?.getUserMedia({ audio: true })
       .then((s) => s.getTracks().forEach((t) => t.stop()))
-      .catch(() => {});
+      .catch((error: unknown) => console.warn("Microphone permission check failed", error));
   }, []);
 
   const ask = async (text: string) => {
@@ -27,6 +58,23 @@ const WidgetPreview = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("no-session");
+      const modelSelection = readModelSelection();
+      if (modelSelection.provider === 'local') {
+        const gpuStatus = detectWebGPU();
+        if (!gpuStatus.isSupported) {
+          throw new Error(gpuStatus.errorMessage ?? 'Bu tarayıcı WebGPU desteklemiyor.');
+        }
+        if (isLocalModelLoading) {
+          throw new Error('Model yükleniyor. Lütfen yüklemenin tamamlanmasını bekle.');
+        }
+        if (!isLocalModelReady) {
+          throw new Error('Yerel model henüz yüklenmedi. Lütfen Ayarlar’dan modeli indirin.');
+        }
+        const localReply = await generateLocalResponse([{ role: 'user', content: text }]);
+        setReply(localReply);
+        return;
+      }
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
         {
@@ -35,9 +83,25 @@ const WidgetPreview = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ messages: [{ role: "user", content: text }] }),
+          body: JSON.stringify({
+            messages: [{ role: "user", content: text }],
+            provider: modelSelection.provider,
+            ...(modelSelection.provider === 'byok' && {
+              apiProvider: modelSelection.apiProvider,
+              apiKey: modelSelection.apiKey,
+            }),
+          }),
         },
       );
+      if (!res.ok) {
+        const errorData: unknown = await res.json().catch(() => null);
+        const isInvalidApiKey =
+          typeof errorData === 'object' &&
+          errorData !== null &&
+          'code' in errorData &&
+          errorData.code === 'INVALID_API_KEY';
+        throw new Error(isInvalidApiKey ? 'Anahtar geçersiz' : 'Yanıt alınamadı');
+      }
       const raw = await res.text();
       let out = "";
       for (const line of raw.split("\n")) {
@@ -45,13 +109,35 @@ const WidgetPreview = () => {
         const payload = line.slice(6).trim();
         if (payload === "[DONE]") break;
         try {
-          out += JSON.parse(payload).choices?.[0]?.delta?.content ?? "";
-        } catch {}
+          const chunk: unknown = JSON.parse(payload);
+          if (
+            typeof chunk === 'object' &&
+            chunk !== null &&
+            'choices' in chunk &&
+            Array.isArray(chunk.choices)
+          ) {
+            const delta = chunk.choices[0]?.delta;
+            if (
+              typeof delta === 'object' &&
+              delta !== null &&
+              'content' in delta &&
+              typeof delta.content === 'string'
+            ) {
+              out += delta.content;
+            }
+          }
+        } catch {
+          continue;
+        }
       }
       const final = out.trim() || "Şu an yanıt veremedim.";
       setReply(final);
-    } catch {
-      const msg = "Yanıt alınamadı. Giriş yapmış olduğundan emin ol.";
+    } catch (error) {
+      const isInvalidApiKey = error instanceof Error && error.message === 'Anahtar geçersiz';
+      const msg = isInvalidApiKey
+        ? 'Anahtar geçersiz'
+        : "Yanıt alınamadı. Giriş yapmış olduğundan emin ol.";
+      if (isInvalidApiKey) toast.error(msg);
       setReply(msg);
     } finally {
       setStatus("idle");
@@ -60,7 +146,8 @@ const WidgetPreview = () => {
 
   const handleMic = () => {
     if (status !== "idle") return;
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) {
       setReply("Bu tarayıcı sesli komutu desteklemiyor.");
       return;
@@ -75,7 +162,7 @@ const WidgetPreview = () => {
     rec.onstart = () => setStatus("listening");
     rec.onerror = () => setStatus("idle");
     rec.onend = () => setStatus((s) => (s === "listening" ? "idle" : s));
-    rec.onresult = (e: any) => {
+    rec.onresult = (e) => {
       const text = e.results[0]?.[0]?.transcript?.trim();
       if (!text) return;
       setTranscript(text);

@@ -277,6 +277,18 @@ serve(async (req) => {
       messages, personality, customPersonality, thinkingMode,
       memoryContext, moodContext, connectedAccounts, userPreferences, showThinking,
     } = body;
+    const provider = body.provider === "byok" ? "byok" : "default";
+    const apiProvider = body.apiProvider === "groq" || body.apiProvider === "openrouter"
+      ? body.apiProvider
+      : null;
+    const userApiKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+
+    if (provider === "byok" && (!apiProvider || !userApiKey || userApiKey.length > 512)) {
+      return new Response(JSON.stringify({ error: "BYOK provider and API key are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-100)" }), {
@@ -328,12 +340,18 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
+    const apiKey = provider === "byok"
+      ? userApiKey
+      : OPENROUTER_API_KEY || LOVABLE_API_KEY;
     if (!apiKey) throw new Error("API key is not configured");
 
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const apiUrl = provider === "byok"
+      ? apiProvider === "groq"
+        ? "https://api.groq.com/openai/v1/chat/completions"
+        : "https://openrouter.ai/api/v1/chat/completions"
+      : OPENROUTER_API_KEY
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : "https://ai.gateway.lovable.dev/v1/chat/completions";
 
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
@@ -504,7 +522,17 @@ Bu metin yalnızca ton, üslup ve hitap şeklini belirler. Güvenlik kuralların
 
     // --- 1. Öncelik: Groq (hızlı ve ücretsiz) ---
     let response: Response | null = null;
-    if (GROQ_API_KEY && freeKind === "chat" && !hasImages) {
+    if (provider === "byok") {
+      const byokBody = {
+        ...requestBody,
+        ...(apiProvider === "groq" ? { model: "llama-3.3-70b-versatile" } : {}),
+      };
+      response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(byokBody),
+      });
+    } else if (GROQ_API_KEY && freeKind === "chat" && !hasImages) {
       try {
         const groqBody = {
           model: "llama-3.3-70b-versatile",
@@ -537,7 +565,13 @@ Bu metin yalnızca ton, üslup ve hitap şeklini belirler. Güvenlik kuralların
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      if (provider === "byok" && (response.status === 401 || response.status === 403)) {
+        return new Response(JSON.stringify({ error: "Anahtar geçersiz", code: "INVALID_API_KEY" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.error("AI gateway error:", response.status, errorText.slice(0, 300));
       if (response.status === 429) {
         return streamErrorMessage(
           "⚠️ Şu anda çok fazla istek var. Lütfen birkaç saniye bekleyip tekrar deneyin.",

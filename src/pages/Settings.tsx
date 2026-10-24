@@ -36,6 +36,7 @@ import { deleteReminder, updateReminder } from '@/lib/reminders';
 import { ChatBackgroundError, useChatBackground } from '@/hooks/useChatBackground';
 import { AvatarSettings } from '@/components/AvatarSettings';
 import { SupportiveNotificationsSettings } from '@/components/SupportiveNotificationsSettings';
+import { ModelSelectionSettings } from '@/components/ModelSelectionSettings';
 
 const TEXT_SCALE_OPTIONS_KEYS = [
   { value: 0.85, labelKey: 'small' as const },
@@ -353,6 +354,7 @@ const Settings = () => {
 
         <div className="space-y-6">
           {user && <AvatarSettings />}
+          <ModelSelectionSettings />
 
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <button
