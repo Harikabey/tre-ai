@@ -1,84 +1,98 @@
-import { useState } from 'react';
+// FILE: src/pages/DemoChat.tsx
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { ChatMessage } from '@/components/ChatMessage';
-import { ChatInput } from '@/components/ChatInput';
-import { TypingIndicator } from '@/components/TypingIndicator';
-import { Message } from '@/types/chatbot';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ChatInput } from '@/components/ChatInput';
+import { ChatMessage } from '@/components/ChatMessage';
+import { Progress } from '@/components/ui/progress';
+import { TypingIndicator } from '@/components/TypingIndicator';
+import { useDemoLimit } from '@/hooks/useDemoLimit';
+import { useLocalModel } from '@/hooks/useLocalModel';
+import { useWebGPU } from '@/hooks/useWebGPU';
+import { Message } from '@/types/chatbot';
 import { ThinkingMode } from '@/hooks/useChatbot';
-
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const API_KEY = import.meta.env.VITE_TRE_DEMO_API_KEY;
 
 export const DemoChat = () => {
   const navigate = useNavigate();
+  const { isUsed, markUsed } = useDemoLimit();
+  const { isSupported, browserName, errorMessage } = useWebGPU();
+  const {
+    isLoading: isModelLoading,
+    progress,
+    isReady,
+    error: modelError,
+    loadModel,
+    generateResponse,
+  } = useLocalModel();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [demoCount, setDemoCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const requestInProgress = useRef(false);
+
+  useEffect(() => {
+    if (isSupported && !isUsed && !isReady && !isModelLoading) {
+      void loadModel().catch((error: unknown) => {
+        console.error('Demo model yüklenemedi:', error);
+        setErrorMsg('Demo şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+      });
+    }
+  }, [isSupported, isUsed, isReady, isModelLoading, loadModel]);
 
   const handleSend = async (text: string) => {
-    if (demoCount >= 1 || isTyping) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || isUsed || requestInProgress.current) {
+      if (isUsed) setErrorMsg('Demo hakkın doldu. Kayıt olarak devam et.');
+      return;
+    }
+
+    if (!isReady) {
+      setErrorMsg(isModelLoading
+        ? 'Demo hazırlanıyor... Model yüklemesinin tamamlanmasını bekleyin.'
+        : 'Demo şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+      return;
+    }
 
     setErrorMsg(null);
-
-    // Kullanıcı mesajı ekrana basılır
-    const userMsg: Message = {
-      id: Date.now().toString(),
+    requestInProgress.current = true;
+    setIsTyping(true);
+    const userMessage: Message = {
+      id: `demo-user-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: trimmedText,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
-
-    // "Tre yazıyor..." animasyonu
-    setIsTyping(true);
+    setMessages((previous) => [...previous, userMessage]);
 
     try {
-      const res = await fetch(OPENROUTER_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'openrouter/free',
-          messages: [{ role: 'user', content: text }],
-        }),
-      });
-
-      if (!res.ok) throw new Error('API hatası');
-
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || 'Üzgünüm, bir cevap oluşturamadım.';
-
-      // API'den cevap gelince Tre mesajı ekrana basılır
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
+      const reply = await generateResponse([{ role: 'user', content: trimmedText }]);
+      const assistantMessage: Message = {
+        id: `demo-assistant-${Date.now()}`,
         role: 'bot',
         content: reply,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, botMsg]);
-      setDemoCount(1);
-    } catch {
-      // Hata yönetimi: butonu sıfırla, kullanıcıya mesaj göster
-      setDemoCount(0);
-      setErrorMsg('Mesaj gönderilemedi. Lütfen tekrar deneyin.');
+      setMessages((previous) => [...previous, assistantMessage]);
+      markUsed();
+    } catch (error) {
+      console.error('Demo yanıtı üretilemedi:', error);
+      setErrorMsg('Demo şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
     } finally {
+      requestInProgress.current = false;
       setIsTyping(false);
     }
   };
 
+  const isPreparing = isSupported && !isUsed && !isReady &&
+    (isModelLoading || !modelError);
+
   return (
-    <div className="h-screen w-full flex flex-col bg-background">
-      {/* Üstte "Demo Modu" etiketi */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary">
+    <div className="flex h-screen w-full flex-col bg-background">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+        <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
           Demo Modu
         </span>
-
         <Button
           type="button"
           variant="ghost"
@@ -91,38 +105,68 @@ export const DemoChat = () => {
         </Button>
       </div>
 
-      {/* Mesajlar */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
-        ))}
-        {isTyping && <TypingIndicator />}
-      </div>
-
-      {/* Hata mesajı */}
-      {errorMsg && (
-        <div className="mx-4 mb-2 text-sm text-destructive">{errorMsg}</div>
+      {!isSupported && (
+        <div className="p-4">
+          <Alert variant="destructive">
+            <AlertTitle>WebGPU desteklenmiyor</AlertTitle>
+            <AlertDescription>
+              Demo modu için Chrome veya Edge kullanın. {browserName} tarayıcısı WebGPU desteği sunmuyor.
+              {errorMessage ? ` ${errorMessage}` : ''}
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
 
-      {/* ChatInput veya Demo doldu butonu */}
-      <div className="p-4 border-t border-border">
-        {demoCount >= 1 ? (
-          <Button
-            className="w-full"
-            onClick={() => navigate('/auth')}
-            size="lg"
-          >
-            Demo hakkınız doldu. Tre'ye tam erişim için kayıt olun.
-          </Button>
-        ) : (
+      {isPreparing && (
+        <div className="space-y-2 px-4 pt-4" role="status">
+          <div className="flex justify-between text-sm">
+            <span>Demo hazırlanıyor...</span>
+            <span>{progress}%</span>
+          </div>
+          <Progress value={progress} aria-label={`Model yükleme ilerlemesi: yüzde ${progress}`} />
+        </div>
+      )}
+
+      {modelError && isSupported && !isUsed && (
+        <div className="p-4">
+          <Alert variant="destructive">
+            <AlertTitle>Demo şu an kullanılamıyor</AlertTitle>
+            <AlertDescription>{modelError}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {messages.map((message) => (
+          <ChatMessage key={message.id} message={message} />
+        ))}
+        {isTyping && <TypingIndicator />}
+        {isUsed && (
+          <div className="space-y-3 rounded-lg border border-border p-4 text-center" role="status">
+            <p className="text-sm text-foreground">Demo hakkın doldu. Kayıt olarak devam et.</p>
+            <Button className="w-full" onClick={() => navigate('/auth')} size="lg">
+              Kayıt Ol
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {errorMsg && (
+        <div className="mx-4 mb-2 text-sm text-destructive" role="alert">
+          {errorMsg}
+        </div>
+      )}
+
+      {!isUsed && isSupported && (
+        <div className="border-t border-border p-4">
           <ChatInput
             onSend={handleSend}
-            disabled={isTyping}
+            disabled={isTyping || !isReady}
             thinkingMode={'fast' as ThinkingMode}
             onThinkingModeChange={() => {}}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
