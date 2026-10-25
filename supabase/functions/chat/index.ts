@@ -26,6 +26,19 @@ const checkRateLimit = (userId: string): boolean => {
   return true;
 };
 
+type ChatMessage = { role: "user" | "assistant"; content: string };
+type ConnectedAccount = { provider: string; scopes?: string[]; provider_email?: string };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isConnectedAccount = (value: unknown): value is ConnectedAccount =>
+  isRecord(value) &&
+  typeof value.provider === "string" &&
+  (value.scopes === undefined ||
+    (Array.isArray(value.scopes) && value.scopes.every((scope) => typeof scope === "string"))) &&
+  (value.provider_email === undefined || typeof value.provider_email === "string");
+
 const buildCorsHeaders = (origin: string): Record<string, string> => {
   const allowOrigin = ALLOWED_ORIGINS.includes("*")
     ? "*"
@@ -272,11 +285,20 @@ serve(async (req) => {
     }
 
     // --- Input Validation ---
-    const body = await req.json();
+    const body: unknown = await req.json();
+    if (!isRecord(body)) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const {
       messages, personality, customPersonality, thinkingMode,
       memoryContext, moodContext, connectedAccounts, userPreferences, showThinking,
     } = body;
+    const safeConnectedAccounts = Array.isArray(connectedAccounts)
+      ? connectedAccounts.filter(isConnectedAccount)
+      : [];
     const provider = body.provider === "byok" ? "byok" : "default";
     const apiProvider = body.apiProvider === "groq" || body.apiProvider === "openrouter"
       ? body.apiProvider
@@ -296,8 +318,14 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const validatedMessages: ChatMessage[] = [];
     for (const m of messages) {
-      if ((m.role !== "user" && m.role !== "assistant") || !m.content || typeof m.content !== "string") {
+      if (
+        !isRecord(m) ||
+        (m.role !== "user" && m.role !== "assistant") ||
+        typeof m.content !== "string" ||
+        !m.content
+      ) {
         return new Response(JSON.stringify({ error: "Invalid message format" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -309,6 +337,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      validatedMessages.push({ role: m.role, content: m.content });
     }
 
     // --- Refusal mesajlarını filtrele (hesap bağlıysa) ---
@@ -317,18 +346,20 @@ serve(async (req) => {
       "teknik kapasitemle mümkün değil", "doğrudan erişimim bulunmuyor",
       "e-postalarına erişim sağlayamıyorum",
     ];
-    let filteredMessages = messages;
-    if (Array.isArray(connectedAccounts) && connectedAccounts.length > 0) {
-      filteredMessages = messages.filter((m: { role: string; content: string }) => {
+    let filteredMessages = validatedMessages;
+    if (safeConnectedAccounts.length > 0) {
+      filteredMessages = validatedMessages.filter((m) => {
         if (m.role !== "assistant") return true;
         const lower = m.content.toLowerCase();
         return !refusalPatterns.some((p) => lower.includes(p));
       });
-      if (filteredMessages.length === 0) filteredMessages = messages.slice(-1);
+      if (filteredMessages.length === 0) filteredMessages = validatedMessages.slice(-1);
     }
 
     const validPersonalities = ["friendly", "professional", "humorous", "wise", "creative", "mirror", "debater", "sarcastic", "educator"];
-    const safePersonality = validPersonalities.includes(personality) ? personality : "friendly";
+    const safePersonality = typeof personality === "string" && validPersonalities.includes(personality)
+      ? personality
+      : "friendly";
     const safeCustomPersonality = typeof customPersonality === "string"
       ? customPersonality.replace(/["`\[\]{}<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 500)
       : "";
@@ -356,7 +387,7 @@ serve(async (req) => {
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
     // --- İçerik tespiti ---
-    const lastUserMsg = [...filteredMessages].reverse().find((m: { role: string }) => m.role === "user");
+    const lastUserMsg = [...filteredMessages].reverse().find((m) => m.role === "user");
     const lastUserText = (lastUserMsg?.content || "").toLowerCase();
 
     const codeKeywords = [
@@ -428,16 +459,16 @@ serve(async (req) => {
     systemPrompt += dateSuffix;
 
     // --- Bağlı hesaplar bağlamı ---
-    if (Array.isArray(connectedAccounts) && connectedAccounts.length > 0) {
+    if (safeConnectedAccounts.length > 0) {
       const scopeNames: Record<string, string> = {
         email: "E-posta okuma/gönderme (Gmail)",
         drive: "Dosya erişimi (Google Drive)",
         calendar: "Takvim yönetimi (Google Calendar)",
         profile: "Profil bilgileri",
       };
-      const accountDetails = connectedAccounts
-        .map((acc: { provider: string; scopes?: string[]; provider_email?: string }) => {
-          const activeScopes = (acc.scopes || []).map((s: string) => scopeNames[s] || s).join(", ");
+      const accountDetails = safeConnectedAccounts
+        .map((acc) => {
+          const activeScopes = (acc.scopes || []).map((s) => scopeNames[s] || s).join(", ");
           return `- ${acc.provider.toUpperCase()}: ${acc.provider_email || "bağlı"} | İzinler: ${activeScopes}`;
         })
         .join("\n");
@@ -455,7 +486,7 @@ Kurallar:
     }
 
     // --- Kullanıcı tercihleri bağlamı ---
-    if (userPreferences && typeof userPreferences === "object") {
+    if (isRecord(userPreferences)) {
       const themeNames: Record<string, string> = { dark: "Karanlık", light: "Aydınlık", system: "Sistem" };
       const personalityNames: Record<string, string> = {
         friendly: "Arkadaşça", professional: "Profesyonel", humorous: "Esprili",
@@ -467,16 +498,22 @@ Kurallar:
         it: "Italiano", pt: "Português", ru: "Русский", ar: "العربية", zh: "中文",
         ja: "日本語", ko: "한국어",
       };
+      const theme = typeof userPreferences.theme === "string" ? userPreferences.theme : "";
+      const preferencePersonality = typeof userPreferences.personality === "string"
+        ? userPreferences.personality
+        : "";
+      const language = typeof userPreferences.language === "string" ? userPreferences.language : "";
+      const textScale = typeof userPreferences.text_scale === "number" ? userPreferences.text_scale : 1;
       const parts = [];
-      parts.push(`Tema: ${themeNames[userPreferences.theme] || userPreferences.theme}`);
-      parts.push(`Kişilik: ${personalityNames[userPreferences.personality] || userPreferences.personality}`);
-      parts.push(`Dil: ${langNames2[userPreferences.language] || userPreferences.language}`);
-      if (userPreferences.text_scale && userPreferences.text_scale !== 1) {
-        parts.push(`Metin ölçeği: ${userPreferences.text_scale}x`);
+      parts.push(`Tema: ${themeNames[theme] || theme}`);
+      parts.push(`Kişilik: ${personalityNames[preferencePersonality] || preferencePersonality}`);
+      parts.push(`Dil: ${langNames2[language] || language}`);
+      if (textScale !== 1) {
+        parts.push(`Metin ölçeği: ${textScale}x`);
       }
-      if (userPreferences.high_contrast) parts.push("Yüksek kontrast: Açık");
-      if (userPreferences.reduce_motion) parts.push("Azaltılmış hareket: Açık");
-      if (userPreferences.screen_share_enabled) parts.push("Ekran paylaşımı: Açık");
+      if (userPreferences.high_contrast === true) parts.push("Yüksek kontrast: Açık");
+      if (userPreferences.reduce_motion === true) parts.push("Azaltılmış hareket: Açık");
+      if (userPreferences.screen_share_enabled === true) parts.push("Ekran paylaşımı: Açık");
 
       systemPrompt += `\n\nKULLANICI TERCİHLERİ (hatırla ve referans ver):
 ${parts.join("\n")}`;

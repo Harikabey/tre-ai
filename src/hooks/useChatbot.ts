@@ -865,7 +865,7 @@ export const useChatbot = () => {
     recordMessage(trimmedInput, 'user', currentMood?.mood);
     
     // Save user message to DB and get the actual ID
-    const { data: savedMessage } = await supabase
+    const { data: savedMessage, error: messageSaveError } = await supabase
       .from('messages')
       .insert({
         conversation_id: conversationId,
@@ -874,8 +874,9 @@ export const useChatbot = () => {
       })
       .select('id, created_at')
       .single();
+    if (messageSaveError) console.error('Failed to save user message:', messageSaveError);
     
-    const actualMessageId = savedMessage?.id || userMessageId;
+    const actualMessageId = savedMessage?.id;
     // Update conversation title if first message
     const currentConv = conversations.find(c => c.id === conversationId);
     if (currentConv?.title === 'Yeni Sohbet') {

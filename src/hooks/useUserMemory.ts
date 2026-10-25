@@ -51,12 +51,14 @@ export const useUserMemory = () => {
     
     const { data, error } = await supabase
       .from('user_memories')
-      .select('*')
+      .select('id, memory_type, category, content, importance, is_active, created_at')
       .eq('is_active', true)
       .order('importance', { ascending: false })
       .limit(50);
     
-    if (!error && data) {
+    if (error) {
+      console.error('Failed to load user memories:', error);
+    } else if (data) {
       setMemories(data as UserMemory[]);
     }
   };
@@ -80,11 +82,13 @@ export const useUserMemory = () => {
     
     const { data, error } = await supabase
       .from('mood_history')
-      .select('*')
+      .select('id, mood, mood_score, emotions, created_at')
       .order('created_at', { ascending: false })
       .limit(10);
     
-    if (!error && data) {
+    if (error) {
+      console.error('Failed to load recent moods:', error);
+    } else if (data) {
       setRecentMoods(data.map(m => ({
         ...m,
         emotions: Array.isArray(m.emotions) ? m.emotions : []
@@ -95,8 +99,8 @@ export const useUserMemory = () => {
   const analyzeAndStore = useCallback(async (
     message: string, 
     conversationId: string,
-    messageId: string,
-    conversationHistory?: Array<{role: string; content: string}>
+    messageId?: string,
+    conversationHistory?: Array<{role: string; content: string}>,
   ) => {
     if (!user) return null;
 
@@ -126,19 +130,20 @@ export const useUserMemory = () => {
           suggested_tone: result.mood.suggested_tone
         });
 
-        await supabase.from('mood_history').insert({
+        const { error } = await supabase.from('mood_history').insert({
           user_id: user.id,
           conversation_id: conversationId,
-          message_id: messageId,
+          ...(messageId ? { message_id: messageId } : {}),
           mood: result.mood.mood,
           mood_score: result.mood.mood_score,
           emotions: result.mood.emotions || []
         });
+        if (error) console.error('Failed to save mood history:', error);
       }
 
       if (result.memories?.memories?.length > 0) {
         for (const memory of result.memories.memories) {
-          const { data: existing } = await supabase
+          const { data: existing, error: lookupError } = await supabase
             .from('user_memories')
             .select('id, content')
             .eq('user_id', user.id)
@@ -146,8 +151,13 @@ export const useUserMemory = () => {
             .ilike('content', `%${memory.content.slice(0, 20)}%`)
             .limit(1);
 
+          if (lookupError) {
+            console.error('Failed to check existing user memory:', lookupError);
+            continue;
+          }
+
           if (!existing || existing.length === 0) {
-            await supabase.from('user_memories').insert({
+            const { error } = await supabase.from('user_memories').insert({
               user_id: user.id,
               memory_type: memory.type,
               category: memory.category,
@@ -155,6 +165,7 @@ export const useUserMemory = () => {
               importance: memory.importance,
               source_conversation_id: conversationId
             });
+            if (error) console.error('Failed to save user memory:', error);
           }
         }
         loadMemories();
