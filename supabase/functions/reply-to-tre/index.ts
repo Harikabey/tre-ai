@@ -130,7 +130,7 @@ serve(async (req) => {
     // Insert bot message
     await admin.from("messages").insert({
       conversation_id: conversationId,
-      role: "bot",
+      role: "assistant",
       content: reply,
     });
 

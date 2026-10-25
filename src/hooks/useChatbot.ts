@@ -1342,7 +1342,7 @@ export const useChatbot = () => {
       try {
         await supabase.from('messages').insert([
           { conversation_id: convId, role: 'user', content: userReactionContent },
-          { conversation_id: convId, role: 'bot', content: reply },
+          { conversation_id: convId, role: 'assistant', content: reply },
         ]);
       } catch (e) {
         console.error('reaction save failed', e);
