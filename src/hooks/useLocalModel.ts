@@ -58,6 +58,11 @@ async function loadModel(): Promise<void> {
   updateState({ isLoading: true, progress: 0, error: null });
   loadPromise = (async () => {
     try {
+      const gpu = navigator.gpu;
+      if (!gpu || !(await gpu.requestAdapter())) {
+        throw new Error('Bu cihazda kullanılabilir bir WebGPU adaptörü bulunamadı.');
+      }
+
       const webllm = await import('@mlc-ai/web-llm');
       const loadedEngine = await webllm.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: (report) => {

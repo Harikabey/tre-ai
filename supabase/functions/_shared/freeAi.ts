@@ -77,5 +77,5 @@ export async function callFreeAi(
     console.error("Free AI error", res.status, text.slice(0, 300));
     if (!retryable) break;
   }
-  throw new Error(last && last.status === 429 ? FREE_BUSY_MESSAGE : FREE_BUSY_MESSAGE);
+  throw new Error(last?.status === 429 ? FREE_BUSY_MESSAGE : FREE_UNAVAILABLE_MESSAGE);
 }

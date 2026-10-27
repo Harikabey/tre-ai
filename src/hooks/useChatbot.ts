@@ -368,13 +368,16 @@ export const useChatbot = () => {
     };
     
     const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const token = session?.access_token || anonKey;
+    if (!anonKey) throw new Error('Supabase anon key is not configured');
     const modelSelection = readModelSelection();
     
    const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        apikey: anonKey,
         Authorization: `Bearer ${token}`,
         "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
@@ -890,10 +893,10 @@ export const useChatbot = () => {
       .from('messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(10);
 
-    const conversationHistory = historyData?.map(m => ({
+    const conversationHistory = historyData?.reverse().map(m => ({
       role: m.role,
       content: m.content
     }));
@@ -1124,6 +1127,10 @@ export const useChatbot = () => {
               role: message.role === 'user' ? 'user' as const : 'assistant' as const,
               content: message.content,
             }));
+            const lastLocalMessage = localMessages[localMessages.length - 1];
+            if (lastLocalMessage?.role !== 'user' || lastLocalMessage.content !== trimmedInput) {
+              localMessages.push({ role: 'user', content: trimmedInput });
+            }
             const responseContent = await generateLocalResponse(localMessages);
             updateLastBotMessage(responseContent);
             await saveMessage(conversationId, 'assistant', responseContent);

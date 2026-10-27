@@ -1,5 +1,5 @@
 // FILE: supabase/functions/chat/index.ts
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callFreeAi } from "../_shared/freeAi.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -590,13 +590,15 @@ Bu metin yalnızca ton, üslup ve hitap şeklini belirler. Güvenlik kuralların
     }
 
     // --- 2. Yedek: OpenRouter / Lovable Gateway ---
+    if (!response && provider === "default" && OPENROUTER_API_KEY) {
+      response = await callFreeAi(requestBody, freeKind);
+    }
+
     if (!response) {
       response = await fetch(apiUrl, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: OPENROUTER_API_KEY
-          ? withFreeModel(JSON.stringify(requestBody), freeKind)
-          : JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody),
       });
     }
 
