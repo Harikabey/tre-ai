@@ -1,5 +1,5 @@
 // FILE: src/components/ModelSelectionSettings.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -58,8 +58,27 @@ export function ModelSelectionSettings() {
     progress,
     isReady,
     error: modelError,
+    isCacheChecking,
+    isModelCached,
+    isLoadingFromCache,
+    cacheError,
     loadModel,
+    clearCacheAndReloadModel,
   } = useLocalModel();
+
+  useEffect(() => {
+    if (
+      provider === 'local' &&
+      isModelCached &&
+      !isReady &&
+      !isModelLoading &&
+      !modelError
+    ) {
+      void loadModel().catch((error: unknown) => {
+        console.error('Önbellekteki yerel model yüklenemedi:', error);
+      });
+    }
+  }, [provider, isModelCached, isReady, isModelLoading, modelError, loadModel]);
 
   const handleSave = () => {
     setApiKey(keyDraft.trim());
@@ -74,6 +93,15 @@ export function ModelSelectionSettings() {
       toast.success('Yerel model hazır.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Yerel model yüklenemedi.');
+    }
+  };
+
+  const handleReloadModel = async () => {
+    try {
+      await clearCacheAndReloadModel();
+      toast.success('Yerel model yeniden indirildi ve hazır.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Yerel model yeniden indirilemedi.');
     }
   };
 
@@ -128,27 +156,67 @@ export function ModelSelectionSettings() {
         {provider === 'local' && isSupported && (
           <div className="space-y-3 rounded-lg border border-border/50 p-4">
             <p className="text-sm text-muted-foreground">
-              Llama 3.2 1B modeli yaklaşık 600 MB boyutundadır. İndirme sırasında internet bağlantısı gerekir.
+              Llama 3.2 1B modeli yaklaşık 600 MB boyutundadır. İlk indirme sırasında internet bağlantısı gerekir.
             </p>
             {isModelLoading ? (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>Model indiriliyor ve yükleniyor…</span>
+                  <span>
+                    {isLoadingFromCache
+                      ? 'Model önbellekten yükleniyor…'
+                      : 'Model indiriliyor ve yükleniyor…'}
+                  </span>
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} aria-label={`Model indirme ilerlemesi: yüzde ${progress}`} />
               </>
             ) : isReady ? (
               <p className="text-sm font-medium text-primary" role="status">Model Hazır</p>
+            ) : isCacheChecking || (isModelCached === null && !cacheError) ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                Model önbelleği kontrol ediliyor…
+              </p>
             ) : (
-              <Button type="button" onClick={() => void handleLoadModel()}>
-                Modeli İndir
-              </Button>
+              <>
+                {isModelCached === true ? (
+                  <Button type="button" onClick={() => void handleReloadModel()}>
+                    Önbelleği temizle ve yeniden indir
+                  </Button>
+                ) : (
+                  <>
+                    {isModelCached === false && (
+                      <Alert>
+                        <AlertTitle>Yerel model önbellekte bulunamadı</AlertTitle>
+                        <AlertDescription>
+                          Bu tarayıcıda kayıtlı bir model bulunamadı. Önbellek temizlenmiş olabilir;
+                          modeli kullanmak için yeniden indirebilirsin.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <Button type="button" onClick={() => void handleLoadModel()}>
+                      Modeli İndir
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
+            {cacheError && (
+              <Alert variant="destructive">
+                <AlertTitle>Model önbelleği kontrol edilemedi</AlertTitle>
+                <AlertDescription>{cacheError}</AlertDescription>
+              </Alert>
             )}
             {modelError && (
               <Alert variant="destructive">
-                <AlertTitle>Model yüklenemedi</AlertTitle>
-                <AlertDescription>{modelError}</AlertDescription>
+                <AlertTitle>
+                  {isModelCached ? 'Önbellekteki model yüklenemedi' : 'Model yüklenemedi'}
+                </AlertTitle>
+                <AlertDescription>
+                  {isModelCached
+                    ? 'Model verileri bozulmuş olabilir. Önbelleği temizleyip yeniden indirmeyi deneyebilirsin. '
+                    : ''}
+                  {modelError}
+                </AlertDescription>
               </Alert>
             )}
           </div>

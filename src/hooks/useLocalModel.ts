@@ -1,7 +1,8 @@
 // FILE: src/hooks/useLocalModel.ts
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import type { MLCEngine } from '@mlc-ai/web-llm';
 import { detectWebGPU } from '@/hooks/useWebGPU';
+import { readModelSelection } from '@/hooks/useModelSelection';
 
 export interface LocalChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -13,6 +14,10 @@ interface LocalModelState {
   progress: number;
   isReady: boolean;
   error: string | null;
+  isCacheChecking: boolean;
+  isModelCached: boolean | null;
+  isLoadingFromCache: boolean;
+  cacheError: string | null;
 }
 
 const MODEL_ID = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
@@ -21,11 +26,16 @@ const INITIAL_STATE: LocalModelState = {
   progress: 0,
   isReady: false,
   error: null,
+  isCacheChecking: false,
+  isModelCached: null,
+  isLoadingFromCache: false,
+  cacheError: null,
 };
 
 let state = INITIAL_STATE;
 let engine: MLCEngine | null = null;
 let loadPromise: Promise<void> | null = null;
+let cacheCheckPromise: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
 const notify = () => {
@@ -44,7 +54,7 @@ const subscribe = (listener: () => void) => {
 
 const getSnapshot = () => state;
 
-async function loadModel(): Promise<void> {
+async function loadModel(fromCache = state.isModelCached === true): Promise<void> {
   if (engine) return;
   if (loadPromise) return loadPromise;
 
@@ -55,10 +65,17 @@ async function loadModel(): Promise<void> {
     throw new Error(error);
   }
 
-  updateState({ isLoading: true, progress: 0, error: null });
+  updateState({
+    isLoading: true,
+    progress: 0,
+    error: null,
+    isLoadingFromCache: fromCache,
+  });
   loadPromise = (async () => {
     try {
-      const gpu = navigator.gpu;
+      const gpu = (navigator as Navigator & {
+        gpu?: { requestAdapter: () => Promise<unknown | null> };
+      }).gpu;
       if (!gpu || !(await gpu.requestAdapter())) {
         throw new Error('Bu cihazda kullanılabilir bir WebGPU adaptörü bulunamadı.');
       }
@@ -73,12 +90,18 @@ async function loadModel(): Promise<void> {
         },
       });
       engine = loadedEngine;
-      updateState({ isLoading: false, progress: 100, isReady: true, error: null });
+      updateState({
+        isLoading: false,
+        isLoadingFromCache: false,
+        progress: 100,
+        isReady: true,
+        error: null,
+      });
     } catch (error) {
       const message = error instanceof Error
         ? `Yerel model yüklenemedi: ${error.message}`
         : 'Yerel model yüklenemedi.';
-      updateState({ isLoading: false, error: message });
+      updateState({ isLoading: false, isLoadingFromCache: false, error: message });
       throw new Error(message);
     } finally {
       loadPromise = null;
@@ -86,6 +109,63 @@ async function loadModel(): Promise<void> {
   })();
 
   return loadPromise;
+}
+
+function checkModelCache(): Promise<void> {
+  if (cacheCheckPromise) return cacheCheckPromise;
+
+  cacheCheckPromise = (async () => {
+    updateState({ isCacheChecking: true, cacheError: null });
+    let isModelCached: boolean;
+    try {
+      const webllm = await import('@mlc-ai/web-llm');
+      isModelCached = await webllm.hasModelInCache(MODEL_ID);
+    } catch (error) {
+      const message = error instanceof Error
+        ? `Model önbelleği kontrol edilemedi: ${error.message}`
+        : 'Model önbelleği kontrol edilemedi.';
+      updateState({
+        isCacheChecking: false,
+        isModelCached: null,
+        cacheError: message,
+      });
+      return;
+    }
+
+    updateState({ isCacheChecking: false, isModelCached });
+    if (isModelCached && readModelSelection().provider === 'local') {
+      try {
+        await loadModel(true);
+      } catch (error) {
+        console.error('Önbellekteki yerel model yüklenemedi:', error);
+      }
+    }
+  })();
+
+  return cacheCheckPromise;
+}
+
+async function clearCacheAndReloadModel(): Promise<void> {
+  updateState({
+    isLoading: true,
+    progress: 0,
+    isLoadingFromCache: false,
+    error: null,
+  });
+
+  try {
+    const webllm = await import('@mlc-ai/web-llm');
+    await webllm.deleteModelAllInfoInCache(MODEL_ID);
+  } catch (error) {
+    const message = error instanceof Error
+      ? `Model önbelleği temizlenemedi: ${error.message}`
+      : 'Model önbelleği temizlenemedi.';
+    updateState({ isLoading: false, error: message });
+    throw new Error(message);
+  }
+
+  updateState({ isModelCached: false, cacheError: null });
+  await loadModel(false);
 }
 
 async function generateResponse(messages: LocalChatMessage[]): Promise<string> {
@@ -106,12 +186,24 @@ async function generateResponse(messages: LocalChatMessage[]): Promise<string> {
 
 export function useLocalModel() {
   const modelState = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  const load = useCallback(() => loadModel(), []);
+  useEffect(() => {
+    void checkModelCache();
+  }, []);
+
+  const load = useCallback(async () => {
+    await checkModelCache();
+    if (state.isModelCached && state.error) {
+      throw new Error(state.error);
+    }
+    await loadModel(state.isModelCached === true);
+  }, []);
+  const reload = useCallback(() => clearCacheAndReloadModel(), []);
   const generate = useCallback((messages: LocalChatMessage[]) => generateResponse(messages), []);
 
   return {
     ...modelState,
     loadModel: load,
+    clearCacheAndReloadModel: reload,
     generateResponse: generate,
   };
 }
