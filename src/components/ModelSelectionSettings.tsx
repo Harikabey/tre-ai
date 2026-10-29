@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useModelSelection, type ModelProvider } from '@/hooks/useModelSelection';
-import { useLocalModel } from '@/hooks/useLocalModel';
+import { LOCAL_MODELS, useLocalModel, type LocalModelId } from '@/hooks/useLocalModel';
 import { useWebGPU } from '@/hooks/useWebGPU';
 
 const modelOptions: {
@@ -54,6 +54,7 @@ export function ModelSelectionSettings() {
   const [keyDraft, setKeyDraft] = useState(apiKey);
   const { isSupported, browserName, errorMessage } = useWebGPU();
   const {
+    selectedModelId,
     isLoading: isModelLoading,
     progress,
     isReady,
@@ -63,6 +64,7 @@ export function ModelSelectionSettings() {
     isLoadingFromCache,
     cacheError,
     loadModel,
+    downloadModel,
     clearCacheAndReloadModel,
   } = useLocalModel();
 
@@ -87,9 +89,9 @@ export function ModelSelectionSettings() {
     toast.success('Model seçimi kaydedildi.');
   };
 
-  const handleLoadModel = async () => {
+  const handleLoadModel = async (modelId: LocalModelId) => {
     try {
-      await loadModel();
+      await downloadModel(modelId);
       toast.success('Yerel model hazır.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Yerel model yüklenemedi.');
@@ -106,6 +108,7 @@ export function ModelSelectionSettings() {
   };
 
   return (
+    <>
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
       <CardHeader>
         <CardTitle>🤖 AI Motoru</CardTitle>
@@ -154,51 +157,76 @@ export function ModelSelectionSettings() {
         )}
 
         {provider === 'local' && isSupported && (
-          <div className="space-y-3 rounded-lg border border-border/50 p-4">
+          <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Llama 3.2 1B modeli yaklaşık 600 MB boyutundadır. İlk indirme sırasında internet bağlantısı gerekir.
+              İndirmek istediğin yerel metin modelini seç. İlk indirme sırasında internet bağlantısı gerekir.
             </p>
-            {isModelLoading ? (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span>
-                    {isLoadingFromCache
-                      ? 'Model önbellekten yükleniyor…'
-                      : 'Model indiriliyor ve yükleniyor…'}
-                  </span>
-                  <span>{progress}%</span>
-                </div>
-                <Progress value={progress} aria-label={`Model indirme ilerlemesi: yüzde ${progress}`} />
-              </>
-            ) : isReady ? (
-              <p className="text-sm font-medium text-primary" role="status">Model Hazır</p>
-            ) : isCacheChecking || (isModelCached === null && !cacheError) ? (
-              <p className="text-sm text-muted-foreground" role="status">
-                Model önbelleği kontrol ediliyor…
-              </p>
-            ) : (
-              <>
-                {isModelCached === true ? (
-                  <Button type="button" onClick={() => void handleReloadModel()}>
-                    Önbelleği temizle ve yeniden indir
-                  </Button>
-                ) : (
-                  <>
-                    {isModelCached === false && (
-                      <Alert>
-                        <AlertTitle>Yerel model önbellekte bulunamadı</AlertTitle>
-                        <AlertDescription>
-                          Bu tarayıcıda kayıtlı bir model bulunamadı. Önbellek temizlenmiş olabilir;
-                          modeli kullanmak için yeniden indirebilirsin.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    <Button type="button" onClick={() => void handleLoadModel()}>
-                      Modeli İndir
-                    </Button>
-                  </>
-                )}
-              </>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {LOCAL_MODELS.map((model) => {
+                const isSelected = model.id === selectedModelId;
+                return (
+                  <Card
+                    key={model.id}
+                    className={`border-border/50 bg-secondary/20 ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                  >
+                    <CardHeader className="space-y-1 p-4">
+                      <CardTitle className="text-base">{model.name}</CardTitle>
+                      <CardDescription className="font-medium">{model.size}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 p-4 pt-0">
+                      <p className="min-h-10 text-sm text-muted-foreground">{model.description}</p>
+                      {isSelected && isModelLoading ? (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>
+                              {isLoadingFromCache
+                                ? 'Model önbellekten yükleniyor…'
+                                : 'Model indiriliyor ve yükleniyor…'}
+                            </span>
+                            <span>{progress}%</span>
+                          </div>
+                          <Progress
+                            value={progress}
+                            aria-label={`Model indirme ilerlemesi: yüzde ${progress}`}
+                          />
+                        </div>
+                      ) : isSelected && isReady ? (
+                        <p className="text-sm font-medium text-primary" role="status">Model Hazır</p>
+                      ) : isSelected && (isCacheChecking || (isModelCached === null && !cacheError)) ? (
+                        <p className="text-sm text-muted-foreground" role="status">
+                          Model önbelleği kontrol ediliyor…
+                        </p>
+                      ) : null}
+                      <Button
+                        type="button"
+                        className="w-full"
+                        disabled={isModelLoading || isCacheChecking}
+                        onClick={() => void handleLoadModel(model.id)}
+                      >
+                        {isSelected && isReady ? 'Hazır' : isSelected && isModelCached ? 'Yükle' : 'İndir'}
+                      </Button>
+                      {isSelected && isModelCached && !isModelLoading && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => void handleReloadModel()}
+                        >
+                          Önbelleği temizle ve yeniden indir
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            {isModelCached === false && !isCacheChecking && (
+              <Alert>
+                <AlertTitle>Yerel model önbellekte bulunamadı</AlertTitle>
+                <AlertDescription>
+                  Bu tarayıcıda seçili model kayıtlı değil. Modeli kullanmak için yeniden indirebilirsin.
+                </AlertDescription>
+              </Alert>
             )}
             {cacheError && (
               <Alert variant="destructive">
@@ -279,5 +307,21 @@ export function ModelSelectionSettings() {
 
       </CardContent>
     </Card>
+    <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader>
+        <CardTitle>🖼️ Görsel Motoru</CardTitle>
+        <CardDescription>Görsel üretimi, yerel metin modelinden ayrı bir motordur.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Alert>
+          <AlertTitle>WebLLM görsel üretemez</AlertTitle>
+          <AlertDescription>
+            Buradaki Qwen3 seçeneği de dahil olmak üzere yerel WebLLM modelleri metin sohbeti içindir.
+            Görsel üretimi için ayrı bir görsel motoru gerekir; bu ayar yerel metin modeli seçiminden bağımsızdır.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+    </>
   );
 }
