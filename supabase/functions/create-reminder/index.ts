@@ -30,35 +30,70 @@ serve(async (req) => {
     const conversationId = body.conversationId || null;
     if (!text) return json({ error: "text required" }, 400);
 
-    // Ask Lovable AI to extract structured reminder info.
+    // Ask AI to extract structured reminder info.
     const nowIso = new Date().toISOString();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
+    const groqApiKey = Deno.env.get("GROQ_API_KEY");
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!groqApiKey && !openRouterApiKey) return json({ error: "AI not configured" }, 500);
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const messages = [
+      {
+        role: "system",
+        content: `You extract reminder info from user text. Current time (ISO): ${nowIso}. User timezone: ${timezone}. Interpret relative times ("in 10 min", "yarın 9'da", "pazartesi 15:00") relative to that timezone. Reply STRICTLY as JSON: {"title": string, "body": string, "remind_at": ISO8601 string in UTC}. Title short (max 60 chars). Body optional details. If no clear time, pick a sensible default (e.g. in 1 hour) but keep it in the future.`,
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You extract reminder info from user text. Current time (ISO): ${nowIso}. User timezone: ${timezone}. Interpret relative times ("in 10 min", "yarın 9'da", "pazartesi 15:00") relative to that timezone. Reply STRICTLY as JSON: {"title": string, "body": string, "remind_at": ISO8601 string in UTC}. Title short (max 60 chars). Body optional details. If no clear time, pick a sensible default (e.g. in 1 hour) but keep it in the future.`,
-          },
-          { role: "user", content: text },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+      { role: "user", content: text },
+    ];
+    let aiRes: Response | null = null;
 
-    if (!aiRes.ok) {
-      const t = await aiRes.text();
-      console.error("AI error", aiRes.status, t);
-      return json({ error: "AI failed" }, 500);
+    if (groqApiKey) {
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (response.ok) {
+          aiRes = response;
+        } else {
+          console.error("Groq AI error", response.status, (await response.text()).slice(0, 300));
+        }
+      } catch (e) {
+        console.error("Groq AI request failed", e);
+      }
     }
+
+    if (!aiRes && openRouterApiKey) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openRouterApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "nvidia/nemotron-3.5-lightning:free",
+            messages,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (response.ok) {
+          aiRes = response;
+        } else {
+          console.error("OpenRouter AI error", response.status, (await response.text()).slice(0, 300));
+        }
+      } catch (e) {
+        console.error("OpenRouter AI request failed", e);
+      }
+    }
+    if (!aiRes) return json({ error: "AI failed" }, 500);
+
     const aiData = await aiRes.json();
     const raw = aiData?.choices?.[0]?.message?.content || "{}";
     let parsed: any = {};

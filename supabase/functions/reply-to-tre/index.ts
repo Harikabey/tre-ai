@@ -6,17 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
 async function generateReply(history: Array<{ role: string; content: string }>): Promise<string> {
-  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-  if (!apiKey) return "Şu an cevap üretemiyorum (API anahtarı eksik).";
-
-  const endpoint = OPENROUTER_API_KEY
-    ? "https://openrouter.ai/api/v1/chat/completions"
-    : "https://ai.gateway.lovable.dev/v1/chat/completions";
-  const model = OPENROUTER_API_KEY ? "nvidia/nemotron-3.5-lightning:free" : "google/gemini-2.5-flash";
+  const providers = [
+    {
+      name: "Groq",
+      apiKey: GROQ_API_KEY,
+      endpoint: "https://api.groq.com/openai/v1/chat/completions",
+      model: "llama-3.3-70b-versatile",
+    },
+    {
+      name: "OpenRouter",
+      apiKey: OPENROUTER_API_KEY,
+      endpoint: "https://openrouter.ai/api/v1/chat/completions",
+      model: "nvidia/nemotron-3.5-lightning:free",
+    },
+  ].filter((provider) => provider.apiKey);
+  if (providers.length === 0) return "Şu an cevap üretemiyorum (API anahtarı eksik).";
 
   const messages = [
     {
@@ -30,18 +38,24 @@ async function generateReply(history: Array<{ role: string; content: string }>):
     })),
   ];
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages }),
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    console.error("AI error", res.status, t.slice(0, 300));
-    return "Cevap üretilirken bir sorun oldu.";
+  for (const provider of providers) {
+    try {
+      const res = await fetch(provider.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
+        body: JSON.stringify({ model: provider.model, messages }),
+      });
+      if (!res.ok) {
+        console.error(`${provider.name} AI error`, res.status, (await res.text()).slice(0, 300));
+        continue;
+      }
+      const json = await res.json();
+      return json.choices?.[0]?.message?.content?.toString().trim() || "...";
+    } catch (e) {
+      console.error(`${provider.name} AI request failed`, e);
+    }
   }
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content?.toString().trim() || "...";
+  return "Cevap üretilirken bir sorun oldu.";
 }
 
 serve(async (req) => {

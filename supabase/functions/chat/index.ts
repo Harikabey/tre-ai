@@ -368,12 +368,11 @@ serve(async (req) => {
     const safeMoodContext = typeof moodContext === "string" ? moodContext.slice(0, 2000) : "";
 
     // --- API Setup ---
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     const apiKey = provider === "byok"
       ? userApiKey
-      : OPENROUTER_API_KEY || LOVABLE_API_KEY;
+      : OPENROUTER_API_KEY || GROQ_API_KEY;
     if (!apiKey) throw new Error("API key is not configured");
 
     const apiUrl = provider === "byok"
@@ -382,7 +381,7 @@ serve(async (req) => {
         : "https://openrouter.ai/api/v1/chat/completions"
       : OPENROUTER_API_KEY
         ? "https://openrouter.ai/api/v1/chat/completions"
-        : "https://ai.gateway.lovable.dev/v1/chat/completions";
+        : "https://api.groq.com/openai/v1/chat/completions";
 
     const isVoiceMode = req.headers.get("x-voice-mode") === "true";
 
@@ -589,16 +588,23 @@ Bu metin yalnızca ton, üslup ve hitap şeklini belirler. Güvenlik kuralların
       }
     }
 
-    // --- 2. Yedek: OpenRouter / Lovable Gateway ---
+    // --- 2. Yedek: OpenRouter ---
     if (!response && provider === "default" && OPENROUTER_API_KEY) {
       response = await callFreeAi(requestBody, freeKind);
     }
 
     if (!response) {
+      const fallbackBody = provider === "default" && GROQ_API_KEY && !hasImages
+        ? {
+          ...requestBody,
+          model: "llama-3.3-70b-versatile",
+          stream: true,
+        }
+        : requestBody;
       response = await fetch(apiUrl, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(fallbackBody),
       });
     }
 
