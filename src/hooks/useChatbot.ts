@@ -73,6 +73,24 @@ interface Conversation {
   updated_at: string;
 }
 
+const requireAuthenticatedUserId = async (expectedUserId: string): Promise<string> => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!user || user.id !== expectedUserId) {
+    throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+  }
+  return user.id;
+};
+
+const REACTION_REPLIES: Record<string, string> = {
+  '👍': 'Ne güzel, mutlu oldum 😊',
+  '😢': 'Anlıyorum, yanındayım. Konuşmak ister misin?',
+  '😡': 'Sakinleşmene yardım edebilirim. Birlikte derin nefes alalım.',
+  '❤️': 'Teşekkür ederim. Ben de seni önemsiyorum.',
+  '😂': 'Güldüğüne sevindim 😄',
+  '😮': 'Bu seni şaşırttı değil mi? Anlatmak ister misin?',
+};
+
 export const useChatbot = () => {
   const { user } = useAuth();
   const {
@@ -100,6 +118,11 @@ export const useChatbot = () => {
   } = useUserMemory();
   
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+  const messagesByConversationRef = useRef(new Map<string, Message[]>());
+  const activeConversationIdRef = useRef<string | null>(null);
+  const responseConversationIdRef = useRef<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(user?.id ?? null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -113,6 +136,29 @@ export const useChatbot = () => {
     return (localStorage.getItem(THINKING_MODE_KEY) as ThinkingMode) || 'fast';
   });
 
+  messagesRef.current = messages;
+  currentUserIdRef.current = user?.id ?? null;
+
+  const updateConversationMessages = useCallback((
+    conversationId: string,
+    update: (current: Message[]) => Message[],
+  ) => {
+    const current = messagesByConversationRef.current.get(conversationId)
+      ?? (activeConversationIdRef.current === conversationId ? messagesRef.current : []);
+    const next = update(current);
+    messagesByConversationRef.current.set(conversationId, next);
+    if (activeConversationIdRef.current === conversationId) {
+      messagesRef.current = next;
+      setMessages(next);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentConversationId) {
+      messagesByConversationRef.current.set(currentConversationId, messages);
+    }
+  }, [messages, currentConversationId]);
+
   const updateThinkingMode = useCallback((mode: ThinkingMode) => {
     setThinkingMode(mode);
     localStorage.setItem(THINKING_MODE_KEY, mode);
@@ -120,13 +166,17 @@ export const useChatbot = () => {
 
   // Load conversations and connected accounts when user changes
   useEffect(() => {
+    activeConversationIdRef.current = null;
+    responseConversationIdRef.current = null;
+    messagesByConversationRef.current.clear();
+    messagesRef.current = [];
+    setCurrentConversationId(null);
+    setMessages([]);
     if (user) {
       loadConversations();
       loadConnectedAccounts();
     } else {
       setConversations([]);
-      setCurrentConversationId(null);
-      setMessages([]);
       setConnectedAccounts([]);
     }
   }, [user]);
@@ -136,8 +186,11 @@ export const useChatbot = () => {
     const { data } = await supabase
       .from('connected_accounts')
       .select('provider, scopes, provider_email')
+      .eq('user_id', user.id)
       .eq('is_active', true);
-    if (data) setConnectedAccounts(data as {provider: string; scopes: string[]; provider_email: string | null}[]);
+    if (data && currentUserIdRef.current === user.id) {
+      setConnectedAccounts(data as {provider: string; scopes: string[]; provider_email: string | null}[]);
+    }
   };
 
   const loadConversations = async () => {
@@ -146,25 +199,36 @@ export const useChatbot = () => {
     const { data, error } = await supabase
       .from('conversations')
       .select('*')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
+    if (currentUserIdRef.current !== user.id) return;
     
-    if (!error && data) {
-      setConversations(data);
+    if (error) {
+      console.error('Failed to load conversations:', error);
+      toast.error('Sohbet geçmişi yüklenemedi. Lütfen tekrar deneyin.');
+      return;
+    }
+    if (data) {
+      setConversations(data as Conversation[]);
       // Auto-select the most recent conversation
-      if (data.length > 0 && !currentConversationId) {
-        selectConversation(data[0].id);
+      if (data.length > 0 && !activeConversationIdRef.current) {
+        void selectConversation(data[0].id);
       }
     }
   };
 
   // Load the latest page of messages (offline-first from IndexedDB cache, then network)
   const loadMessages = async (conversationId: string) => {
+    if (!user) return;
     // 1) Instant render from compressed local cache
     try {
       const cached = await getCachedPage(conversationId, undefined, PAGE_SIZE);
+      if (currentUserIdRef.current !== user.id) return;
       if (cached.length) {
-        setMessages(cached.map(cachedToMessage));
-        setHasMoreMessages(cached.length === PAGE_SIZE);
+        updateConversationMessages(conversationId, () => cached.map(cachedToMessage));
+        if (activeConversationIdRef.current === conversationId) {
+          setHasMoreMessages(cached.length === PAGE_SIZE);
+        }
       }
     } catch (e) {
       console.warn('message cache read failed', e);
@@ -175,18 +239,30 @@ export const useChatbot = () => {
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE);
 
-    if (!error && data) {
+    if (currentUserIdRef.current !== user.id) return;
+    if (error) {
+      console.error('Failed to load messages:', error);
+      if (activeConversationIdRef.current === conversationId) {
+        toast.error('Sohbet mesajları yenilenemedi.');
+      }
+      return;
+    }
+    if (data) {
       const page = [...data].reverse();
-      setMessages(page.map(m => ({
+      const loadedMessages = page.map(m => ({
         id: m.id,
         role: m.role === 'user' ? 'user' as const : 'bot' as const,
         content: m.content,
         timestamp: new Date(m.created_at),
-      })));
-      setHasMoreMessages(page.length === PAGE_SIZE);
+      }));
+      updateConversationMessages(conversationId, () => loadedMessages);
+      if (activeConversationIdRef.current === conversationId) {
+        setHasMoreMessages(page.length === PAGE_SIZE);
+      }
       cacheMessages(page.map(m => ({
         id: m.id,
         conversation_id: conversationId,
@@ -200,7 +276,7 @@ export const useChatbot = () => {
   /** Infinite scroll-up: load the previous 20 messages (cache first, then server). */
   const loadOlderMessages = useCallback(async () => {
     const conversationId = currentConversationId;
-    if (!conversationId || isLoadingOlder || !hasMoreMessages) return;
+    if (!conversationId || !user || isLoadingOlder || !hasMoreMessages) return;
     const oldest = messages[0];
     if (!oldest) return;
     const before = oldest.timestamp.toISOString();
@@ -208,15 +284,25 @@ export const useChatbot = () => {
     setIsLoadingOlder(true);
     try {
       let page = await getCachedPage(conversationId, before, PAGE_SIZE);
+      if (currentUserIdRef.current !== user.id) return;
 
       if (page.length < PAGE_SIZE) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conversationId)
+          .eq('user_id', user.id)
           .lt('created_at', before)
           .order('created_at', { ascending: false })
           .limit(PAGE_SIZE);
+        if (currentUserIdRef.current !== user.id) return;
+        if (error) {
+          console.error('Failed to load older messages:', error);
+          if (activeConversationIdRef.current === conversationId) {
+            toast.error('Önceki mesajlar yüklenemedi.');
+          }
+          return;
+        }
         if (data) {
           page = [...data].reverse().map(m => ({
             id: m.id,
@@ -230,19 +316,23 @@ export const useChatbot = () => {
       }
 
       if (page.length === 0) {
-        setHasMoreMessages(false);
+        if (activeConversationIdRef.current === conversationId) {
+          setHasMoreMessages(false);
+        }
         return;
       }
-      setMessages(prev => {
+      updateConversationMessages(conversationId, prev => {
         const existing = new Set(prev.map(m => m.id));
         const older = page.filter(m => !existing.has(m.id)).map(cachedToMessage);
         return [...older, ...prev];
       });
-      setHasMoreMessages(page.length === PAGE_SIZE);
+      if (activeConversationIdRef.current === conversationId) {
+        setHasMoreMessages(page.length === PAGE_SIZE);
+      }
     } finally {
       setIsLoadingOlder(false);
     }
-  }, [currentConversationId, isLoadingOlder, hasMoreMessages, messages]);
+  }, [currentConversationId, isLoadingOlder, hasMoreMessages, messages, user, updateConversationMessages]);
 
   // Keep the compressed local cache in sync with rendered messages (debounced)
   useEffect(() => {
@@ -262,21 +352,32 @@ export const useChatbot = () => {
   }, [messages, currentConversationId]);
 
   const selectConversation = async (conversationId: string) => {
+    activeConversationIdRef.current = conversationId;
+    const conversationMessages = messagesByConversationRef.current.get(conversationId) ?? [];
+    messagesRef.current = conversationMessages;
+    setMessages(conversationMessages);
     setCurrentConversationId(conversationId);
     setHasMoreMessages(true);
     await loadMessages(conversationId);
   };
 
 
-  const createNewConversation = async (): Promise<string | null> => {
+  const createNewConversation = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
-    
+    let authenticatedUserId: string;
+    try {
+      authenticatedUserId = await requireAuthenticatedUserId(user.id);
+    } catch (error) {
+      console.error('Could not verify session before creating conversation:', error);
+      toast.error('Sohbet başlatılamadı: oturum doğrulanamadı.');
+      return null;
+    }
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     
     const { data, error } = await supabase
       .from('conversations')
       .insert({
-        user_id: user.id,
+        user_id: authenticatedUserId,
         title: 'Yeni Sohbet',
         personality,
       })
@@ -285,39 +386,72 @@ export const useChatbot = () => {
     
     if (!error && data) {
       setConversations(prev => [data, ...prev]);
+      activeConversationIdRef.current = data.id;
+      messagesByConversationRef.current.set(data.id, []);
+      messagesRef.current = [];
       setCurrentConversationId(data.id);
       setMessages([]);
       return data.id;
     }
+    if (error) {
+      console.error('Failed to create conversation:', error);
+      toast.error('Yeni sohbet oluşturulamadı. Lütfen tekrar deneyin.');
+    }
     return null;
-  };
+  }, [user]);
 
-  const updateConversationTitle = async (conversationId: string, firstMessage: string) => {
+  const updateConversationTitle = useCallback(async (conversationId: string, firstMessage: string) => {
     const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
-    
-    await supabase
+    if (!user) return;
+    const { error } = await supabase
       .from('conversations')
       .update({ title })
-      .eq('id', conversationId);
-    
+      .eq('id', conversationId)
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to update conversation title:', error);
+      toast.error('Sohbet adı kaydedilemedi.');
+      return;
+    }
     setConversations(prev => 
       prev.map(c => c.id === conversationId ? { ...c, title } : c)
     );
-  };
+  }, [user]);
 
-  const saveMessage = async (conversationId: string, role: 'user' | 'assistant', content: string) => {
-    if (role === 'assistant') recordMessage(content, 'tre');
-    await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role,
-        content,
-      });
-  };
+  const saveMessage = useCallback(async (
+    conversationId: string,
+    role: 'user' | 'assistant',
+    content: string,
+  ): Promise<{ id: string; created_at: string } | null> => {
+    if (!user) return null;
+    try {
+      const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          user_id: authenticatedUserId,
+          conversation_id: conversationId,
+          role,
+          content,
+        })
+        .select('id, created_at')
+        .single();
+      if (error) throw error;
+      if (role === 'assistant') recordMessage(content, 'tre');
+      return data;
+    } catch (error) {
+      console.error(`Failed to save ${role} message:`, error);
+      toast.error('Mesaj veritabanına kaydedilemedi. Lütfen tekrar deneyin.');
+      return null;
+    }
+  }, [user, recordMessage]);
 
-  const updateLastBotMessage = useCallback((content: string) => {
-    setMessages(prev => {
+  const updateLastBotMessage = useCallback((
+    content: string,
+    conversationId = responseConversationIdRef.current ?? activeConversationIdRef.current,
+  ) => {
+    if (!conversationId) return;
+    updateConversationMessages(conversationId, prev => {
       const last = prev[prev.length - 1];
       if (last?.role === 'bot') {
         return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m));
@@ -329,7 +463,7 @@ export const useChatbot = () => {
         timestamp: new Date(),
       }];
     });
-  }, []);
+  }, [updateConversationMessages]);
 
   const streamChat = useCallback(async (conversationId: string, userMessage: string): Promise<string> => {
     // Get all messages for context
@@ -337,6 +471,7 @@ export const useChatbot = () => {
       .from('messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
+      .eq('user_id', user?.id ?? '')
       .order('created_at', { ascending: true });
     
     const MAX_HISTORY = 30;
@@ -452,7 +587,7 @@ export const useChatbot = () => {
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) {
             assistantContent += content;
-            updateLastBotMessage(assistantContent);
+            updateLastBotMessage(assistantContent, conversationId);
           }
         } catch {
           textBuffer = line + "\n" + textBuffer;
@@ -475,14 +610,14 @@ export const useChatbot = () => {
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) {
             assistantContent += content;
-            updateLastBotMessage(assistantContent);
+            updateLastBotMessage(assistantContent, conversationId);
           }
         } catch { /* ignore */ }
       }
     }
     
     return assistantContent;
-  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext, customPersonality]);
+  }, [updateLastBotMessage, connectedAccounts, thinkingMode, getMemoryContext, getMoodContext, customPersonality, user?.id]);
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
@@ -855,6 +990,8 @@ export const useChatbot = () => {
       conversationId = await createNewConversation();
       if (!conversationId) return;
     }
+    const activeConversationId = conversationId;
+    responseConversationIdRef.current = activeConversationId;
 
     // Add user message to UI
     const userMessageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -864,25 +1001,23 @@ export const useChatbot = () => {
       content: trimmedInput,
       timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMessage]);
+    updateConversationMessages(activeConversationId, prev => [...prev, userMessage]);
     recordMessage(trimmedInput, 'user', currentMood?.mood);
     
     // Save user message to DB and get the actual ID
-    const { data: savedMessage, error: messageSaveError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role: 'user',
-        content: trimmedInput,
-      })
-      .select('id, created_at')
-      .single();
-    if (messageSaveError) console.error('Failed to save user message:', messageSaveError);
+    const savedMessage = await saveMessage(activeConversationId, 'user', trimmedInput);
+    if (savedMessage) {
+      updateConversationMessages(activeConversationId, previous => previous.map(message => (
+        message.id === userMessageId
+          ? { ...message, id: savedMessage.id, timestamp: new Date(savedMessage.created_at) }
+          : message
+      )));
+    }
     
     const actualMessageId = savedMessage?.id;
     // Update conversation title if first message
     const currentConv = conversations.find(c => c.id === conversationId);
-    if (currentConv?.title === 'Yeni Sohbet') {
+    if (!currentConv || currentConv.title === 'Yeni Sohbet') {
       await updateConversationTitle(conversationId, trimmedInput);
     }
 
@@ -893,6 +1028,7 @@ export const useChatbot = () => {
       .from('messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -912,7 +1048,7 @@ export const useChatbot = () => {
     try {
       if (trimmedInput.toLocaleLowerCase('tr-TR') === '#tre') {
         const responseContent = '🎉 Bravo! Gizli bir Easter Egg buldun. Sen gerçek bir Tre uzmanısın!';
-        setMessages((previous) => [
+        updateConversationMessages(activeConversationId, previous => [
           ...previous,
           {
             id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
@@ -921,7 +1057,7 @@ export const useChatbot = () => {
             timestamp: new Date(),
           },
         ]);
-        await saveMessage(conversationId, 'assistant', responseContent);
+        await saveMessage(activeConversationId, 'assistant', responseContent);
         void checkEasterEgg();
       } else if (isReminderRequest(trimmedInput)) {
         updateLastBotMessage('⏰ Hatırlatıcın kuruluyor...');
@@ -1151,7 +1287,7 @@ export const useChatbot = () => {
           } else {
             // Show a loading message with unique ID for safe removal
             const loadingId = `loading-${Date.now()}`;
-            setMessages(prev => [...prev, {
+            updateConversationMessages(activeConversationId, prev => [...prev, {
               id: loadingId,
               role: 'bot' as const,
               content: '🔄 Hesabınıza erişiliyor, bilgiler getiriliyor...',
@@ -1183,26 +1319,26 @@ export const useChatbot = () => {
               const contextMessage = `[SİSTEM: Kullanıcının Google hesabından çekilen GERÇEK veriler aşağıdadır. SADECE bu verileri kullan, KENDİN VERİ UYDURMA. Ham veriyi olduğu gibi gösterme, doğal dilde özetle.]\n\n${apiData}`;
               
               // Remove the loading message by ID
-              setMessages(prev => prev.filter(m => m.id !== loadingId));
+              updateConversationMessages(activeConversationId, prev => prev.filter(m => m.id !== loadingId));
               
-              const assistantContent = await streamChat(conversationId!, `${trimmedInput}\n\n${contextMessage}`);
-              await saveMessage(conversationId!, 'assistant', assistantContent);
+              const assistantContent = await streamChat(activeConversationId, `${trimmedInput}\n\n${contextMessage}`);
+              await saveMessage(activeConversationId, 'assistant', assistantContent);
             } catch (apiError) {
               console.error('Google API call failed:', apiError);
               // Remove loading message
-              setMessages(prev => prev.filter(m => m.id !== loadingId));
+              updateConversationMessages(activeConversationId, prev => prev.filter(m => m.id !== loadingId));
               // Show specific error instead of falling back to hallucination
               const errorMsg = apiError instanceof Error ? apiError.message : 'Bilinmeyen hata';
               const errorContent = `⚠️ Google hesabınızdan veri çekilirken hata oluştu: ${errorMsg}\n\nGoogle oturumunuz süresi dolmuş olabilir. Çıkış yapıp Google ile tekrar giriş yapmayı deneyin.`;
               updateLastBotMessage(errorContent);
-              await saveMessage(conversationId!, 'assistant', errorContent);
+              await saveMessage(activeConversationId, 'assistant', errorContent);
             }
           }
         } else {
           // Normal chat flow
-          const assistantContent = await streamChat(conversationId!, trimmedInput);
+          const assistantContent = await streamChat(activeConversationId, trimmedInput);
           // Save assistant message to DB
-          await saveMessage(conversationId!, 'assistant', assistantContent);
+          await saveMessage(activeConversationId, 'assistant', assistantContent);
         }
         }
       }
@@ -1211,7 +1347,8 @@ export const useChatbot = () => {
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversationId);
+        .eq('id', activeConversationId)
+        .eq('user_id', user.id);
         
     } catch (error) {
       console.error('Chat error:', error);
@@ -1221,76 +1358,109 @@ export const useChatbot = () => {
           : '❌ Bir hata oluştu. Lütfen tekrar deneyin.'
       );
     } finally {
+      if (responseConversationIdRef.current === activeConversationId) {
+        responseConversationIdRef.current = null;
+      }
       setIsTyping(false);
     }
-  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, thinkingMode, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, checkEasterEgg, isLocalModelLoading, isLocalModelReady, generateLocalResponse]);
+  }, [user, currentConversationId, conversations, streamChat, updateLastBotMessage, updateConversationMessages, saveMessage, createNewConversation, updateConversationTitle, generateImage, generateGif, generatePptx, generateAudio, generateMp4Slideshow, buildApk, generatePwaSite, generateIso, analyzeAndStore, connectedAccounts, detectGoogleAction, callGoogleApi, fetchEmailDetails, recordMessage, currentMood, checkEasterEgg, isLocalModelLoading, isLocalModelReady, generateLocalResponse]);
 
   // Drops messages from memory only (used while a chat is locked)
   const hideMessages = useCallback(() => {
+    if (currentConversationId) {
+      messagesByConversationRef.current.delete(currentConversationId);
+    }
+    messagesRef.current = [];
     setMessages([]);
     setHasMoreMessages(false);
-  }, []);
+  }, [currentConversationId]);
 
   const clearMessages = useCallback(async () => {
     if (currentConversationId) {
-      await supabase
+      if (!user) return;
+      const { error } = await supabase
         .from('messages')
         .delete()
-        .eq('conversation_id', currentConversationId);
+        .eq('conversation_id', currentConversationId)
+        .eq('user_id', user.id);
+      if (error) {
+        console.error('Failed to clear conversation messages:', error);
+        toast.error('Sohbet mesajları silinemedi.');
+        return;
+      }
       await clearConversationCache(currentConversationId).catch(() => {});
+      messagesByConversationRef.current.set(currentConversationId, []);
     }
+    messagesRef.current = [];
     setMessages([]);
     setHasMoreMessages(false);
     setPendingQuestion(null);
-  }, [currentConversationId]);
+  }, [currentConversationId, user]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
-    // First delete all messages in the conversation (due to foreign key constraint)
-    await supabase
-      .from('messages')
-      .delete()
-      .eq('conversation_id', conversationId);
-    
-    // Then delete the conversation
-    await supabase
+    if (!user) return;
+    const { error } = await supabase
       .from('conversations')
       .delete()
-      .eq('id', conversationId);
+      .eq('id', conversationId)
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to delete conversation:', error);
+      toast.error('Sohbet silinemedi. Lütfen tekrar deneyin.');
+      return;
+    }
 
     await clearConversationCache(conversationId).catch(() => {});
+    messagesByConversationRef.current.delete(conversationId);
 
     setConversations(prev => prev.filter(c => c.id !== conversationId));
     
     if (currentConversationId === conversationId) {
+      activeConversationIdRef.current = null;
+      messagesRef.current = [];
       setCurrentConversationId(null);
       setMessages([]);
     }
-  }, [currentConversationId]);
+  }, [currentConversationId, user]);
 
   const renameConversation = useCallback(async (conversationId: string, newTitle: string) => {
+    if (!user) return;
     const { error } = await supabase
       .from('conversations')
       .update({ title: newTitle })
-      .eq('id', conversationId);
+      .eq('id', conversationId)
+      .eq('user_id', user.id);
     
     if (!error) {
       setConversations(prev => 
         prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c)
       );
+    } else {
+      console.error('Failed to rename conversation:', error);
+      toast.error('Sohbet adı güncellenemedi.');
     }
-  }, []);
+  }, [user]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
+    if (!user) return;
     // Delete from database
-    await supabase
+    const { error } = await supabase
       .from('messages')
       .delete()
-      .eq('id', messageId);
+      .eq('id', messageId)
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Mesaj silinemedi.');
+      return;
+    }
     
     // Remove from local state
     await deleteCachedMessage(messageId).catch(() => {});
-    setMessages(prev => prev.filter(m => m.id !== messageId));
-  }, []);
+    if (currentConversationId) {
+      updateConversationMessages(currentConversationId, prev => prev.filter(m => m.id !== messageId));
+    }
+  }, [user, currentConversationId, updateConversationMessages]);
 
   const clearKnowledge = useCallback(() => {
     setKnowledgeBase([]);
@@ -1312,15 +1482,6 @@ export const useChatbot = () => {
     return newItem;
   }, []);
 
-  const REACTION_REPLIES: Record<string, string> = {
-    '👍': 'Ne güzel, mutlu oldum 😊',
-    '😢': 'Anlıyorum, yanındayım. Konuşmak ister misin?',
-    '😡': 'Sakinleşmene yardım edebilirim. Birlikte derin nefes alalım.',
-    '❤️': 'Teşekkür ederim. Ben de seni önemsiyorum.',
-    '😂': 'Güldüğüne sevindim 😄',
-    '😮': 'Bu seni şaşırttı değil mi? Anlatmak ister misin?',
-  };
-
   const reactToMessage = useCallback(async (_messageId: string, emoji: string) => {
     const reply = REACTION_REPLIES[emoji];
     if (!reply) return;
@@ -1341,21 +1502,15 @@ export const useChatbot = () => {
       timestamp: new Date(Date.now() + 1),
     };
 
-    setMessages(prev => [...prev, userMsg, botMsg]);
+    if (!convId) return;
+    updateConversationMessages(convId, prev => [...prev, userMsg, botMsg]);
     recordMessage(userReactionContent, 'user', currentMood?.mood);
-    recordMessage(reply, 'tre');
 
     if (convId) {
-      try {
-        await supabase.from('messages').insert([
-          { conversation_id: convId, role: 'user', content: userReactionContent },
-          { conversation_id: convId, role: 'assistant', content: reply },
-        ]);
-      } catch (e) {
-        console.error('reaction save failed', e);
-      }
+      await saveMessage(convId, 'user', userReactionContent);
+      await saveMessage(convId, 'assistant', reply);
     }
-  }, [currentConversationId, currentMood, recordMessage]);
+  }, [currentConversationId, currentMood, recordMessage, updateConversationMessages, saveMessage]);
 
   return {
     messages,

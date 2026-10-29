@@ -84,6 +84,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          user_id: string
         }
         Insert: {
           content: string
@@ -91,6 +92,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          user_id: string
         }
         Update: {
           content?: string
@@ -98,6 +100,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -106,6 +109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_user_id_fkey"
+            columns: ["conversation_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }

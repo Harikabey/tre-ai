@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
 export interface UserMemory {
   id: string;
@@ -31,6 +32,15 @@ export interface MoodRecord {
 
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
+const requireAuthenticatedUserId = async (expectedUserId: string): Promise<string> => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!user || user.id !== expectedUserId) {
+    throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+  }
+  return user.id;
+};
+
 export const useUserMemory = () => {
   const { user } = useAuth();
   const [memories, setMemories] = useState<UserMemory[]>([]);
@@ -43,6 +53,11 @@ export const useUserMemory = () => {
       loadMemories();
       loadInterests();
       loadRecentMoods();
+    } else {
+      setMemories([]);
+      setInterests([]);
+      setRecentMoods([]);
+      setCurrentMood(null);
     }
   }, [user]);
 
@@ -52,14 +67,17 @@ export const useUserMemory = () => {
     const { data, error } = await supabase
       .from('user_memories')
       .select('id, memory_type, category, content, importance, is_active, created_at')
+      .eq('user_id', user.id)
       .eq('is_active', true)
       .order('importance', { ascending: false })
       .limit(50);
     
     if (error) {
       console.error('Failed to load user memories:', error);
+      toast.error('Hafıza kayıtları yüklenemedi.');
     } else if (data) {
-      setMemories(data as UserMemory[]);
+      const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
+      if (authenticatedUser?.id === user.id) setMemories(data as UserMemory[]);
     }
   };
 
@@ -69,11 +87,16 @@ export const useUserMemory = () => {
     const { data, error } = await supabase
       .from('user_interests')
       .select('*')
+      .eq('user_id', user.id)
       .order('strength', { ascending: false })
       .limit(20);
     
     if (!error && data) {
-      setInterests(data as UserInterest[]);
+      const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
+      if (authenticatedUser?.id === user.id) setInterests(data as UserInterest[]);
+    } else if (error) {
+      console.error('Failed to load user interests:', error);
+      toast.error('İlgi alanları yüklenemedi.');
     }
   };
 
@@ -83,16 +106,21 @@ export const useUserMemory = () => {
     const { data, error } = await supabase
       .from('mood_history')
       .select('id, mood, mood_score, emotions, created_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);
     
     if (error) {
       console.error('Failed to load recent moods:', error);
+      toast.error('Duygu geçmişi yüklenemedi.');
     } else if (data) {
-      setRecentMoods(data.map(m => ({
-        ...m,
-        emotions: Array.isArray(m.emotions) ? m.emotions : []
-      })) as MoodRecord[]);
+      const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
+      if (authenticatedUser?.id === user.id) {
+        setRecentMoods(data.map(m => ({
+          ...m,
+          emotions: Array.isArray(m.emotions) ? m.emotions : []
+        })) as MoodRecord[]);
+      }
     }
   };
 
@@ -105,8 +133,13 @@ export const useUserMemory = () => {
     if (!user) return null;
 
     try {
+      const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
+        throw authError ?? new Error('Oturum doğrulanamadı.');
+      }
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const token = session?.access_token;
+      if (!token) throw new Error('Oturum tokenı bulunamadı.');
 
       const response = await fetch(ANALYZE_URL, {
         method: 'POST',
@@ -118,7 +151,8 @@ export const useUserMemory = () => {
       });
 
       if (!response.ok) {
-        console.error('Analysis failed');
+        console.error('Analysis failed:', response.status, response.statusText);
+        toast.error('Sohbetten hafıza bilgisi çıkarılamadı.');
         return null;
       }
 
@@ -138,7 +172,10 @@ export const useUserMemory = () => {
           mood_score: result.mood.mood_score,
           emotions: result.mood.emotions || []
         });
-        if (error) console.error('Failed to save mood history:', error);
+        if (error) {
+          console.error('Failed to save mood history:', error);
+          toast.error('Duygu analizi kaydedilemedi.');
+        }
       }
 
       if (result.memories?.memories?.length > 0) {
@@ -153,6 +190,7 @@ export const useUserMemory = () => {
 
           if (lookupError) {
             console.error('Failed to check existing user memory:', lookupError);
+            toast.error('Hafıza kayıtları kontrol edilemedi.');
             continue;
           }
 
@@ -165,7 +203,10 @@ export const useUserMemory = () => {
               importance: memory.importance,
               source_conversation_id: conversationId
             });
-            if (error) console.error('Failed to save user memory:', error);
+            if (error) {
+              console.error('Failed to save user memory:', error);
+              toast.error('Sohbetten öğrenilen bilgi kaydedilemedi.');
+            }
           }
         }
         loadMemories();
@@ -295,14 +336,39 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
   }, [currentMood, recentMoods, interests]);
 
   const deleteMemory = useCallback(async (memoryId: string) => {
-    await supabase.from('user_memories').delete().eq('id', memoryId);
+    if (!user) return;
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
+      toast.error('Hafıza silinemedi: oturum doğrulanamadı.');
+      return;
+    }
+    const { error } = await supabase
+      .from('user_memories')
+      .delete()
+      .eq('id', memoryId)
+      .eq('user_id', authenticatedUser.id);
+    if (error) {
+      console.error('Failed to delete user memory:', error);
+      toast.error('Hafıza silinemedi. Lütfen tekrar deneyin.');
+      return;
+    }
     setMemories(prev => prev.filter(m => m.id !== memoryId));
-  }, []);
+  }, [user]);
 
   const deleteInterest = useCallback(async (interestId: string) => {
-    await supabase.from('user_interests').delete().eq('id', interestId);
+    if (!user) return;
+    const { error } = await supabase
+      .from('user_interests')
+      .delete()
+      .eq('id', interestId)
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('Failed to delete user interest:', error);
+      toast.error('İlgi alanı silinemedi.');
+      return;
+    }
     setInterests(prev => prev.filter(i => i.id !== interestId));
-  }, []);
+  }, [user]);
 
   const addMemory = useCallback(async (
     content: string,
@@ -311,10 +377,15 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     importance: number = 5
   ) => {
     if (!user || !content.trim()) return;
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
+      toast.error('Hafıza eklenemedi: oturum doğrulanamadı.');
+      return;
+    }
     const { data, error } = await supabase
       .from('user_memories')
       .insert({
-        user_id: user.id,
+        user_id: authenticatedUser.id,
         content: content.trim(),
         memory_type,
         category: category.trim() || 'genel',
@@ -324,6 +395,9 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
       .single();
     if (!error && data) {
       setMemories(prev => [data as UserMemory, ...prev]);
+    } else if (error) {
+      console.error('Failed to add user memory:', error);
+      toast.error('Hafıza eklenemedi. Lütfen tekrar deneyin.');
     }
   }, [user]);
 
@@ -331,30 +405,45 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     memoryId: string,
     updates: Partial<Pick<UserMemory, 'content' | 'memory_type' | 'category' | 'importance'>>
   ) => {
+    if (!user) return;
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
+      toast.error('Hafıza güncellenemedi: oturum doğrulanamadı.');
+      return;
+    }
     const { data, error } = await supabase
       .from('user_memories')
       .update(updates)
       .eq('id', memoryId)
+      .eq('user_id', authenticatedUser.id)
       .select()
       .single();
     if (!error && data) {
       setMemories(prev => prev.map(m => (m.id === memoryId ? { ...m, ...(data as UserMemory) } : m)));
+    } else if (error) {
+      console.error('Failed to update user memory:', error);
+      toast.error('Hafıza güncellenemedi. Lütfen tekrar deneyin.');
     }
-  }, []);
+  }, [user]);
 
   const addInterest = useCallback(async (interest: string, category: string = 'genel') => {
     if (!user || !interest.trim()) return;
-    const { data, error } = await supabase
-      .from('user_interests')
-      .insert({
-        user_id: user.id,
-        interest: interest.trim(),
-        category: category.trim() || 'genel',
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      setInterests(prev => [data as UserInterest, ...prev]);
+    try {
+      const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const { data, error } = await supabase
+        .from('user_interests')
+        .insert({
+          user_id: authenticatedUserId,
+          interest: interest.trim(),
+          category: category.trim() || 'genel',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) setInterests(prev => [data as UserInterest, ...prev]);
+    } catch (error) {
+      console.error('Failed to add user interest:', error);
+      toast.error('İlgi alanı eklenemedi.');
     }
   }, [user]);
 
@@ -362,16 +451,21 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     interestId: string,
     updates: Partial<Pick<UserInterest, 'interest' | 'category' | 'strength'>>
   ) => {
+    if (!user) return;
     const { data, error } = await supabase
       .from('user_interests')
       .update(updates)
       .eq('id', interestId)
+      .eq('user_id', user.id)
       .select()
       .single();
     if (!error && data) {
       setInterests(prev => prev.map(i => (i.id === interestId ? { ...i, ...(data as UserInterest) } : i)));
+    } else if (error) {
+      console.error('Failed to update user interest:', error);
+      toast.error('İlgi alanı güncellenemedi.');
     }
-  }, []);
+  }, [user]);
 
   return {
     memories,

@@ -113,6 +113,7 @@ serve(async (req) => {
     // Insert user message
     await admin.from("messages").insert({
       conversation_id: conversationId,
+      user_id: user.id,
       role: "user",
       content: userMessage,
     });
@@ -130,6 +131,7 @@ serve(async (req) => {
     // Insert bot message
     await admin.from("messages").insert({
       conversation_id: conversationId,
+      user_id: user.id,
       role: "assistant",
       content: reply,
     });
