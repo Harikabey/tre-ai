@@ -123,6 +123,7 @@ export const useChatbot = () => {
   const activeConversationIdRef = useRef<string | null>(null);
   const responseConversationIdRef = useRef<string | null>(null);
   const currentUserIdRef = useRef<string | null>(user?.id ?? null);
+  const conversationUserIdRef = useRef<string | null>(null);
   const conversationRequestIdRef = useRef(0);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -167,6 +168,10 @@ export const useChatbot = () => {
 
   // Load conversations and connected accounts when user changes
   useEffect(() => {
+    const userId = user?.id ?? null;
+    if (conversationUserIdRef.current === userId) return;
+    conversationUserIdRef.current = userId;
+    conversationRequestIdRef.current += 1;
     activeConversationIdRef.current = null;
     responseConversationIdRef.current = null;
     messagesByConversationRef.current.clear();
