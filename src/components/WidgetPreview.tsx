@@ -4,6 +4,7 @@ import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { readModelSelection } from "@/hooks/useModelSelection";
+import { requestChatCompletion } from "@/lib/chatRequest";
 import { useLocalModel } from "@/hooks/useLocalModel";
 import { detectWebGPU } from "@/hooks/useWebGPU";
 
@@ -75,24 +76,16 @@ const WidgetPreview = () => {
         return;
       }
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            messages: [{ role: "user", content: text }],
-            provider: modelSelection.provider,
-            ...(modelSelection.provider === 'byok' && {
-              apiProvider: modelSelection.apiProvider,
-              apiKey: modelSelection.apiKey,
-            }),
-          }),
+      const res = await requestChatCompletion({
+        modelSelection,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
-      );
+        body: {
+          messages: [{ role: "user", content: text }],
+        },
+      });
       if (!res.ok) {
         const errorData: unknown = await res.json().catch(() => null);
         const isInvalidApiKey =

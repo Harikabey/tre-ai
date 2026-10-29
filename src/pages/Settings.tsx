@@ -1233,7 +1233,7 @@ const Settings = () => {
                 </div>
               ) : (
                 <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
-                  {t("Tarayıcı menüsünden")}<b>{t('settings.addToHomeScreen')}</b> / <b>{t("\"Uygulamayı yükle\"")}</b> {t("seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde (tre-ai.lovable.app) görünür.")}</div>
+                  {t("Tarayıcı menüsünden")}<b>{t('settings.addToHomeScreen')}</b> / <b>{t("\"Uygulamayı yükle\"")}</b> {t("seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde görünür.")}</div>
               )}
             </CardContent>
           </Card>

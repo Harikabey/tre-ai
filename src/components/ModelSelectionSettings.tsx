@@ -295,7 +295,7 @@ export function ModelSelectionSettings() {
               <AlertTitle>Güvenlik notu</AlertTitle>
               <AlertDescription>
                 API anahtarın bu cihazın localStorage alanında saklanır. Sohbet sırasında Tre sunucusu
-                üzerinden seçtiğin sağlayıcıya iletilir; anahtarını yalnızca güvendiğin cihazlarda kullan.
+                kullanılmadan doğrudan seçtiğin sağlayıcıya iletilir; anahtarını yalnızca güvendiğin cihazlarda kullan.
               </AlertDescription>
             </Alert>
 

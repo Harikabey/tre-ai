@@ -11,6 +11,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { readModelSelection } from '@/hooks/useModelSelection';
+import { requestChatCompletion } from '@/lib/chatRequest';
 import { useLocalModel } from '@/hooks/useLocalModel';
 import { detectWebGPU } from '@/hooks/useWebGPU';
 import { useNavigate } from 'react-router-dom';
@@ -123,35 +124,27 @@ const VoiceChat = () => {
         ]);
       } else {
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-voice-mode': 'true',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            messages: [
-              ...messages.slice(-6).map((message) => ({
-                role: message.role === 'user' ? 'user' : 'assistant',
-                content: message.content,
-              })),
-              { role: 'user', content: text.trim() },
-            ],
-            personality,
-            language,
-            thinkingMode: 'fast',
-            provider: modelSelection.provider,
-            ...(modelSelection.provider === 'byok' && {
-              apiProvider: modelSelection.apiProvider,
-              apiKey: modelSelection.apiKey,
-            }),
-          }),
-        }
-      );
+      const response = await requestChatCompletion({
+        modelSelection,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-voice-mode': 'true',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${token}`,
+        },
+        body: {
+          messages: [
+            ...messages.slice(-6).map((message) => ({
+              role: message.role === 'user' ? 'user' : 'assistant',
+              content: message.content,
+            })),
+            { role: 'user', content: text.trim() },
+          ],
+          personality,
+          language,
+          thinkingMode: 'fast',
+        },
+      });
 
       if (!response.ok) {
         const errorData: unknown = await response.json().catch(() => null);

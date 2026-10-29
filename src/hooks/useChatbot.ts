@@ -9,6 +9,7 @@ import { useStats } from './useStats';
 import { useCustomPersonality } from './useCustomPersonality';
 import { useNotifications } from './useNotifications';
 import { readModelSelection } from './useModelSelection';
+import { requestChatCompletion } from '@/lib/chatRequest';
 import { useLocalModel } from './useLocalModel';
 import { detectWebGPU } from './useWebGPU';
 import { addReminder, formatReminderTime } from '@/lib/reminders';
@@ -33,7 +34,6 @@ let isVoiceModeActive = false;
 export const setVoiceMode = (active: boolean) => { isVoiceModeActive = active; };
 export const getVoiceMode = () => isVoiceModeActive;
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const PERSONALITY_KEY = 'ai_chatbot_personality';
 const THINKING_MODE_KEY = 'ai_chatbot_thinking_mode';
 const LANGUAGE_KEY = 'ai_chatbot_language';
@@ -523,17 +523,17 @@ export const useChatbot = () => {
     if (!anonKey) throw new Error('Supabase anon key is not configured');
     const modelSelection = readModelSelection();
     
-   const resp = await fetch(CHAT_URL, {
-      method: "POST",
+    const resp = await requestChatCompletion({
+      modelSelection,
       headers: {
         "Content-Type": "application/json",
         apikey: anonKey,
         Authorization: `Bearer ${token}`,
         "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
-      body: JSON.stringify({ 
-        messages: newHistory, 
-        personality, 
+      body: {
+        messages: newHistory,
+        personality,
         customPersonality,
         thinkingMode,
         memoryContext,
@@ -542,12 +542,7 @@ export const useChatbot = () => {
         connectedAccounts,
         userPreferences,
         showThinking: localStorage.getItem('ai_chatbot_show_thinking') === 'true',
-        provider: modelSelection.provider,
-        ...(modelSelection.provider === 'byok' && {
-          apiProvider: modelSelection.apiProvider,
-          apiKey: modelSelection.apiKey,
-        }),
-      }),
+      },
     });
 
     if (!resp.ok) {
