@@ -24,6 +24,7 @@ try {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
+      lock: async (_name, _acquireTimeout, fn) => await fn(),
     },
   });
 } catch (error) {

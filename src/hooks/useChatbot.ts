@@ -123,6 +123,7 @@ export const useChatbot = () => {
   const activeConversationIdRef = useRef<string | null>(null);
   const responseConversationIdRef = useRef<string | null>(null);
   const currentUserIdRef = useRef<string | null>(user?.id ?? null);
+  const conversationRequestIdRef = useRef(0);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -218,11 +219,12 @@ export const useChatbot = () => {
   };
 
   // Load the latest page of messages (offline-first from IndexedDB cache, then network)
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = async (conversationId: string, requestId: number) => {
     if (!user) return;
     // 1) Instant render from compressed local cache
     try {
       const cached = await getCachedPage(conversationId, undefined, PAGE_SIZE);
+      if (conversationRequestIdRef.current !== requestId) return;
       if (currentUserIdRef.current !== user.id) return;
       if (cached.length) {
         updateConversationMessages(conversationId, () => cached.map(cachedToMessage));
@@ -243,6 +245,7 @@ export const useChatbot = () => {
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE);
 
+    if (conversationRequestIdRef.current !== requestId) return;
     if (currentUserIdRef.current !== user.id) return;
     if (error) {
       console.error('Failed to load messages:', error);
@@ -352,13 +355,20 @@ export const useChatbot = () => {
   }, [messages, currentConversationId]);
 
   const selectConversation = async (conversationId: string) => {
+    const requestId = ++conversationRequestIdRef.current;
     activeConversationIdRef.current = conversationId;
-    const conversationMessages = messagesByConversationRef.current.get(conversationId) ?? [];
-    messagesRef.current = conversationMessages;
-    setMessages(conversationMessages);
+    messagesRef.current = [];
+    setMessages([]);
     setCurrentConversationId(conversationId);
     setHasMoreMessages(true);
-    await loadMessages(conversationId);
+    try {
+      await loadMessages(conversationId, requestId);
+      if (conversationRequestIdRef.current !== requestId) return;
+    } catch (error) {
+      if (conversationRequestIdRef.current !== requestId) return;
+      console.error('Failed to load conversation messages:', error);
+      toast.error('Sohbet mesajları yenilenemedi.');
+    }
   };
 
 
