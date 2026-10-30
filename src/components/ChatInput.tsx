@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useSeda } from '@/hooks/useSeda';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { VoicePulseAnimation } from '@/components/VoicePulseAnimation';
 import { useUserShortcuts } from '@/hooks/useUserShortcuts';
@@ -78,6 +79,13 @@ export const ChatInput = ({
     stopListening,
     resetTranscript 
   } = useSpeechRecognition();
+  const {
+    isListening: isSedaListening,
+    isStarting: isSedaStarting,
+    transcript: sedaTranscript,
+    startListening: startSedaListening,
+    stopListening: stopSedaListening,
+  } = useSeda();
 
   // Update input when transcript changes
   useEffect(() => {
@@ -85,6 +93,12 @@ export const ChatInput = ({
       setInput(transcript);
     }
   }, [transcript]);
+
+  useEffect(() => {
+    if (sedaTranscript) {
+      setInput(sedaTranscript);
+    }
+  }, [sedaTranscript]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
     if (!user) {
@@ -190,6 +204,9 @@ export const ChatInput = ({
     // Stop listening if active
     if (isListening) {
       stopListening();
+    }
+    if (isSedaListening) {
+      void stopSedaListening();
     }
 
     let fileUrl: string | undefined;
@@ -414,6 +431,9 @@ export const ChatInput = ({
   };
 
   const toggleListening = useCallback(() => {
+    if (isSedaListening) {
+      void stopSedaListening();
+    }
     if (isListening) {
       stopListening();
       setShowVoiceAnimation(false);
@@ -424,19 +444,41 @@ export const ChatInput = ({
       setShowVoiceAnimation(true);
       setVoiceMode(true);
     }
-  }, [isListening, startListening, stopListening, haptic]);
+  }, [isListening, isSedaListening, startListening, stopListening, stopSedaListening, haptic]);
+
+  const toggleSedaListening = useCallback(() => {
+    if (isSedaListening) {
+      void stopSedaListening();
+      return;
+    }
+    if (isListening) {
+      stopListening();
+      setShowVoiceAnimation(false);
+      setVoiceMode(false);
+    }
+    haptic.voiceActivate();
+    void startSedaListening();
+  }, [
+    haptic,
+    isListening,
+    isSedaListening,
+    startSedaListening,
+    stopListening,
+    stopSedaListening,
+  ]);
 
   // Long press handler for mic button
   const handleMicPointerDown = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       if (!isListening) {
+        if (isSedaListening) void stopSedaListening();
         haptic.voiceActivate();
         startListening();
         setShowVoiceAnimation(true);
         setVoiceMode(true);
       }
     }, 1500);
-  }, [isListening, startListening, haptic]);
+  }, [isListening, isSedaListening, startListening, stopSedaListening, haptic]);
 
   const handleMicPointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -575,6 +617,22 @@ export const ChatInput = ({
         </DropdownMenu>
 
         {/* Voice Input Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSedaListening}
+          disabled={isSedaStarting}
+          aria-label={isSedaListening ? 'Seda dinlemesini durdur' : 'Seda ile dikte et'}
+          title={isSedaListening ? 'Seda dinlemesini durdur' : 'Seda ile dikte et'}
+          className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 ${isSedaListening ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-primary'}`}
+        >
+          {isSedaListening ? (
+            <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
+          ) : (
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+          )}
+        </Button>
+
         {isSpeechSupported && (
           <Button
             variant="ghost"
