@@ -12,8 +12,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react-native": path.resolve(__dirname, "./src/lib/sherpa-rn-web-shim.ts"),
-      "expo-file-system/legacy": path.resolve(__dirname, "./src/lib/sherpa-expo-filesystem-web-shim.ts"),
     },
   },
 }));
