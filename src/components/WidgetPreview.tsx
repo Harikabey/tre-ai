@@ -21,7 +21,7 @@ interface SpeechRecognitionLike {
   interimResults: boolean;
   continuous: boolean;
   onstart: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: Event) => void) | null;
   onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   start: () => void;
@@ -139,7 +139,7 @@ const WidgetPreview = () => {
 
   const handleMic = () => {
     if (status !== "idle") return;
-    const speechWindow = window as SpeechRecognitionWindow;
+    const speechWindow = window as unknown as SpeechRecognitionWindow;
     const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) {
       setReply("Bu tarayıcı sesli komutu desteklemiyor.");

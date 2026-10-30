@@ -192,7 +192,6 @@ const Auth = () => {
         return;
       }
 
-      if (result.redirected) return; // Google sayfasına yönlendiriliyor
 
       // Oturum kuruldu, ana sayfaya geç
       navigateAfterAuth();
