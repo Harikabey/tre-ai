@@ -1,6 +1,6 @@
 // Free-only AI access layer.
 // Every AI call in this project must go through OpenRouter's free-tier models.
-// Paid fallbacks (Lovable AI Gateway / paid OpenRouter models) are intentionally disabled.
+// Paid fallback providers and paid OpenRouter models are intentionally disabled.
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 

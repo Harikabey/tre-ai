@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
 
@@ -10,9 +11,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-
 interface SlideSpec {
   title: string;
   bullets?: string[];
@@ -70,24 +68,15 @@ Renkler konuyla uyumlu olsun (finans=mavi/yeşil, sağlık=teal, teknoloji=koyu+
 Bullet sayısı slayt başına 3-6 arası, her bullet en fazla 12 kelime.
 İçerik Türkçe olsun (kullanıcı başka dil belirtmediyse).`;
 
-  const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-  const apiUrl = OPENROUTER_API_KEY
-    ? "https://openrouter.ai/api/v1/chat/completions"
-    : "https://ai.gateway.lovable.dev/v1/chat/completions";
-  const model = OPENROUTER_API_KEY ? "nvidia/nemotron-3.5-lightning:free" : "google/gemini-2.5-flash";
-
-  const res = await fetch(apiUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "system", content: sys }, { role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    }),
+  const requestBody = JSON.stringify({
+    model: "nvidia/nemotron-3.5-lightning:free",
+    messages: [{ role: "system", content: sys }, { role: "user", content: prompt }],
+    response_format: { type: "json_object" },
   });
+  const res = await callAiWithFallback(requestBody, { operation: "PPTX generation" });
 
-  if (!res.ok) {
-    console.error("AI deck spec error:", res.status, await res.text());
+  if (!res?.ok) {
+    if (res) console.error("AI deck spec error:", res.status, await res.text());
     return defaultDeck(prompt);
   }
   const data = await res.json();

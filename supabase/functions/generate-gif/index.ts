@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -42,15 +42,10 @@ serve(async (req) => {
     const numFrames = Math.min(Math.max(Number(frameCount) || 4, 2), 6);
 
     // --- API Setup ---
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
-
     console.log(`Generating ${numFrames} frames for GIF with prompt:`, prompt);
 
     const extractImageUrl = (data: any): string | null => {
-      // Check images array (Lovable gateway format)
+      // Check images array
       const images = data.choices?.[0]?.message?.images;
       if (images && images.length > 0) {
         const img = images[0];
@@ -102,58 +97,20 @@ serve(async (req) => {
         modalities: ["image", "text"],
       });
 
-      // Try Lovable gateway first (more reliable), then OpenRouter
-      const attempts = [];
-      if (OPENROUTER_API_KEY) {
-        attempts.push({
-          url: "https://openrouter.ai/api/v1/chat/completions",
-          key: OPENROUTER_API_KEY,
-          name: "OpenRouter",
-        });
-      }
-      if (LOVABLE_API_KEY) {
-        attempts.push({
-          url: "https://ai.gateway.lovable.dev/v1/chat/completions",
-          key: LOVABLE_API_KEY,
-          name: "Lovable",
-        });
-      }
+      const hasImage = async (response: Response): Promise<boolean> => {
+        const data = await response.json();
+        return Boolean(extractImageUrl(data));
+      };
+      const response = await callAiWithFallback(requestBody, {
+        operation: "GIF frame generation",
+        openRouterKind: "vision",
+        isUsable: hasImage,
+      });
+      if (!response?.ok) return null;
 
-      for (const attempt of attempts) {
-        try {
-          const response = await fetch(attempt.url, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${attempt.key}`,
-              "Content-Type": "application/json",
-            },
-            body: attempt.name === "OpenRouter"
-              ? withFreeModel(requestBody)
-              : requestBody,
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`${attempt.name} frame error: ${response.status} - ${errorText.slice(0, 200)}`);
-            if (response.status === 402 || errorText.includes("payment_required") || errorText.includes("Not enough credits")) {
-              console.error(`${attempt.name}: credits exhausted, trying next provider`);
-              continue;
-            }
-            continue;
-          }
-
-          const data = await response.json();
-          const imageUrl = extractImageUrl(data);
-          if (imageUrl) {
-            console.log(`Frame generated via ${attempt.name}`);
-            return imageUrl;
-          }
-          console.error(`${attempt.name}: no image found in response keys:`, Object.keys(data.choices?.[0]?.message || {}));
-        } catch (err) {
-          if (err instanceof Error && err.message.includes("kredi")) throw err;
-          console.error(`${attempt.name} fetch error:`, err);
-        }
-      }
+      const data = await response.json();
+      const imageUrl = extractImageUrl(data);
+      if (imageUrl) return imageUrl;
       return null;
     };
 

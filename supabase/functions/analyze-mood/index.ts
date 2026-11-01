@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -65,18 +65,9 @@ serve(async (req) => {
       ? conversationHistory.slice(-10).filter((m: any) => typeof m.role === "string" && typeof m.content === "string")
       : [];
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
-
-    if (!apiKey) throw new Error("API key is not configured");
-
     const [moodResult, memoryResult] = await Promise.all([
-      analyzeMood(message, apiKey, apiUrl),
-      extractMemories(message, safeHistory, apiKey, apiUrl),
+      analyzeMood(message),
+      extractMemories(message, safeHistory),
     ]);
 
     return new Response(JSON.stringify({ mood: moodResult, memories: memoryResult }), {
@@ -90,10 +81,7 @@ serve(async (req) => {
   }
 });
 
-async function analyzeMood(message: string, apiKey: string, apiUrl: string): Promise<MoodAnalysis> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
+async function analyzeMood(message: string): Promise<MoodAnalysis> {
   const requestBody = JSON.stringify({
     model: "google/gemini-2.5-flash-lite",
     messages: [
@@ -115,27 +103,7 @@ SADECE JSON döndür.`,
     ],
   });
 
-  let response: Response | null = null;
-
-  if (OPENROUTER_API_KEY) {
-    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: withFreeModel(requestBody),
-    });
-    if (!response.ok) {
-      console.error("OpenRouter mood error:", response.status, "- falling back");
-      response = null;
-    }
-  }
-
-  if (!response && LOVABLE_API_KEY) {
-    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody,
-    });
-  }
+  const response = await callAiWithFallback(requestBody, { operation: "Mood analysis" });
 
   if (!response || !response.ok) {
     return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
@@ -153,12 +121,7 @@ SADECE JSON döndür.`,
 async function extractMemories(
   message: string,
   conversationHistory: Array<{ role: string; content: string }>,
-  apiKey: string,
-  apiUrl: string
 ): Promise<MemoryExtraction> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
   const recentContext = conversationHistory
     .slice(-6)
     .map((m) => `${m.role === "user" ? "Kullanıcı" : "AI"}: ${m.content.slice(0, 500)}`)
@@ -188,27 +151,7 @@ Eğer önemli bilgi yoksa boş array döndür.`,
     ],
   });
 
-  let response: Response | null = null;
-
-  if (OPENROUTER_API_KEY) {
-    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: withFreeModel(requestBody),
-    });
-    if (!response.ok) {
-      console.error("OpenRouter memory error:", response.status, "- falling back");
-      response = null;
-    }
-  }
-
-  if (!response && LOVABLE_API_KEY) {
-    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody,
-    });
-  }
+  const response = await callAiWithFallback(requestBody, { operation: "Memory extraction" });
 
   if (!response || !response.ok) return { memories: [], interests: [] };
 

@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
@@ -9,11 +9,6 @@ const corsHeaders = {
 };
 
 async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string, mimeType: string): Promise<string> {
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-  if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key not configured");
-
   const fileResponse = await fetch(fileUrl);
   if (!fileResponse.ok) throw new Error(`Dosya indirilemedi (HTTP ${fileResponse.status})`);
   const bytes = new Uint8Array(await fileResponse.arrayBuffer());
@@ -41,29 +36,13 @@ async function analyzeWithAI(fileUrl: string, fileName: string, fileType: string
     }],
   });
 
-  let response: Response | null = null;
+  const response = await callAiWithFallback(requestBody, {
+    operation: "Document analysis",
+    openRouterKind: "vision",
+    groqModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+  });
 
-  if (OPENROUTER_API_KEY) {
-    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: withFreeModel(requestBody, "vision"),
-    });
-    if (!response.ok) {
-      console.error("OpenRouter doc error:", response.status, "- falling back");
-      response = null;
-    }
-  }
-
-  if (!response && LOVABLE_API_KEY) {
-    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: requestBody,
-    });
-  }
-
-  if (!response || !response.ok) throw new Error("AI analizi başarısız oldu");
+  if (!response?.ok) throw new Error("AI analizi başarısız oldu");
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "İçerik analiz edilemedi.";

@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -43,11 +43,7 @@ Deno.serve(async (req) => {
       : "";
 
     // --- API Setup ---
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SERPAPI_API_KEY = Deno.env.get("SERPAPI_API_KEY");
-
-    if (!OPENROUTER_API_KEY && !LOVABLE_API_KEY) throw new Error("API key is not configured");
 
     // --- SerpAPI: fetch real Google results FIRST (primary search engine) ---
     let serpResults: { title: string; url: string; snippet: string }[] = [];
@@ -107,27 +103,7 @@ SADECE JSON döndür.`,
     });
 
 
-    let response: Response | null = null;
-
-    if (OPENROUTER_API_KEY) {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: withFreeModel(requestBody),
-      });
-      if (!response.ok) {
-        console.error("OpenRouter error:", response.status, "- falling back");
-        response = null;
-      }
-    }
-
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-    }
+    const response = await callAiWithFallback(requestBody, { operation: "Web search" });
 
     if (!response || !response.ok) {
       console.error("Web search error:", response?.status);

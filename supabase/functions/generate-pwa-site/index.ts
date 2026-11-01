@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 // Generates a small PWA website (HTML + manifest + icon) from a description,
 // uploads it to the public `generated-files` bucket, and returns the public URL
 // so it can be packaged into an APK by build-apk.
@@ -22,8 +22,6 @@ interface AiSite {
 }
 
 async function callAi(prompt: string): Promise<AiSite> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const body = JSON.stringify({
     model: "google/gemini-2.5-flash",
     messages: [
@@ -37,22 +35,7 @@ async function callAi(prompt: string): Promise<AiSite> {
     response_format: { type: "json_object" },
   });
 
-  let res: Response | null = null;
-  if (OPENROUTER_API_KEY) {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: withFreeModel(body),
-    });
-    if (!res.ok) res = null;
-  }
-  if (!res && LOVABLE_API_KEY) {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body,
-    });
-  }
+  const res = await callAiWithFallback(body, { operation: "PWA generation" });
   if (!res || !res.ok) throw new Error("AI tasarımcı şu anda yanıt vermiyor.");
   const data = await res.json();
   const text = data.choices?.[0]?.message?.content ?? "{}";
@@ -68,8 +51,6 @@ async function callAi(prompt: string): Promise<AiSite> {
 }
 
 async function generateIconPng(prompt: string): Promise<Uint8Array> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const body = JSON.stringify({
     model: "google/gemini-3.1-flash-image-preview",
     messages: [{
@@ -78,22 +59,20 @@ async function generateIconPng(prompt: string): Promise<Uint8Array> {
     }],
     modalities: ["image", "text"],
   });
-  let res: Response | null = null;
-  if (OPENROUTER_API_KEY) {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: withFreeModel(body),
-    });
-    if (!res.ok) res = null;
-  }
-  if (!res && LOVABLE_API_KEY) {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body,
-    });
-  }
+  const hasImage = async (response: Response): Promise<boolean> => {
+    const data = await response.json();
+    const message = data.choices?.[0]?.message;
+    return Boolean(
+      message?.images?.length ||
+      (Array.isArray(message?.parts) && message.parts.some((part: any) => part.inline_data?.data)) ||
+      String(message?.content || "").match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/),
+    );
+  };
+  const res = await callAiWithFallback(body, {
+    operation: "PWA icon generation",
+    openRouterKind: "vision",
+    isUsable: hasImage,
+  });
   if (!res || !res.ok) throw new Error("İkon üretilemedi.");
   const data = await res.json();
   // Find image url/base64 in response

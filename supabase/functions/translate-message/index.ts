@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -45,9 +45,6 @@ serve(async (req) => {
       });
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
     const isJson = text.trim().startsWith('{') && text.trim().endsWith('}');
     const systemPrompt = isJson
       ? `You are a translator. The input is a JSON object with string values. Translate ALL string values to ${targetLanguage}. Keep the JSON keys exactly the same. Output ONLY valid JSON, nothing else. No markdown code blocks.`
@@ -61,36 +58,7 @@ serve(async (req) => {
       ],
     });
 
-    let response: Response | null = null;
-
-    // Try OpenRouter first
-    if (OPENROUTER_API_KEY) {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: withFreeModel(requestBody),
-      });
-
-      if (!response.ok) {
-        console.warn("OpenRouter failed:", response.status, await response.text());
-        response = null; // fallback
-      }
-    }
-
-    // Fallback to Lovable AI Gateway
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: requestBody,
-      });
-    }
+    const response = await callAiWithFallback(requestBody, { operation: "Translation" });
 
     if (!response || !response.ok) {
       const status = response?.status || 500;

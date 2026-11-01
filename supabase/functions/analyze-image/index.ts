@@ -1,4 +1,4 @@
-import { withFreeModel } from "../_shared/freeAi.ts";
+import { callAiWithFallback } from "../_shared/aiFallback.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -53,15 +53,6 @@ serve(async (req) => {
     const safePrompt = typeof prompt === "string" ? prompt.slice(0, 2000) : "Bu görseli detaylı olarak analiz et ve açıkla. Türkçe yanıt ver.";
 
     // --- API Setup ---
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const apiKey = OPENROUTER_API_KEY || LOVABLE_API_KEY;
-    const apiUrl = OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : "https://ai.gateway.lovable.dev/v1/chat/completions";
-
-    if (!apiKey) throw new Error("API key is not configured");
-
     const requestBody = JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [{
@@ -73,29 +64,11 @@ serve(async (req) => {
       }],
     });
 
-    let response: Response | null = null;
-
-    // Try OpenRouter first
-    if (OPENROUTER_API_KEY) {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-        body: withFreeModel(requestBody, "vision"),
-      });
-      if (!response.ok) {
-        console.error("OpenRouter error:", response.status, "- falling back to Lovable gateway");
-        response = null;
-      }
-    }
-
-    // Fallback to Lovable gateway
-    if (!response && LOVABLE_API_KEY) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: requestBody,
-      });
-    }
+    const response = await callAiWithFallback(requestBody, {
+      operation: "Image analysis",
+      openRouterKind: "vision",
+      groqModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+    });
 
     if (!response || !response.ok) {
       console.error("AI gateway error:", response?.status);
