@@ -4,6 +4,15 @@
 
 ---
 
+
+## 🚀 Projenin Hikayesi
+
+Tre, günümüzdeki yapay zeka modellerinin yetersiz veya eksik olduğunu fark eden 16 yaşındaki bir gencin, "en iyi yapay zekaya ulaşma" fikrinin bir ürünüdür. Mevcut asistanların sadece anlık sorulara cevap verdiğini, kullanıcıyı gerçekten tanımadığını ve etkileşim sürekliliği sağlamadığını gözlemleyen bu genç, kendi vizyonunu kodlamaya karar verdi. Tre; bu arayışın, "acaba daha iyisini yapabilir miyim?" hissinin ve sıfırdan kendi altyapısını kurma kararlılığının bir sonucudur
+
+
+----
+
+
 ### 🌟 Öne Çıkan Özellikler ve Modeller 
 
 * 🧠 **Kişisel Hafıza & Duygu Analizi:** Tüm sohbetlerden öğrenir, tercihlerinizi hatırlar ve ruh halinize göre tonda uyum sağlar.
@@ -33,14 +42,14 @@
 - Google Gemini AI
 - ElevenLabs TTS
 
-## Kurulum
+# ⚙️ Kurulum ve Çalıştırma
 
-```sh
-# Bağımlılıkları yükle
-npm install
+Projeyi kendi bilgisayarınızda çalıştırmak için:
 
-# Geliştirme sunucusunu başlat
-npm run dev
+1. Depoyu klonlayın: `git clone https://github.com/Harikabey/tre-ai.git`
+2. Bağımlılıkları yükleyin: `npm install`
+3. Çevre değişkenlerini ayarlayın (Supabase URL ve API Anahtarları için `.env` dosyası oluşturun).
+4. Geliştirme sunucusunu başlatın: `npm run dev`
 ```
 
 ## Lisans
