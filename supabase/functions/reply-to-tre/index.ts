@@ -15,7 +15,7 @@ async function generateReply(history: Array<{ role: string; content: string }>):
       name: "Groq",
       apiKey: GROQ_API_KEY,
       endpoint: "https://api.groq.com/openai/v1/chat/completions",
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
     },
     {
       name: "OpenRouter",

@@ -52,7 +52,7 @@ export async function requestChatCompletion({
       },
       body: JSON.stringify({
         model: modelSelection.apiProvider === 'groq'
-          ? 'llama-3.3-70b-versatile'
+          ? 'openai/gpt-oss-120b'
           : body.thinkingMode === 'deep'
             ? 'google/gemini-2.5-pro'
             : 'google/gemini-2.5-flash-lite',

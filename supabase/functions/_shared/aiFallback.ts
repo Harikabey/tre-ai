@@ -11,7 +11,7 @@ interface AiFallbackOptions {
 
 export async function callAiWithFallback(
   requestBody: string,
-  { operation, openRouterKind = "chat", groqModel = "llama-3.3-70b-versatile", isUsable }: AiFallbackOptions,
+  { operation, openRouterKind = "chat", groqModel = "openai/gpt-oss-120b", isUsable }: AiFallbackOptions,
 ): Promise<Response | null> {
   const providers = [
     {

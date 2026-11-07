@@ -591,7 +591,7 @@ ${parts.join("\n")}`;
     if (provider === "byok") {
       const byokBody = {
         ...requestBody,
-        ...(apiProvider === "groq" ? { model: "llama-3.3-70b-versatile" } : {}),
+        ...(apiProvider === "groq" ? { model: "openai/gpt-oss-120b" } : {}),
       };
       response = await fetch(apiUrl, {
         method: "POST",
@@ -601,7 +601,7 @@ ${parts.join("\n")}`;
     } else if (GROQ_API_KEY && freeKind === "chat" && !hasImages) {
       try {
         const groqBody = {
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           messages: requestBody.messages,
           stream: true,
         };
@@ -627,7 +627,7 @@ ${parts.join("\n")}`;
       const fallbackBody = provider === "default" && GROQ_API_KEY && !hasImages
         ? {
           ...requestBody,
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           stream: true,
         }
         : requestBody;

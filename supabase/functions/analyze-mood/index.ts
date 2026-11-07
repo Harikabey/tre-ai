@@ -24,6 +24,15 @@ interface MemoryExtraction {
   interests: Array<{ interest: string; category: string }>;
 }
 
+const MEMORY_TYPES: MemoryExtraction["memories"][number]["type"][] = [
+  "fact",
+  "preference",
+  "interest",
+  "habit",
+  "relationship",
+  "goal",
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -54,7 +63,9 @@ serve(async (req) => {
     }
 
     // --- Input Validation ---
-    const { message, conversationHistory } = await req.json();
+    const body: unknown = await req.json();
+    const message = isRecord(body) ? body.message : undefined;
+    const conversationHistory = isRecord(body) ? body.conversationHistory : undefined;
     if (!message || typeof message !== "string" || message.length > 10000) {
       return new Response(JSON.stringify({ error: "Valid message required (max 10000 chars)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,7 +73,10 @@ serve(async (req) => {
     }
     // Limit conversation history
     const safeHistory = Array.isArray(conversationHistory)
-      ? conversationHistory.slice(-10).filter((m: any) => typeof m.role === "string" && typeof m.content === "string")
+      ? conversationHistory.slice(-10).filter(
+        (item: unknown): item is { role: string; content: string } =>
+          isRecord(item) && typeof item.role === "string" && typeof item.content === "string",
+      )
       : [];
 
     const [moodResult, memoryResult] = await Promise.all([
@@ -103,19 +117,22 @@ SADECE JSON döndür.`,
     ],
   });
 
-  const response = await callAiWithFallback(requestBody, { operation: "Mood analysis" });
+  const response = await callAiWithFallback(requestBody, {
+    operation: "Mood analysis",
+    isUsable: async (candidate) => isMoodAnalysis(await parseAiJson(candidate)),
+  });
 
-  if (!response || !response.ok) {
-    return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
+  if (!response?.ok) throw await aiResponseError("Mood analysis", response);
+  const parsed = await parseAiJson(response);
+  if (!isMoodAnalysis(parsed)) {
+    throw new Error("Mood analysis returned an invalid response.");
   }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  try {
-    return JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
-  } catch {
-    return { mood: "nötr", mood_score: 0, emotions: [], suggested_tone: "bilgilendirici" };
-  }
+  return {
+    mood: parsed.mood,
+    mood_score: parsed.mood_score,
+    emotions: parsed.emotions,
+    suggested_tone: parsed.suggested_tone,
+  };
 }
 
 async function extractMemories(
@@ -151,15 +168,79 @@ Eğer önemli bilgi yoksa boş array döndür.`,
     ],
   });
 
-  const response = await callAiWithFallback(requestBody, { operation: "Memory extraction" });
+  const response = await callAiWithFallback(requestBody, {
+    operation: "Memory extraction",
+    isUsable: async (candidate) => isMemoryExtraction(await parseAiJson(candidate)),
+  });
 
-  if (!response || !response.ok) return { memories: [], interests: [] };
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  try {
-    return JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
-  } catch {
-    return { memories: [], interests: [] };
+  if (!response?.ok) throw await aiResponseError("Memory extraction", response);
+  const parsed = await parseAiJson(response);
+  if (!isMemoryExtraction(parsed)) {
+    throw new Error("Memory extraction returned an invalid response.");
   }
+  return parsed;
+}
+
+async function parseAiJson(response: Response): Promise<Record<string, unknown> | null> {
+  try {
+    const data: unknown = await response.json();
+    if (!isRecord(data) || !Array.isArray(data.choices)) return null;
+    const firstChoice: unknown = data.choices[0];
+    if (!isRecord(firstChoice) || !isRecord(firstChoice.message)) return null;
+    const content = firstChoice.message.content;
+    if (typeof content !== "string") return null;
+    const parsed: unknown = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function aiResponseError(operation: string, response: Response | null): Promise<Error> {
+  if (!response) return new Error(`${operation} failed: no AI provider response.`);
+  const details = (await response.text()).slice(0, 300);
+  return new Error(`${operation} failed with status ${response.status}: ${details}`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isMoodAnalysis(value: Record<string, unknown> | null): value is Record<string, unknown> & MoodAnalysis {
+  return value !== null &&
+    typeof value.mood === "string" &&
+    typeof value.mood_score === "number" &&
+    Number.isFinite(value.mood_score) &&
+    value.mood_score >= -1 &&
+    value.mood_score <= 1 &&
+    Array.isArray(value.emotions) &&
+    value.emotions.every((emotion) => typeof emotion === "string") &&
+    typeof value.suggested_tone === "string";
+}
+
+function isMemoryExtraction(
+  value: Record<string, unknown> | null,
+): value is Record<string, unknown> & MemoryExtraction {
+  return value !== null &&
+    Array.isArray(value.memories) &&
+    value.memories.every((memory: unknown) =>
+      isRecord(memory) &&
+      isMemoryType(memory.type) &&
+      typeof memory.category === "string" &&
+      typeof memory.content === "string" &&
+      typeof memory.importance === "number" &&
+      Number.isInteger(memory.importance) &&
+      memory.importance >= 1 &&
+      memory.importance <= 10
+    ) &&
+    Array.isArray(value.interests) &&
+    value.interests.every((interest: unknown) =>
+      isRecord(interest) &&
+      typeof interest.interest === "string" &&
+      typeof interest.category === "string"
+    );
+}
+
+function isMemoryType(value: unknown): value is MemoryExtraction["memories"][number]["type"] {
+  return MEMORY_TYPES.some((type) => type === value);
 }
