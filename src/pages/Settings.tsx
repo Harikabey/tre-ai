@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { personalities, Personality } from '@/types/personality';
@@ -353,9 +354,6 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
-          {user && <AvatarSettings />}
-          <ModelSelectionSettings />
-
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
             <button
               type="button"
@@ -371,8 +369,36 @@ const Settings = () => {
             </button>
           </Card>
 
+          <Accordion type="multiple" className="space-y-4">
+          {user && (
+            <AccordionItem value="avatar" className="border-0">
+              <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+                <span>
+                  <span className="block font-semibold">{t("Profil Fotoğrafı")}</span>
+                  <span className="block text-sm font-normal text-muted-foreground">Kendine bir fotoğraf seç. Sohbette ve profilinde görünecek.</span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="p-0 pt-4 [&>div>div>div:first-child]:hidden">
+                <AvatarSettings />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+          <AccordionItem value="model-selection" className="border-0">
+            <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+              <span>
+                <span className="block font-semibold">🤖 AI Motoru</span>
+                <span className="block text-sm font-normal text-muted-foreground">Tre'nin hangi yapay zeka sağlayıcısını kullanacağını seç.</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="p-0 pt-4 [&>div>div:first-child>div:first-child]:hidden">
+              <ModelSelectionSettings />
+            </AccordionContent>
+          </AccordionItem>
+
           {/* Language Selection - UI language */}
+          <AccordionItem value="language" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
@@ -387,6 +413,8 @@ const Settings = () => {
                 ) : t("languageDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="mb-3">
                 <div className="relative">
@@ -413,10 +441,14 @@ const Settings = () => {
                 )}
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Theme Selection */}
+          <AccordionItem value="theme" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sun className="h-5 w-5 text-primary" />
@@ -426,6 +458,8 @@ const Settings = () => {
                 {t("themeDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="grid grid-cols-3 gap-3">
               {themeOptions.map((option) => (
                 <ThemeCard
@@ -437,10 +471,14 @@ const Settings = () => {
                 />
               ))}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* UI Customization */}
+          <AccordionItem value="ui-customization" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5 text-primary" />
@@ -448,6 +486,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Vurgu rengi, yazı tipi, sohbet baloncuğu stili ve duvar kağıdı seç")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="space-y-5">
               {/* Accent Color */}
               <div>
@@ -567,15 +607,31 @@ const Settings = () => {
               <Button variant="outline" size="sm" onClick={resetUI} className="w-full">
                 <RotateCcw className="w-3.5 h-3.5 mr-2" /> {t("Varsayılana Sıfırla")}</Button>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
-          <ShortcutsSettings />
+          <AccordionItem value="shortcuts" className="border-0">
+            <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+              <span>
+                <span className="block font-semibold">Metin Kısayolları</span>
+                <span className="block text-sm font-normal text-muted-foreground">Kendi kısayollarınızı tanımlayın. Sohbette tetikleyiciyi yazıp boşluk/Enter'a bastığınızda otomatik genişletilir.</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="p-0 pt-4 [&>div>div>div:first-child]:hidden">
+              <ShortcutsSettings />
+            </AccordionContent>
+          </AccordionItem>
 
+          <AccordionItem value="notifications" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle>Bildirimler</CardTitle>
               <CardDescription>{t("Tre'nin sana bildirim göndermesine izin ver.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
@@ -677,13 +733,27 @@ const Settings = () => {
                 <p className="text-xs text-destructive">{t("Tarayıcın bu özelliği desteklemiyor. Chrome veya Edge kullan.")}</p>
               )}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
+          <AccordionItem value="supportive-notifications" className="border-0">
+            <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+          <span>
+            <span className="block font-semibold">💬 Destekleyici Bildirimler</span>
+            <span className="block text-sm font-normal text-muted-foreground">Tre'nin seni motive etmesi için nazik hatırlatmalar. İstediğin zaman kapatabilirsin.</span>
+          </span>
+            </AccordionTrigger>
+            <AccordionContent className="p-0 pt-4 [&>div>div>div:first-child]:hidden">
           <SupportiveNotificationsSettings
             canSendNotifications={notifications.isSupported && notifications.permission === 'granted'}
           />
+            </AccordionContent>
+          </AccordionItem>
 
+          <AccordionItem value="text-scale" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Type className="h-5 w-5 text-primary" />
@@ -693,6 +763,8 @@ const Settings = () => {
                 {t("textScaleDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="grid grid-cols-4 gap-2">
                 {TEXT_SCALE_OPTIONS_KEYS.map((option) => (
@@ -721,10 +793,14 @@ const Settings = () => {
                 {t("currentScale")}: {Math.round(preferences.text_scale * 100)}%
               </p>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Accessibility */}
+          <AccordionItem value="accessibility" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5 text-primary" />
@@ -734,6 +810,8 @@ const Settings = () => {
                 {t("accessibilityDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
@@ -768,10 +846,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Show Tre's thinking (deep mode) */}
+          <AccordionItem value="thinking" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
@@ -779,6 +861,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Derin düşünme modu açıkken Tre'nin yanıtı oluştururken aklından geçenleri katlanabilir bir blok olarak gör.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
@@ -793,10 +877,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Swipe to Delete Toggle */}
+          <AccordionItem value="swipe-to-delete" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trash2 className="h-5 w-5 text-primary" />
@@ -806,6 +894,8 @@ const Settings = () => {
                 {t("swipeToDeleteDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
@@ -821,10 +911,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Screen Share Toggle */}
+          <AccordionItem value="screen-share" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ScreenShare className="h-5 w-5 text-primary" />
@@ -834,6 +928,8 @@ const Settings = () => {
                 {t("screenShareDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
@@ -849,10 +945,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Wake Word "Hey Tre" */}
+          <AccordionItem value="wake-word" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
@@ -860,6 +960,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Aktifken mikrofon sürekli dinler; \"Hey Tre\" dediğinde sesli sohbet otomatik açılır.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-secondary/30">
                 <div>
@@ -887,10 +989,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Email Access Authorization */}
+          <AccordionItem value="email-access" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5 text-primary" />
@@ -900,6 +1006,8 @@ const Settings = () => {
                 {t("emailAccessDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               {emailLoading ? (
                 <div className="flex items-center justify-center py-6">
@@ -968,10 +1076,14 @@ const Settings = () => {
                 </div>
               )}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Voice Chat Section */}
+          <AccordionItem value="voice-chat" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
@@ -981,6 +1093,8 @@ const Settings = () => {
                 {t("voiceChatDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <button
                 onClick={() => navigate('/voice-chat')}
@@ -998,9 +1112,13 @@ const Settings = () => {
                 <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
               </button>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
+          <AccordionItem value="voice-selection" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-primary" />
@@ -1010,6 +1128,8 @@ const Settings = () => {
                 {t("voiceSelectionDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="grid gap-3 sm:grid-cols-2">
               {voiceOptions.map((voice) => (
                 <VoiceCard
@@ -1023,10 +1143,14 @@ const Settings = () => {
                 />
               ))}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Personality Selection */}
+          <AccordionItem value="personality" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-primary" />
@@ -1036,6 +1160,8 @@ const Settings = () => {
                 {t("botPersonalityDesc")}
               </CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="grid gap-3">
               {personalities.map((personality) => (
                 <PersonalityCard
@@ -1046,17 +1172,32 @@ const Settings = () => {
                 />
               ))}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
-          <CustomPersonalityInput onClear={() => updatePreference('personality', 'friendly')} />
+          <AccordionItem value="custom-personality" className="border-0">
+            <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+              <span>
+                <span className="block font-semibold">Kişilik Talimatı</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="p-0 pt-4">
+              <CustomPersonalityInput onClear={() => updatePreference('personality', 'friendly')} />
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Otomatik Temizlik */}
+          <AccordionItem value="auto-cleanup" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle>{t("Otomatik Temizlik")}</CardTitle>
               <CardDescription>
                 {t("30 gündür kullanılmayan sohbetleri günlük olarak sil. Hafıza ve ayarların korunur.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
@@ -1071,10 +1212,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Dosya Depolama */}
+          <AccordionItem value="file-storage" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CloudUpload className="h-5 w-5 text-primary" />
@@ -1083,6 +1228,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Tre'nin ürettiği görseller, ses, kod ve belgeler varsayılan olarak yalnızca cihazında (yerel) saklanır.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/30 p-3">
                 <div className="min-w-0">
@@ -1099,10 +1246,14 @@ const Settings = () => {
                 />
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* Veri Yedekleme (Dışa / İçe Aktar) */}
+          <AccordionItem value="data-backup" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DatabaseBackup className="h-5 w-5 text-primary" />
@@ -1111,6 +1262,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Cihazındaki tüm yerel verileri (sohbet önbelleği, üretilen dosyalar, yıldızlı mesajlar, kilitler) tek bir JSON dosyası olarak dışa aktar veya geri yükle.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="space-y-3">
               <div className="flex flex-col gap-2">
                 <Button
@@ -1159,14 +1312,18 @@ const Settings = () => {
                   {t("İçe aktarma mevcut yerel verilerin üzerine yazar ve sayfayı otomatik yeniler.")}</p>
               </div>
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
 
           {/* ARKA PLAN RESMİ AYARI */}
+          <AccordionItem value="chat-background" className="border-0">
+            <AccordionTrigger className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 text-left hover:no-underline">
+              {t("🖼️ Sohbet Arka Planı")}
+            </AccordionTrigger>
+            <AccordionContent className="p-0 pt-4">
           <div className="border-t border-border/30 pt-4">
             <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4">
-              <h3 className="text-lg font-medium text-foreground mb-2 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-primary" />
-                {t("🖼️ Sohbet Arka Planı")}</h3>
               <p className="text-sm text-muted-foreground mb-4">{t("Cihazından görsel seç (max 2 MB) veya bir görsel URL’si gir.")}</p>
               <input
                 ref={backgroundFileRef}
@@ -1208,9 +1365,13 @@ const Settings = () => {
               )}
             </div>
           </div>
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Uygulamayı Yükle (PWA) */}
+          <AccordionItem value="install-app" className="border-0">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <AccordionTrigger className="p-0 text-left hover:no-underline">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5 text-primary" />
@@ -1218,6 +1379,8 @@ const Settings = () => {
               <CardDescription>
                 {t("Tre'yi telefonunun ana ekranına ekle, tam ekran ve hızlı erişim.")}</CardDescription>
             </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
             <CardContent className="space-y-3">
               {install.installed ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
@@ -1236,7 +1399,11 @@ const Settings = () => {
                   {t("Tarayıcı menüsünden")}<b>{t('settings.addToHomeScreen')}</b> / <b>{t("\"Uygulamayı yükle\"")}</b> {t("seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde görünür.")}</div>
               )}
             </CardContent>
+            </AccordionContent>
           </Card>
+          </AccordionItem>
+
+          </Accordion>
 
           {/* Tre Ne Yapabilir? */}
           <Button
