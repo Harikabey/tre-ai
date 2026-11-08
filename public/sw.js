@@ -1,5 +1,6 @@
 // FILE: public/sw.js
 const CACHE_NAME = "tre-shell-v1";
+const PRESERVED_CACHES = [CACHE_NAME, "tre-plugin-assets-v1"];
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -164,7 +165,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+        keys.filter((key) => !PRESERVED_CACHES.includes(key)).map((key) => caches.delete(key)),
       ))
       .then(() => self.clients.claim()),
   );

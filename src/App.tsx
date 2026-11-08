@@ -15,6 +15,7 @@ import VoiceChat from "./pages/VoiceChat";
 import Capabilities from "./pages/Capabilities";
 import Starred from "./pages/Starred";
 import Stats from "./pages/Stats";
+import Store from "./pages/Store";
 
 import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/istatistik" element={<Stats />} />
               <Route path="/capabilities" element={<Capabilities />} />
               <Route path="/starred" element={<Starred />} />
+              <Route path="/store" element={<Store />} />
 
               <Route path="/voice-chat" element={<VoiceChat />} />
               <Route path="/auth" element={<Auth />} />

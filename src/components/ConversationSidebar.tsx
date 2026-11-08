@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, TouchEvent } from 'react';
-import { MessageSquare, Plus, Trash2, X, Check, Pencil, Lock } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, X, Check, Pencil, Lock, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -282,6 +283,13 @@ export const ConversationSidebar = ({
               <Button variant="ghost" size="icon" onClick={onToggle} className="lg:hidden">
                 <X className="h-4 w-4" />
               </Button>
+            </div>
+
+            <div className="border-b border-border/50 px-3 py-2">
+              <Link to="/store" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground">
+                <ShoppingBag className="h-4 w-4" />
+                Mağaza
+              </Link>
             </div>
 
             <ScrollArea className="flex-1">
