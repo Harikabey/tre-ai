@@ -159,11 +159,90 @@ const AuthenticatedIndex = () => {
     items: generatedItems,
     addFromUrl: addGeneratedUrl,
     addFromText: addGeneratedText,
-    addFromBlob: addGeneratedBlob,
     remove: removeGenerated,
     rename: renameGenerated,
     clear: clearGenerated,
   } = useGeneratedItems();
+  const savedGeneratedMessageIdsRef = useRef(new Set<string>());
+  const wasTypingRef = useRef(false);
+
+  useEffect(() => {
+    if (isTyping) {
+      wasTypingRef.current = true;
+      return;
+    }
+
+    if (!wasTypingRef.current) {
+      messages.forEach((message) => {
+        if (message.role === 'bot') savedGeneratedMessageIdsRef.current.add(message.id);
+      });
+      return;
+    }
+    wasTypingRef.current = false;
+
+    const saveGeneratedItems = async () => {
+      for (const message of messages) {
+        if (message.role !== 'bot' || savedGeneratedMessageIdsRef.current.has(message.id)) continue;
+        savedGeneratedMessageIdsRef.current.add(message.id);
+
+        const codeBlocks = Array.from(
+          message.content.matchAll(/```([a-z0-9+#.-]*)[ \t]*\r?\n([\s\S]*?)```/gi),
+        );
+        for (const [index, match] of codeBlocks.entries()) {
+          const language = match[1].toLowerCase();
+          const extensionByLanguage: Record<string, string> = {
+            html: 'html',
+            javascript: 'js',
+            js: 'js',
+            typescript: 'ts',
+            ts: 'ts',
+            jsx: 'jsx',
+            tsx: 'tsx',
+            css: 'css',
+            scss: 'scss',
+            python: 'py',
+            py: 'py',
+            json: 'json',
+            sql: 'sql',
+            markdown: 'md',
+            md: 'md',
+          };
+          const extension = extensionByLanguage[language] ?? 'txt';
+          const mimeType = extension === 'html'
+            ? 'text/html'
+            : extension === 'css' || extension === 'scss'
+              ? 'text/css'
+              : extension === 'js' || extension === 'jsx' || extension === 'ts' || extension === 'tsx'
+                ? 'text/javascript'
+                : 'text/plain';
+
+          try {
+            await addGeneratedText({
+              name: `ai-generated-${Date.now()}-${index}.${extension}`,
+              content: match[2].trim(),
+              mimeType,
+              prompt: message.content.slice(0, 500),
+            });
+          } catch (error) {
+            console.error('Failed to save AI-generated code:', error);
+            toast.error('Üretilen kod dosyası kaydedilemedi.');
+          }
+        }
+
+        const attachments = Array.from(
+          message.content.matchAll(/\[Ek dosya: ([^\]]+)\]\((https?:\/\/[^)]+)\)/g),
+        );
+        for (const [, name, url] of attachments) {
+          const savedItem = await addGeneratedUrl({ url, name });
+          if (!savedItem) {
+            toast.error(`Üretilen dosya kaydedilemedi: ${name}`);
+          }
+        }
+      }
+    };
+
+    void saveGeneratedItems();
+  }, [addGeneratedText, addGeneratedUrl, isTyping, messages]);
 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

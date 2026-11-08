@@ -137,14 +137,18 @@ export const useUserMemory = () => {
       if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
         throw authError ?? new Error('Oturum doğrulanamadı.');
       }
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
       const token = session?.access_token;
       if (!token) throw new Error('Oturum tokenı bulunamadı.');
+      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!apiKey) throw new Error('Supabase anon key is not configured.');
 
       const response = await fetch(ANALYZE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          apikey: apiKey,
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ message, conversationHistory }),
@@ -214,15 +218,21 @@ export const useUserMemory = () => {
 
       if (result.memories?.interests?.length > 0) {
         for (const interest of result.memories.interests) {
-          const { data: existing } = await supabase
+          const { data: existing, error: lookupError } = await supabase
             .from('user_interests')
             .select('id, strength, mention_count')
             .eq('user_id', user.id)
             .eq('interest', interest.interest)
             .limit(1);
 
+          if (lookupError) {
+            console.error('Failed to check existing user interest:', lookupError);
+            toast.error('İlgi alanı kontrol edilemedi.');
+            continue;
+          }
+
           if (existing && existing.length > 0) {
-            await supabase
+            const { error } = await supabase
               .from('user_interests')
               .update({
                 strength: Math.min(10, existing[0].strength + 1),
@@ -230,12 +240,20 @@ export const useUserMemory = () => {
                 last_mentioned_at: new Date().toISOString()
               })
               .eq('id', existing[0].id);
+            if (error) {
+              console.error('Failed to update user interest:', error);
+              toast.error('İlgi alanı güncellenemedi.');
+            }
           } else {
-            await supabase.from('user_interests').insert({
+            const { error } = await supabase.from('user_interests').insert({
               user_id: user.id,
               interest: interest.interest,
               category: interest.category
             });
+            if (error) {
+              console.error('Failed to save user interest:', error);
+              toast.error('İlgi alanı kaydedilemedi.');
+            }
           }
         }
         loadInterests();
@@ -244,6 +262,7 @@ export const useUserMemory = () => {
       return result.mood;
     } catch (error) {
       console.error('Analysis error:', error);
+      toast.error('Hafıza ve duygu analizi tamamlanamadı.');
       return null;
     }
   }, [user]);

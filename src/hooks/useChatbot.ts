@@ -45,6 +45,39 @@ const BUILD_APK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/build-a
 const GENERATE_PWA_SITE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pwa-site`;
 const GENERATE_ISO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-iso`;
 const GENERATE_AUDIO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-audio`;
+
+const getAuthenticatedFunctionCredentials = async (
+  expectedUserId: string | undefined,
+): Promise<{ token: string; apiKey: string }> => {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (!session?.access_token || !expectedUserId || session.user.id !== expectedUserId) {
+    throw new Error('İşlem için yeniden giriş yapmanız gerekiyor.');
+  }
+
+  const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!apiKey) throw new Error('Supabase anon key is not configured.');
+
+  return { token: session.access_token, apiKey };
+};
+
+const getFunctionError = async (response: Response, fallback: string): Promise<Error> => {
+  try {
+    const data: unknown = await response.json();
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'error' in data &&
+      typeof data.error === 'string'
+    ) {
+      return new Error(data.error);
+    }
+  } catch {
+    // Keep the HTTP status when the function does not return JSON.
+  }
+  return new Error(`${fallback} (HTTP ${response.status})`);
+};
+
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export type ThinkingMode = 'fast' | 'deep';
 
@@ -378,7 +411,10 @@ export const useChatbot = () => {
 
 
   const createNewConversation = useCallback(async (): Promise<string | null> => {
-    if (!user) return null;
+    if (!user) {
+      toast.error('Sohbet başlatılamadı: oturum açmanız gerekiyor.');
+      return null;
+    }
     let authenticatedUserId: string;
     try {
       authenticatedUserId = await requireAuthenticatedUserId(user.id);
@@ -410,6 +446,9 @@ export const useChatbot = () => {
     }
     if (error) {
       console.error('Failed to create conversation:', error);
+      toast.error('Yeni sohbet oluşturulamadı. Lütfen tekrar deneyin.');
+    } else {
+      console.error('Conversation insert returned no row.');
       toast.error('Yeni sohbet oluşturulamadı. Lütfen tekrar deneyin.');
     }
     return null;
@@ -684,42 +723,60 @@ export const useChatbot = () => {
 
   const generatePptx = useCallback(async (prompt: string): Promise<{ url: string; fileName: string; title: string; slideCount: number } | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(GENERATE_PPTX_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          apikey: apiKey,
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ prompt }),
       });
-      if (!response.ok) throw new Error('PPTX oluşturulamadı');
-      const data = await response.json();
-      if (!data.url) return null;
+      if (!response.ok) throw await getFunctionError(response, 'PPTX oluşturulamadı');
+      const data: { url?: string; fileName?: string; title?: string; slideCount?: number } = await response.json();
+      if (!data.url || !data.fileName || !data.title || typeof data.slideCount !== 'number') {
+        throw new Error('PPTX işlevi eksik dosya bilgisi döndürdü.');
+      }
       return { url: data.url, fileName: data.fileName, title: data.title, slideCount: data.slideCount };
     } catch (error) {
       console.error('PPTX generation error:', error);
-      return null;
+      throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   // Generate a tiny PWA site (HTML+manifest+icon) hosted on Supabase storage.
   const generatePwaSite = useCallback(async (description: string): Promise<{
     siteUrl: string; manifestUrl: string; iconUrl: string;
     title: string; themeColor: string; backgroundColor: string;
   } | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
     const response = await fetch(GENERATE_PWA_SITE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', apikey: apiKey, Authorization: `Bearer ${token}` },
       body: JSON.stringify({ description }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Site üretilemedi');
-    return data;
-  }, []);
+    if (!response.ok) throw await getFunctionError(response, 'Site üretilemedi');
+    const data: {
+      siteUrl?: string;
+      manifestUrl?: string;
+      iconUrl?: string;
+      title?: string;
+      themeColor?: string;
+      backgroundColor?: string;
+    } = await response.json();
+    if (!data.siteUrl || !data.manifestUrl || !data.iconUrl || !data.title) {
+      throw new Error('PWA işlevi eksik site bilgisi döndürdü.');
+    }
+    return {
+      siteUrl: data.siteUrl,
+      manifestUrl: data.manifestUrl,
+      iconUrl: data.iconUrl,
+      title: data.title,
+      themeColor: data.themeColor || '#000000',
+      backgroundColor: data.backgroundColor || '#ffffff',
+    };
+  }, [user?.id]);
 
   // Build a real signed APK from a PWA URL via PWABuilder.
   const buildApk = useCallback(async (
@@ -728,21 +785,28 @@ export const useChatbot = () => {
     extras?: { manifestUrl?: string; iconUrl?: string; themeColor?: string; backgroundColor?: string },
   ): Promise<{ url: string; filename: string; appName: string; packageId: string } | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(BUILD_APK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', apikey: apiKey, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ url: siteUrl, appName, ...extras }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'APK üretilemedi');
-      return data;
+      if (!response.ok) throw await getFunctionError(response, 'APK üretilemedi');
+      const data: { url?: string; filename?: string; appName?: string; packageId?: string } = await response.json();
+      if (!data.url || !data.filename || !data.appName || !data.packageId) {
+        throw new Error('APK işlevi eksik dosya bilgisi döndürdü.');
+      }
+      return {
+        url: data.url,
+        filename: data.filename,
+        appName: data.appName,
+        packageId: data.packageId,
+      };
     } catch (error) {
       console.error('APK build error:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   // Generate an ISO 9660 disk image from in-chat text (single text-file ISO by default).
   const generateIso = useCallback(async (
@@ -751,21 +815,33 @@ export const useChatbot = () => {
     volumeName?: string,
   ): Promise<{ url: string; filename: string; size: number; fileCount: number } | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(GENERATE_ISO_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', apikey: apiKey, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ files, isoName, volumeName }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'ISO üretilemedi');
-      return data;
+      if (!response.ok) throw await getFunctionError(response, 'ISO üretilemedi');
+      const data: { url?: string; filename?: string; size?: number; fileCount?: number } = await response.json();
+      if (
+        !data.url ||
+        !data.filename ||
+        typeof data.size !== 'number' ||
+        typeof data.fileCount !== 'number'
+      ) {
+        throw new Error('ISO işlevi eksik dosya bilgisi döndürdü.');
+      }
+      return {
+        url: data.url,
+        filename: data.filename,
+        size: data.size,
+        fileCount: data.fileCount,
+      };
     } catch (error) {
       console.error('ISO generation error:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   // Generate MP3 audio (TTS or music) via ElevenLabs
   const generateAudio = useCallback(async (

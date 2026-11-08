@@ -61,16 +61,16 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
 }
 
 export async function listItems(): Promise<GeneratedItem[]> {
-  return tx('readonly', (s) => {
-    return new Promise<GeneratedItem[]>((resolve, reject) => {
+  return tx<GeneratedItem[]>('readonly', (s) =>
+    new Promise<GeneratedItem[]>((resolve, reject) => {
       const req = s.getAll();
       req.onsuccess = () => {
         const arr = (req.result as GeneratedItem[]).sort((a, b) => b.createdAt - a.createdAt);
         resolve(arr);
       };
       req.onerror = () => reject(req.error);
-    }) as any;
-  });
+    }),
+  );
 }
 
 export async function addItem(item: Omit<GeneratedItem, 'id' | 'createdAt' | 'size'> & { id?: string; createdAt?: number }): Promise<GeneratedItem> {
@@ -128,10 +128,7 @@ export function kindFromMimeOrName(mimeType: string, name: string): GeneratedIte
 }
 
 export async function urlToBlob(url: string): Promise<Blob> {
-  if (url.startsWith('data:')) {
-    const res = await fetch(url);
-    return res.blob();
-  }
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`Generated file download failed: HTTP ${res.status}`);
   return res.blob();
 }
