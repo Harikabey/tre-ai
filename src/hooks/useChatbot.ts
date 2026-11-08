@@ -542,15 +542,21 @@ export const useChatbot = () => {
       .eq('user_id', user?.id ?? '')
       .order('created_at', { ascending: true });
     
-    const MAX_HISTORY = 30;
     const conversationHistory: ChatMessage[] = (historyData || [])
-      .slice(-MAX_HISTORY)
       .map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
     
-    const newHistory = [...conversationHistory, { role: 'user' as const, content: userMessage }];
+    const historyWithoutCurrentMessage =
+      conversationHistory.at(-1)?.role === 'user' &&
+      conversationHistory.at(-1)?.content === userMessage
+        ? conversationHistory.slice(0, -1)
+        : conversationHistory;
+    const newHistory = [
+      ...historyWithoutCurrentMessage.slice(-9),
+      { role: 'user' as const, content: userMessage },
+    ];
     const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
     const language = localStorage.getItem(LANGUAGE_KEY) || 'tr';
     
