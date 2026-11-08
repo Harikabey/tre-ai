@@ -423,19 +423,32 @@ export const useChatbot = () => {
       toast.error('Sohbet başlatılamadı: oturum doğrulanamadı.');
       return null;
     }
-    const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
-    
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({
-        user_id: authenticatedUserId,
+    try {
+      const personality = localStorage.getItem(PERSONALITY_KEY) || 'friendly';
+
+      const payload = {
+        user_id: authenticatedUserId || null,
         title: 'Yeni Sohbet',
         personality,
-      })
-      .select()
-      .single();
-    
-    if (!error && data) {
+      };
+      if (!payload.user_id) {
+        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!currentUser || currentUser.id !== user.id) {
+          throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+        }
+        payload.user_id = currentUser.id;
+      }
+      console.log('Creating conversation with payload:', payload);
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error('Conversation insert returned no row.');
+
       setConversations(prev => [data, ...prev]);
       activeConversationIdRef.current = data.id;
       messagesByConversationRef.current.set(data.id, []);
@@ -443,15 +456,16 @@ export const useChatbot = () => {
       setCurrentConversationId(data.id);
       setMessages([]);
       return data.id;
-    }
-    if (error) {
+    } catch (error) {
       console.error('Failed to create conversation:', error);
-      toast.error('Yeni sohbet oluşturulamadı. Lütfen tekrar deneyin.');
-    } else {
-      console.error('Conversation insert returned no row.');
-      toast.error('Yeni sohbet oluşturulamadı. Lütfen tekrar deneyin.');
+      const message = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : String(error);
+      toast.error(`Yeni sohbet oluşturulamadı: ${message}`);
+      return null;
     }
-    return null;
   }, [user]);
 
   const updateConversationTitle = useCallback(async (conversationId: string, firstMessage: string) => {

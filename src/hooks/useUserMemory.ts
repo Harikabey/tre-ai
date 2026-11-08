@@ -396,22 +396,38 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     if (!user || !content.trim()) return;
     try {
       const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const payload = {
+        user_id: authenticatedUserId || null,
+        content: content.trim(),
+        memory_type,
+        category: category.trim() || 'genel',
+        importance,
+      };
+      if (!payload.user_id) {
+        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!currentUser || currentUser.id !== user.id) {
+          throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+        }
+        payload.user_id = currentUser.id;
+      }
+      console.log('Adding user memory with payload:', payload);
+
       const { data, error } = await supabase
         .from('user_memories')
-        .insert({
-          user_id: authenticatedUserId,
-          content: content.trim(),
-          memory_type,
-          category: category.trim() || 'genel',
-          importance,
-        })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
       if (data) setMemories(prev => [data as UserMemory, ...prev]);
     } catch (error) {
       console.error('Failed to add user memory:', error);
-      toast.error('Hafıza eklenemedi. Lütfen tekrar deneyin.');
+      const message = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : String(error);
+      toast.error(`Hafıza eklenemedi: ${message}`);
     }
   }, [user]);
 
@@ -444,20 +460,36 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     if (!user || !interest.trim()) return;
     try {
       const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const payload = {
+        user_id: authenticatedUserId || null,
+        interest: interest.trim(),
+        category: category.trim() || 'genel',
+      };
+      if (!payload.user_id) {
+        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!currentUser || currentUser.id !== user.id) {
+          throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+        }
+        payload.user_id = currentUser.id;
+      }
+      console.log('Adding user interest with payload:', payload);
+
       const { data, error } = await supabase
         .from('user_interests')
-        .insert({
-          user_id: authenticatedUserId,
-          interest: interest.trim(),
-          category: category.trim() || 'genel',
-        })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
       if (data) setInterests(prev => [data as UserInterest, ...prev]);
     } catch (error) {
       console.error('Failed to add user interest:', error);
-      toast.error('İlgi alanı eklenemedi.');
+      const message = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : String(error);
+      toast.error(`İlgi alanı eklenemedi: ${message}`);
     }
   }, [user]);
 
