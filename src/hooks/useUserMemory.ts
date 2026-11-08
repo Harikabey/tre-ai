@@ -33,12 +33,12 @@ export interface MoodRecord {
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
 const requireAuthenticatedUserId = async (expectedUserId: string): Promise<string> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
-  if (!user || user.id !== expectedUserId) {
+  if (!session?.access_token || session.user.id !== expectedUserId) {
     throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
   }
-  return user.id;
+  return session.user.id;
 };
 
 export const useUserMemory = () => {
@@ -133,14 +133,12 @@ export const useUserMemory = () => {
     if (!user) return null;
 
     try {
-      const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
-      if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
-        throw authError ?? new Error('Oturum doğrulanamadı.');
-      }
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
-      const token = session?.access_token;
-      if (!token) throw new Error('Oturum tokenı bulunamadı.');
+      if (!session?.access_token || session.user.id !== user.id) {
+        throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+      }
+      const token = session.access_token;
       const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       if (!apiKey) throw new Error('Supabase anon key is not configured.');
 
@@ -396,25 +394,22 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     importance: number = 5
   ) => {
     if (!user || !content.trim()) return;
-    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authenticatedUser || authenticatedUser.id !== user.id) {
-      toast.error('Hafıza eklenemedi: oturum doğrulanamadı.');
-      return;
-    }
-    const { data, error } = await supabase
-      .from('user_memories')
-      .insert({
-        user_id: authenticatedUser.id,
-        content: content.trim(),
-        memory_type,
-        category: category.trim() || 'genel',
-        importance,
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      setMemories(prev => [data as UserMemory, ...prev]);
-    } else if (error) {
+    try {
+      const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const { data, error } = await supabase
+        .from('user_memories')
+        .insert({
+          user_id: authenticatedUserId,
+          content: content.trim(),
+          memory_type,
+          category: category.trim() || 'genel',
+          importance,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) setMemories(prev => [data as UserMemory, ...prev]);
+    } catch (error) {
       console.error('Failed to add user memory:', error);
       toast.error('Hafıza eklenemedi. Lütfen tekrar deneyin.');
     }

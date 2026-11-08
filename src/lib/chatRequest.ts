@@ -79,9 +79,18 @@ export async function requestChatCompletion({
     throw new Error(`Unsupported chat provider: ${modelSelection.provider}`);
   }
 
+  const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!apiKey) throw new Error('Supabase anon key is not configured');
+
+  const supabaseHeaders = new Headers(headers);
+  supabaseHeaders.set('apikey', apiKey);
+  if (!supabaseHeaders.get('Authorization')?.startsWith('Bearer ')) {
+    throw new Error('A valid Supabase user session is required');
+  }
+
   return fetch(CHAT_URL, {
     method: 'POST',
-    headers,
+    headers: supabaseHeaders,
     body: JSON.stringify({ ...body, provider: 'default' }),
   });
 }

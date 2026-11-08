@@ -107,12 +107,12 @@ interface Conversation {
 }
 
 const requireAuthenticatedUserId = async (expectedUserId: string): Promise<string> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
-  if (!user || user.id !== expectedUserId) {
+  if (!session?.access_token || session.user.id !== expectedUserId) {
     throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
   }
-  return user.id;
+  return session.user.id;
 };
 
 const REACTION_REPLIES: Record<string, string> = {
@@ -556,10 +556,13 @@ export const useChatbot = () => {
       screen_share_enabled: localStorage.getItem('ai_chatbot_screen_share') === 'true',
     };
     
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const token = session?.access_token || anonKey;
     if (!anonKey) throw new Error('Supabase anon key is not configured');
+    if (!session?.access_token || session.user.id !== user?.id) {
+      throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
+    }
     const modelSelection = readModelSelection();
     
     const resp = await requestChatCompletion({
@@ -567,7 +570,7 @@ export const useChatbot = () => {
       headers: {
         "Content-Type": "application/json",
         apikey: anonKey,
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${session.access_token}`,
         "x-voice-mode": isVoiceModeActive ? "true" : "false",
       },
       body: {
@@ -670,12 +673,12 @@ export const useChatbot = () => {
 
   const generateImage = useCallback(async (prompt: string): Promise<string | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(GENERATE_IMAGE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          apikey: apiKey,
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ prompt }),
@@ -691,16 +694,16 @@ export const useChatbot = () => {
       console.error('Image generation error:', error);
       return null;
     }
-  }, []);
+  }, [user?.id]);
 
   const generateGif = useCallback(async (prompt: string): Promise<{ frames: string[]; delay: number } | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(GENERATE_GIF_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          apikey: apiKey,
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ prompt, frameCount: 4 }),
@@ -719,7 +722,7 @@ export const useChatbot = () => {
       console.error('GIF generation error:', error);
       return null;
     }
-  }, []);
+  }, [user?.id]);
 
   const generatePptx = useCallback(async (prompt: string): Promise<{ url: string; fileName: string; title: string; slideCount: number } | null> => {
     try {
@@ -850,11 +853,10 @@ export const useChatbot = () => {
     duration?: number,
   ): Promise<{ url: string; fileName: string; mode: string } | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const response = await fetch(GENERATE_AUDIO_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', apikey: apiKey, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text, mode, duration }),
       });
       const data = await response.json();
@@ -864,7 +866,7 @@ export const useChatbot = () => {
       console.error('Audio generation error:', error);
       return null;
     }
-  }, []);
+  }, [user?.id]);
 
   // Generate an MP4 slideshow video from AI-generated images
   const generateMp4Slideshow = useCallback(async (
@@ -874,11 +876,10 @@ export const useChatbot = () => {
   ): Promise<{ url: string; fileName: string; frameCount: number } | null> => {
     try {
       // 1) Generate frames via the existing GIF endpoint (same image-gen pipeline)
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
       const gifResp = await fetch(GENERATE_GIF_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', apikey: apiKey, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ prompt, frameCount }),
       });
       if (!gifResp.ok) throw new Error('Kareler üretilemedi');
@@ -1006,14 +1007,15 @@ export const useChatbot = () => {
   }, []);
 
   const callGoogleApi = useCallback(async (action: string, params: Record<string, unknown>): Promise<unknown> => {
+    const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
     const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const providerToken = session?.provider_token;
 
     const resp = await fetch(GOOGLE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        apikey: apiKey,
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ action, params, provider_token: providerToken }),
@@ -1025,12 +1027,12 @@ export const useChatbot = () => {
     }
 
     return await resp.json();
-  }, []);
+  }, [user?.id]);
 
   // Read individual email details for summary
   const fetchEmailDetails = useCallback(async (messageIds: string[], maxCount: number = 5): Promise<string> => {
+    const { token, apiKey } = await getAuthenticatedFunctionCredentials(user?.id);
     const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const providerToken = session?.provider_token;
     
     const details: string[] = [];
@@ -1042,6 +1044,7 @@ export const useChatbot = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            apikey: apiKey,
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ action: 'gmail.read', params: { messageId: msgId }, provider_token: providerToken }),
@@ -1063,7 +1066,7 @@ export const useChatbot = () => {
     }
 
     return details.join('\n\n');
-  }, []);
+  }, [user?.id]);
 
   const sendMessage = useCallback(async (input: string, fileUrl?: string, generationType?: 'image' | 'gif') => {
     const trimmedInput = input.trim();
