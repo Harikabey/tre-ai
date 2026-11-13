@@ -251,14 +251,16 @@ export const useUserMemory = () => {
               toast.error('İlgi alanı güncellenemedi.');
             }
           } else {
-            const { error } = await supabase.from('user_interests').insert({
+            const payload = {
               user_id: user.id,
               interest: interest.interest,
-              category: interest.category
-            });
+              category: interest.category,
+            };
+            console.log('Adding user interest with payload:', payload);
+            const { error } = await supabase.from('user_interests').insert(payload);
             if (error) {
               console.error('Failed to save user interest:', error);
-              toast.error('İlgi alanı kaydedilemedi.');
+              toast.error(error.message);
             }
           }
         }
@@ -475,6 +477,7 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
         interest: interest.trim(),
         category: category.trim() || 'genel',
       };
+      console.log('Adding user interest with payload:', payload);
 
       const { data, error } = await supabase
         .from('user_interests')
@@ -485,7 +488,7 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
       if (data) setInterests(prev => [data as UserInterest, ...prev]);
     } catch (error) {
       console.error('Failed to add user interest:', error);
-      toast.error(`İlgi alanı eklenemedi: ${getErrorMessage(error)}`);
+      toast.error(getErrorMessage(error));
     }
   }, [user]);
 
