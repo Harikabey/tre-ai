@@ -33,13 +33,18 @@ export interface MoodRecord {
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
 const requireAuthenticatedUserId = async (expectedUserId: string): Promise<string> => {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { user: authenticatedUser }, error } = await supabase.auth.getUser();
   if (error) throw error;
-  if (!session?.access_token || session.user.id !== expectedUserId) {
+  if (!authenticatedUser || authenticatedUser.id !== expectedUserId) {
     throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
   }
-  return session.user.id;
+  return authenticatedUser.id;
 };
+
+const getErrorMessage = (error: unknown): string =>
+  typeof error === 'object' && error !== null && 'message' in error
+    ? String(error.message)
+    : String(error);
 
 export const useUserMemory = () => {
   const { user } = useAuth();
@@ -374,17 +379,19 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
 
   const deleteInterest = useCallback(async (interestId: string) => {
     if (!user) return;
-    const { error } = await supabase
-      .from('user_interests')
-      .delete()
-      .eq('id', interestId)
-      .eq('user_id', user.id);
-    if (error) {
+    try {
+      const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const { error } = await supabase
+        .from('user_interests')
+        .delete()
+        .eq('id', interestId)
+        .eq('user_id', authenticatedUserId);
+      if (error) throw error;
+      setInterests(prev => prev.filter(i => i.id !== interestId));
+    } catch (error) {
       console.error('Failed to delete user interest:', error);
-      toast.error('İlgi alanı silinemedi.');
-      return;
+      toast.error(`İlgi alanı silinemedi: ${getErrorMessage(error)}`);
     }
-    setInterests(prev => prev.filter(i => i.id !== interestId));
   }, [user]);
 
   const addMemory = useCallback(async (
@@ -461,19 +468,10 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     try {
       const authenticatedUserId = await requireAuthenticatedUserId(user.id);
       const payload = {
-        user_id: authenticatedUserId || null,
+        user_id: authenticatedUserId,
         interest: interest.trim(),
         category: category.trim() || 'genel',
       };
-      if (!payload.user_id) {
-        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-        if (!currentUser || currentUser.id !== user.id) {
-          throw new Error('Oturum doğrulanamadı. Lütfen yeniden giriş yapın.');
-        }
-        payload.user_id = currentUser.id;
-      }
-      console.log('Adding user interest with payload:', payload);
 
       const { data, error } = await supabase
         .from('user_interests')
@@ -484,12 +482,7 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
       if (data) setInterests(prev => [data as UserInterest, ...prev]);
     } catch (error) {
       console.error('Failed to add user interest:', error);
-      const message = error instanceof Error
-        ? error.message
-        : typeof error === 'object' && error !== null && 'message' in error
-          ? String(error.message)
-          : String(error);
-      toast.error(`İlgi alanı eklenemedi: ${message}`);
+      toast.error(`İlgi alanı eklenemedi: ${getErrorMessage(error)}`);
     }
   }, [user]);
 
@@ -498,18 +491,22 @@ ${userInterestNames ? `- Kullanıcının ilgi alanlarından (${userInterestNames
     updates: Partial<Pick<UserInterest, 'interest' | 'category' | 'strength'>>
   ) => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from('user_interests')
-      .update(updates)
-      .eq('id', interestId)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-    if (!error && data) {
-      setInterests(prev => prev.map(i => (i.id === interestId ? { ...i, ...(data as UserInterest) } : i)));
-    } else if (error) {
+    try {
+      const authenticatedUserId = await requireAuthenticatedUserId(user.id);
+      const { data, error } = await supabase
+        .from('user_interests')
+        .update(updates)
+        .eq('id', interestId)
+        .eq('user_id', authenticatedUserId)
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setInterests(prev => prev.map(i => (i.id === interestId ? { ...i, ...(data as UserInterest) } : i)));
+      }
+    } catch (error) {
       console.error('Failed to update user interest:', error);
-      toast.error('İlgi alanı güncellenemedi.');
+      toast.error(`İlgi alanı güncellenemedi: ${getErrorMessage(error)}`);
     }
   }, [user]);
 
