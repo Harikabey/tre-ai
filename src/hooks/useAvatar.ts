@@ -163,15 +163,16 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
     setIsUploading(true);
 
     try {
-      if (avatarPath && avatarPath !== objectPath) {
-        await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+      if (avatarPath) {
+        const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+        if (removeError) throw removeError;
       }
       const { error: uploadError } = await supabase.storage
         .from(AVATAR_BUCKET)
         .upload(objectPath, file, {
           cacheControl: '3600',
           contentType: expectedMimeType,
-          upsert: true,
+          upsert: false,
         });
       if (uploadError) throw uploadError;
 
