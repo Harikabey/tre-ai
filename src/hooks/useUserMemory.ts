@@ -96,12 +96,15 @@ export const useUserMemory = () => {
       .order('strength', { ascending: false })
       .limit(20);
     
-    if (!error && data) {
-      const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
-      if (authenticatedUser?.id === user.id) setInterests(data as UserInterest[]);
-    } else if (error) {
+    if (error) {
       console.error('Failed to load user interests:', error);
-      toast.error('İlgi alanları yüklenemedi.');
+      toast.error(`İlgi alanları yüklenemedi: ${error.message}`);
+      return;
+    }
+
+    const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
+    if (authenticatedUser?.id === user.id) {
+      setInterests((data ?? []) as UserInterest[]);
     }
   };
 
@@ -230,7 +233,7 @@ export const useUserMemory = () => {
 
           if (lookupError) {
             console.error('Failed to check existing user interest:', lookupError);
-            toast.error('İlgi alanı kontrol edilemedi.');
+            toast.error(`İlgi alanı kontrol edilemedi: ${lookupError.message}`);
             continue;
           }
 
