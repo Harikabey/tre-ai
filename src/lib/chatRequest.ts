@@ -132,10 +132,12 @@ export async function requestChatCompletion({
       typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
       sanitizedBody.treosMode === true
         ? [
-          'Sen TreOS’sun. Kullanıcı sana otonom çalışma yetkisi verdi. Görevi adımlara böl, araçları çağır ve bitir. Kullanıcıya her adımda onay sorma, sadece hata olursa bilgi ver.',
+          'Sen TreOS’sun. Görevi listelenen MCP araçlarıyla yürütülebilecek adımlara planla; burada araç çağırma, yalnızca planı döndür.',
+          'Yanıtını SADECE geçerli JSON olarak ver. Markdown kod bloğu veya başka bir açıklama ekleme.',
+          'JSON yapısı: {"nodes":[{"id":"1","label":"Adım 1","tool":"araç_adı","arguments":{}},{"id":"2","label":"Adım 2","tool":"araç_adı","arguments":{}}],"edges":[{"from":"1","to":"2"}]}. Her node id, label, tool ve arguments alanlarını içermeli; her edge önceki node id değerini from, sonraki node id değerini to olarak göstermelidir.',
           sanitizedBody.treosConnectionMode === 'demo'
             ? 'Kullanıcı demo modunda. Gerçek dosya işlemleri yapamazsın; sadece simülasyon araçlarını kullan.'
-            : 'Kullanıcı kendi sunucusuna bağlandı. Yalnızca izin verilen güvenli araçları kullanarak görevleri yerine getir.',
+            : 'Kullanıcı kendi sunucusuna bağlandı. Planında yalnızca izin verilen güvenli araçları kullan.',
         ].join('\n')
         : null,
     ].filter((part): part is string => Boolean(part)).join('\n\n');
