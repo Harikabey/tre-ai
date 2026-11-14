@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Cable, Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
+import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -30,17 +29,15 @@ interface TaskStep {
 }
 
 const MAX_STEPS = 10;
-type SetupStep = 1 | 2 | 3;
 const TREOS_DEMO_MCP_URL = import.meta.env.VITE_TREOS_DEMO_MCP_URL?.trim() ?? '';
+const LOCAL_SIMULATOR_URL = 'http://127.0.0.1:3000/mcp';
 
 const TreOS = () => {
-  const [tunnelUrl, setTunnelUrl] = useState('');
   const [connectionMode, setConnectionMode] = useState<McpConnectionMode | null>(() => {
-    const stored = localStorage.getItem('treos_connection_mode');
-    return stored === 'demo' || stored === 'custom' ? stored : null;
+    return localStorage.getItem('treos_connection_mode') === 'demo' ? 'demo' : null;
   });
-  const [setupOpen, setSetupOpen] = useState(false);
-  const [setupStep, setSetupStep] = useState<SetupStep>(1);
+  const [autoSetupOpen, setAutoSetupOpen] = useState(false);
+  const [autoSetupRunning, setAutoSetupRunning] = useState(false);
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
   const [task, setTask] = useState('');
@@ -49,8 +46,13 @@ const TreOS = () => {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
+  const autoSetupInterval = useRef<number | null>(null);
+  const autoSetupTimeout = useRef<number | null>(null);
+  const pollInProgress = useRef(false);
 
   useEffect(() => () => {
+    if (autoSetupInterval.current !== null) window.clearInterval(autoSetupInterval.current);
+    if (autoSetupTimeout.current !== null) window.clearTimeout(autoSetupTimeout.current);
     runId.current += 1;
     client?.close();
   }, [client]);
@@ -60,8 +62,8 @@ const TreOS = () => {
   }
 
   const connect = async (
-    url = tunnelUrl,
-    mode: McpConnectionMode = 'custom',
+    url: string,
+    mode: McpConnectionMode = 'demo',
   ): Promise<boolean> => {
     setConnecting(true);
     setError(null);
@@ -101,38 +103,89 @@ const TreOS = () => {
     if (connected) setError(null);
   };
 
-  const selectCustomMode = () => {
-    if (running || connecting) return;
-    client?.close();
-    setClient(null);
-    setTools([]);
-    setConnectionMode('custom');
-    localStorage.setItem('treos_connection_mode', 'custom');
-    setError(null);
-    setSetupStep(1);
-    setSetupOpen(true);
+  const stopAutoSetupPolling = () => {
+    if (autoSetupInterval.current !== null) window.clearInterval(autoSetupInterval.current);
+    if (autoSetupTimeout.current !== null) window.clearTimeout(autoSetupTimeout.current);
+    autoSetupInterval.current = null;
+    autoSetupTimeout.current = null;
+    pollInProgress.current = false;
   };
 
-  const openSetup = () => {
-    setSetupStep(1);
-    setSetupOpen(true);
-    setError(null);
-  };
+  const pollLocalSimulator = async () => {
+    if (pollInProgress.current) return;
+    pollInProgress.current = true;
+    try {
+      const response = await fetch(LOCAL_SIMULATOR_URL, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-store',
+      });
+      if (response.status !== 200) return;
 
-  const continueSetup = () => {
-    if (setupStep === 2) {
-      try {
-        validateMcpUrl(tunnelUrl);
-        setError(null);
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Geçerli bir HTTPS URL’si girin.');
-        return;
-      }
+      stopAutoSetupPolling();
+      const connected = await connect(LOCAL_SIMULATOR_URL, 'demo');
+      setAutoSetupRunning(false);
+      if (connected) setError(null);
+    } catch {
+      // The local server is expected to refuse connections until the downloaded script is run.
+    } finally {
+      pollInProgress.current = false;
     }
-    setSetupStep((current) => Math.min(3, current + 1) as SetupStep);
+  };
+
+  const startAutoSetup = async () => {
+    setAutoSetupOpen(false);
+    setError(null);
+    setAutoSetupRunning(true);
+    stopAutoSetupPolling();
+    try {
+      const userAgent = navigator.userAgent;
+      const scriptName = /Windows/i.test(userAgent)
+        ? 'treos-auto-setup.bat'
+        : /Macintosh|Mac OS X/i.test(userAgent)
+          ? 'treos-auto-setup.sh'
+          : /Linux/i.test(userAgent)
+            ? 'treos-auto-setup.sh'
+            : null;
+      if (!scriptName) throw new Error('İşletim sisteminiz otomatik tanınamadı. Windows, macOS veya Linux kullanın.');
+
+      const publicBaseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
+      const scriptUrl = new URL(scriptName, publicBaseUrl);
+      const scriptResponse = await fetch(scriptUrl, { cache: 'no-store' });
+      if (!scriptResponse.ok) throw new Error('Kurulum betiği indirilemedi. Lütfen daha sonra tekrar deneyin.');
+      const scriptTemplate = await scriptResponse.text();
+      if (!scriptTemplate.includes('__TREOS_ASSET_BASE_URL__')) {
+        throw new Error('Kurulum betiği geçersiz; indirme başlatılmadı.');
+      }
+
+      const assetBaseUrl = publicBaseUrl.href.replace(/\/$/, '');
+      const script = scriptTemplate.replaceAll('__TREOS_ASSET_BASE_URL__', assetBaseUrl);
+      const downloadUrl = URL.createObjectURL(new Blob([script], { type: 'text/plain' }));
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = scriptName;
+      document.body.append(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+
+      autoSetupInterval.current = window.setInterval(() => void pollLocalSimulator(), 1000);
+      autoSetupTimeout.current = window.setTimeout(() => {
+        stopAutoSetupPolling();
+        setAutoSetupRunning(false);
+        setError('5 dakika içinde yerel simülatör bulunamadı. İndirdiğiniz betiği çalıştırıp yeniden deneyin.');
+      }, 5 * 60 * 1000);
+      void pollLocalSimulator();
+    } catch (reason) {
+      setAutoSetupRunning(false);
+      setError(reason instanceof Error ? reason.message : 'Otomatik kurulum başlatılamadı.');
+    }
   };
 
   const disconnect = () => {
+    stopAutoSetupPolling();
+    setAutoSetupRunning(false);
     runId.current += 1;
     client?.close();
     setClient(null);
@@ -150,7 +203,7 @@ const TreOS = () => {
     setRunning(true);
     setSteps([]);
     try {
-      const plan = await createPlan(task.trim(), tools, connectionMode ?? 'custom');
+      const plan = await createPlan(task.trim(), tools, connectionMode ?? 'demo');
       if (executionId !== runId.current) return;
       if (plan.length === 0) throw new Error('Bu görev için izinli araçlarla güvenli bir adım planlanamadı.');
       setSteps(plan);
@@ -198,7 +251,7 @@ const TreOS = () => {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-semibold">TreOS Beta</h1>
-            <p className="text-sm text-muted-foreground">Güvenli MCP tüneli üzerinden bilgisayarınızla çalışın.</p>
+            <p className="text-sm text-muted-foreground">Yerel MCP simülasyonu üzerinden TreOS’u deneyin.</p>
           </div>
           <ShieldCheck className="h-6 w-6 text-emerald-600" aria-label="Terminal erişimi kapalı" />
         </header>
@@ -219,177 +272,59 @@ const TreOS = () => {
               </Button>
             </article>
             <article className="rounded-xl border border-border bg-card p-5">
-              <h2 className="mb-2 font-semibold">🛠️ Kendi Sunucumu Bağla (Gelişmiş)</h2>
+              <h2 className="mb-2 font-semibold">🛠️ Kendi Sunucumu Bağla</h2>
               <p className="mb-4 text-sm text-muted-foreground">
-                Kendi yönettiğiniz MCP sunucusunun HTTPS adresini girip bağlantıyı test edin.
-                Sunucuyu internete açarken kimlik doğrulaması ve erişim kısıtlaması kullanın.
+                Yerel simülatörü indirin. Yalnızca simülasyon araçları etkinleşir; bilgisayarınızda
+                gerçek bir işlem yapılmaz ve herhangi bir tünel açılmaz.
               </p>
-              <Button variant="outline" onClick={selectCustomMode} disabled={connecting || running}>
-                Kendi sunucumu bağla
+              <Button variant="outline" onClick={() => setAutoSetupOpen(true)} disabled={connecting || running || autoSetupRunning}>
+                Otomatik Kurulum (Tek Tıkla)
               </Button>
+              {autoSetupRunning && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Lütfen indirdiğiniz dosyayı çalıştırın. Bağlantı otomatik kurulacaktır.
+                </p>
+              )}
             </article>
           </section>
         )}
 
-        {(connectionMode === 'custom' || client) && (
+        {client && (
           <section className="mb-5 rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-2 flex items-center gap-2 font-semibold"><Cable className="h-4 w-4" /> {connectionMode === 'demo' ? 'Demo bağlantısı' : 'MCP tünel bağlantısı'}</h2>
-          {connectionMode === 'custom' && (
-            <>
-              <p className="mb-3 text-sm text-muted-foreground">
-                Kendi MCP sunucunuzun HTTPS URL’sini girin. Uç nokta tarayıcı CORS isteklerini
-                desteklemeli ve kimlik doğrulamasıyla korunmalıdır.
-              </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  type="url"
-                  inputMode="url"
-                  autoComplete="url"
-                  placeholder="https://.../mcp"
-                  value={tunnelUrl}
-                  onChange={(event) => setTunnelUrl(event.target.value)}
-                  aria-label="MCP tünel URL’si"
-                  disabled={connecting || running}
-                />
-                <Button type="button" variant="outline" onClick={openSetup} disabled={connecting || running}>
-                  Kolay Kurulum
-                </Button>
-                {client ? (
-                  <Button variant="outline" onClick={disconnect} disabled={running}>
-                    <Unplug className="mr-2 h-4 w-4" /> Bağlantıyı kes
-                  </Button>
-                ) : (
-                  <Button onClick={() => void connect()} disabled={connecting || running || !tunnelUrl.trim()}>
-                    {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cable className="mr-2 h-4 w-4" />}
-                    Bağlan
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-          {connectionMode === 'demo' && client && (
+            <h2 className="mb-2 flex items-center gap-2 font-semibold"><Cable className="h-4 w-4" /> Simülasyon MCP bağlantısı</h2>
             <Button variant="outline" onClick={disconnect} disabled={running}>
               <Unplug className="mr-2 h-4 w-4" /> Bağlantıyı kes
             </Button>
-          )}
-          {client && <p className="mt-2 text-sm text-emerald-600">
-            {connectionMode === 'demo'
-              ? 'Demo Sunucusuna Bağlandı ✅ (Bazı araçlar kısıtlı olabilir)'
-              : 'MCP sunucusuna güvenli bağlantı kuruldu'} · {tools.length} izinli araç
-          </p>}
-          {tools.length > 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              İzinli araçlar: {tools.map((tool) => tool.name).join(', ')}.
-              {connectionMode === 'demo'
-                ? ' Yalnızca simülasyon araçları etkin.'
-                : ' Terminal/komut araçları engellenir.'}
+            <p className="mt-2 text-sm text-emerald-600">
+              Bağlantı Başarılı ✅ · {tools.length} izinli simülasyon aracı
             </p>
-          )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              İzinli araçlar: {tools.map((tool) => tool.name).join(', ')}. Gerçek bilgisayar işlemi yapılmaz.
+            </p>
           </section>
         )}
 
-        <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+        <Dialog open={autoSetupOpen} onOpenChange={setAutoSetupOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>TreOS bağlantı kurulumu</DialogTitle>
+              <DialogTitle>Otomatik Kurulum (Tek Tıkla)</DialogTitle>
               <DialogDescription>
-                Adım {setupStep} / 3 · TreOS yerel bir program indirmez veya arka planda tünel açmaz.
+                Bu araç, bilgisayarınızda TreOS bağlantısı için gerekli sunucuyu başlatacaktır. Onaylıyor musunuz?
               </DialogDescription>
             </DialogHeader>
-
-            <ol className="grid grid-cols-3 gap-2 text-center text-xs">
-              {(['MCP sunucusu', 'HTTPS adresi', 'Bağlantı'] as const).map((label, index) => {
-                const step = (index + 1) as SetupStep;
-                const active = setupStep === step;
-                const complete = setupStep > step || (step === 3 && Boolean(client));
-                return (
-                  <li
-                    key={label}
-                    aria-current={active ? 'step' : undefined}
-                    className={`rounded-md border px-2 py-2 ${
-                      active ? 'border-primary text-foreground' :
-                        complete ? 'border-emerald-500/50 text-emerald-600' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    {complete && <Check className="mx-auto mb-1 h-4 w-4" />}
-                    {label}
-                  </li>
-                );
-              })}
-            </ol>
-
-            <div className="min-h-32 space-y-3 py-2">
-              {setupStep === 1 && (
-                <>
-                  <h3 className="font-medium">Kendi güvendiğiniz MCP sunucunuzu hazırlayın</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Bu sihirbaz ajan veya MCP sunucusu indirmez. Kendi güvendiğiniz MCP sunucunuzu ayrı
-                    biçimde kurup başlatın. İnternete açık tünel, bilgisayarınızdaki araçlara uzaktan erişim
-                    sağlayabilir; sunucuyu kimlik doğrulama ve erişim kısıtlaması olmadan internete açmayın.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    TreOS terminal araçlarını engeller. MCP sunucusunun kendi araç ve dosya izinlerini de
-                    mümkün olan en dar kapsamda yapılandırın.
-                  </p>
-                </>
-              )}
-              {setupStep === 2 && (
-                <>
-                  <h3 className="font-medium">Sunucunun HTTPS adresini girin</h3>
-                  <p className="text-sm text-muted-foreground">
-                    MCP sunucunuza ait HTTPS uç noktasını sağlayın. Bu sayfa bir sunucu veya tünel
-                    sağlamaz; bağlantı için sunucunun tarayıcı CORS isteklerine izin vermesi gerekir.
-                    Tünel kullanıyorsanız erişimi kimlik doğrulamasıyla koruyun.
-                  </p>
-                  <Input
-                    type="url"
-                    inputMode="url"
-                    autoComplete="url"
-                    placeholder="https://.../mcp"
-                    value={tunnelUrl}
-                    onChange={(event) => setTunnelUrl(event.target.value)}
-                    aria-label="MCP sunucusunun HTTPS adresi"
-                  />
-                </>
-              )}
-              {setupStep === 3 && (
-                <>
-                  <h3 className="font-medium">MCP bağlantı testi</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Bağlan’a bastığınızda TreOS verdiğiniz HTTPS adresine MCP başlatma ve araç listesi
-                    isteği göndererek bağlantıyı doğrular. Arka plan polling’i veya Supabase üzerinden
-                    tünel araması yapılmaz.
-                  </p>
-                  {connecting && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> MCP sunucusundan yanıt bekleniyor…</p>}
-                  {client && <p className="flex items-center gap-2 text-sm text-emerald-600"><CircleCheck className="h-4 w-4" /> Bağlantı Başarılı ✅ · {tools.length} izinli araç bulundu.</p>}
-                  {error && <p role="alert" className="flex items-center gap-2 text-sm text-destructive"><CircleAlert className="h-4 w-4 shrink-0" />{error}</p>}
-                </>
-              )}
-            </div>
-
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-              {setupStep > 1 && !client && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSetupStep((current) => Math.max(1, current - 1) as SetupStep)}
-                  disabled={connecting}
-                >
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Geri
-                </Button>
-              )}
-              {setupStep < 3 ? (
-                <Button type="button" onClick={continueSetup}>
-                  Devam et <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
-              ) : client ? (
-                <Button type="button" onClick={() => setSetupOpen(false)}>Tamam</Button>
-              ) : (
-                <Button type="button" onClick={() => void connect()} disabled={connecting || !tunnelUrl.trim()}>
-                  {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {connecting ? 'Bağlanıyor…' : 'Bağlan'}
-                </Button>
-              )}
+            <p className="text-sm text-muted-foreground">
+              Kurulum yalnızca bu bilgisayarda, 127.0.0.1 üzerinde simülasyon MCP sunucusu çalıştırır.
+              Node.js 18 veya üzeri gereklidir. Cloudflare tüneli açılmaz; gerçek dosya veya uygulama
+              işlemi yapılmaz. Devam ederek betiği indirmeyi onaylarsınız.
+            </p>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAutoSetupOpen(false)}>
+                İptal
+              </Button>
+              <Button type="button" onClick={() => void startAutoSetup()}>
+                Onayla ve indir
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

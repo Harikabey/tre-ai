@@ -26,8 +26,9 @@ export function validateMcpUrl(value: string): URL {
     throw new Error('Geçerli bir tünel URL’si girin.');
   }
 
-  if (url.protocol !== 'https:') {
-    throw new Error('Lütfen HTTPS ile başlayan güvenli bir URL girin.');
+  const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase());
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
+    throw new Error('Lütfen HTTPS ile başlayan güvenli bir URL girin. HTTP yalnızca localhost için kullanılabilir.');
   }
   if (url.username || url.password || url.hash) {
     throw new Error('URL kullanıcı bilgisi veya fragment içeremez.');
