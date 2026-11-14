@@ -674,7 +674,7 @@ const AuthenticatedIndex = () => {
           onRenameConversation={renameConversation}
         />
 
-        <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full max-w-full">
           <ChatHeader
             isLearningMode={isLearningMode}
             onLearningModeChange={setIsLearningMode}
@@ -706,8 +706,8 @@ const AuthenticatedIndex = () => {
             onToggleLock={handleToggleLock}
           />
 
-          <div className="flex-1 flex overflow-hidden min-w-0 w-full max-w-full">
-            <div className="flex-1 min-w-0 overflow-hidden flex flex-col overflow-x-hidden w-full max-w-full" ref={scrollRef}>
+          <div className="flex-1 flex overflow-hidden min-w-0 min-h-0 w-full max-w-full">
+            <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col overflow-x-hidden w-full max-w-full" ref={scrollRef}>
               {isCurrentHidden ? (
                 <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
@@ -722,7 +722,7 @@ const AuthenticatedIndex = () => {
               ) : messages.length === 0 ? (
                 <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
               ) : (
-                <ScrollArea className="h-full w-full min-w-0 max-w-full overflow-x-hidden" onScrollCapture={handleChatScroll}>
+                <ScrollArea className="min-h-0 flex-1 w-full min-w-0 max-w-full overflow-x-hidden" onScrollCapture={handleChatScroll}>
                   <div className="w-full min-w-0 max-w-full overflow-x-hidden px-2 sm:px-4 space-y-3 sm:space-y-4">
                     {isLoadingOlder && (
                       <div className="flex justify-center py-2">
