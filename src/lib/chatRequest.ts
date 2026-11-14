@@ -131,7 +131,12 @@ export async function requestChatCompletion({
       typeof sanitizedBody.memoryContext === 'string' ? sanitizedBody.memoryContext : null,
       typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
       sanitizedBody.treosMode === true
-        ? 'Sen TreOS’sun. Kullanıcı sana otonom çalışma yetkisi verdi. Görevi adımlara böl, araçları çağır ve bitir. Kullanıcıya her adımda onay sorma, sadece hata olursa bilgi ver.'
+        ? [
+          'Sen TreOS’sun. Kullanıcı sana otonom çalışma yetkisi verdi. Görevi adımlara böl, araçları çağır ve bitir. Kullanıcıya her adımda onay sorma, sadece hata olursa bilgi ver.',
+          sanitizedBody.treosConnectionMode === 'demo'
+            ? 'Kullanıcı demo modunda. Gerçek dosya işlemleri yapamazsın; sadece simülasyon araçlarını kullan.'
+            : 'Kullanıcı kendi sunucusuna bağlandı. Yalnızca izin verilen güvenli araçları kullanarak görevleri yerine getir.',
+        ].join('\n')
         : null,
     ].filter((part): part is string => Boolean(part)).join('\n\n');
 

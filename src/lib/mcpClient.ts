@@ -4,12 +4,15 @@ export interface McpTool {
   inputSchema: Record<string, unknown>;
 }
 
+export type McpConnectionMode = 'custom' | 'demo';
+
 interface JsonRpcResponse {
   result?: unknown;
   error?: { code?: number; message?: string };
 }
 
 const ALLOWED_TOOLS = new Set(['click_mouse', 'open_app', 'write_file']);
+const ALLOWED_DEMO_TOOLS = new Set(['simulate_action', 'preview_action', 'get_demo_status']);
 const BLOCKED_TOOL_NAME = /(shell|terminal|command|exec|powershell|bash|process|script)/i;
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 const MAX_RESPONSE_SIZE = 1024 * 1024;
@@ -32,15 +35,16 @@ export function validateMcpUrl(value: string): URL {
   return url;
 }
 
-export function filterMcpTools(value: unknown): McpTool[] {
+export function filterMcpTools(value: unknown, mode: McpConnectionMode = 'custom'): McpTool[] {
   if (!Array.isArray(value)) throw new Error('MCP sunucusu geçerli bir araç listesi döndürmedi.');
+  const allowedTools = mode === 'demo' ? ALLOWED_DEMO_TOOLS : ALLOWED_TOOLS;
 
   return value.filter((tool): tool is McpTool => {
     if (typeof tool !== 'object' || tool === null || Array.isArray(tool)) return false;
     const candidate = tool as Record<string, unknown>;
     if (
       typeof candidate.name !== 'string' ||
-      !ALLOWED_TOOLS.has(candidate.name) ||
+      !allowedTools.has(candidate.name) ||
       BLOCKED_TOOL_NAME.test(candidate.name) ||
       typeof candidate.inputSchema !== 'object' ||
       candidate.inputSchema === null ||
@@ -53,16 +57,21 @@ export function filterMcpTools(value: unknown): McpTool[] {
 
 export class McpClient {
   private endpoint: URL;
+  private mode: McpConnectionMode;
   private sessionId: string | null = null;
   private requestId = 0;
   private protocolVersion: string | null = null;
 
-  private constructor(endpoint: URL) {
+  private constructor(endpoint: URL, mode: McpConnectionMode) {
     this.endpoint = endpoint;
+    this.mode = mode;
   }
 
-  static async connect(value: string): Promise<{ client: McpClient; tools: McpTool[] }> {
-    const client = new McpClient(validateMcpUrl(value));
+  static async connect(
+    value: string,
+    mode: McpConnectionMode = 'custom',
+  ): Promise<{ client: McpClient; tools: McpTool[] }> {
+    const client = new McpClient(validateMcpUrl(value), mode);
     const initialized = await client.request('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
@@ -77,12 +86,12 @@ export class McpClient {
 
     const result = await client.request('tools/list', {});
     if (!isRecord(result)) throw new Error('MCP araç listesi okunamadı.');
-    const tools = filterMcpTools(result.tools);
+    const tools = filterMcpTools(result.tools, mode);
     return { client, tools };
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {
-    const allowed = filterMcpTools([{ name, inputSchema: {} }]);
+    const allowed = filterMcpTools([{ name, inputSchema: {} }], this.mode);
     if (!allowed.length) throw new Error(`Güvenlik nedeniyle "${name}" aracı engellendi.`);
     validateToolArguments(name, args);
 
