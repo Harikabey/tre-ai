@@ -24,7 +24,7 @@ export function validateMcpUrl(value: string): URL {
   }
 
   if (url.protocol !== 'https:') {
-    throw new Error('Güvenlik için MCP tünel URL’si HTTPS kullanmalıdır.');
+    throw new Error('Lütfen HTTPS ile başlayan güvenli bir URL girin.');
   }
   if (url.username || url.password || url.hash) {
     throw new Error('URL kullanıcı bilgisi veya fragment içeremez.');

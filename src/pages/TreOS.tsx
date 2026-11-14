@@ -64,11 +64,12 @@ const TreOS = () => {
     try {
       validateMcpUrl(tunnelUrl);
       const connected = await McpClient.connect(tunnelUrl);
+      if (connected.tools.length === 0) {
+        connected.client.close();
+        throw new Error('MCP yanıt verdi ancak güvenli izin listesindeki kullanılabilir araç bulunamadı.');
+      }
       setClient(connected.client);
       setTools(connected.tools);
-      if (connected.tools.length === 0) {
-        setError('Bağlantı kuruldu ancak güvenli izin listesindeki kullanılabilir araç bulunamadı.');
-      }
       return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'MCP tüneline bağlanılamadı.');
@@ -238,15 +239,15 @@ const TreOS = () => {
             <div className="min-h-32 space-y-3 py-2">
               {setupStep === 1 && (
                 <>
-                  <h3 className="font-medium">Kendi güvendiğiniz MCP sunucunuzu başlatın</h3>
+                  <h3 className="font-medium">Kendi güvendiğiniz MCP sunucunuzu hazırlayın</h3>
                   <p className="text-sm text-muted-foreground">
-                    İndirilebilir bir ajan veya otomatik tünel bu kurulumda kullanılmaz. Yalnızca sizin
-                    kurup çalıştırdığınız MCP sunucusunu bağlayın; sunucuyu internete açmanın erişim
-                    ve gizlilik risklerini göz önünde bulundurun.
+                    Bu sihirbaz ajan veya MCP sunucusu indirmez. Kendi güvendiğiniz MCP sunucunuzu ayrı
+                    biçimde kurup başlatın. İnternete açık tünel, bilgisayarınızdaki araçlara uzaktan erişim
+                    sağlayabilir; sunucuyu kimlik doğrulama ve erişim kısıtlaması olmadan internete açmayın.
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Terminal araçları engellenir. Dosya yazma işlemi sunucunuzun kendi yetki sınırlarıyla
-                    kısıtlanmalıdır.
+                    TreOS terminal araçlarını engeller. MCP sunucusunun kendi araç ve dosya izinlerini de
+                    mümkün olan en dar kapsamda yapılandırın.
                   </p>
                 </>
               )}
@@ -270,13 +271,15 @@ const TreOS = () => {
               )}
               {setupStep === 3 && (
                 <>
-                  <h3 className="font-medium">Bağlantı bekleniyor</h3>
+                  <h3 className="font-medium">MCP bağlantı testi</h3>
                   <p className="text-sm text-muted-foreground">
-                    TreOS yalnızca şimdi, verdiğiniz HTTPS adresine doğrudan MCP bağlantı isteği gönderir.
-                    Arka plan polling’i veya Supabase üzerinden tünel araması yapılmaz.
+                    Bağlan’a bastığınızda TreOS verdiğiniz HTTPS adresine MCP başlatma ve araç listesi
+                    isteği göndererek bağlantıyı doğrular. Arka plan polling’i veya Supabase üzerinden
+                    tünel araması yapılmaz.
                   </p>
                   {connecting && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> MCP sunucusundan yanıt bekleniyor…</p>}
-                  {client && <p className="flex items-center gap-2 text-sm text-emerald-600"><CircleCheck className="h-4 w-4" /> Bağlantı kuruldu · {tools.length} izinli araç bulundu.</p>}
+                  {client && <p className="flex items-center gap-2 text-sm text-emerald-600"><CircleCheck className="h-4 w-4" /> Bağlantı Başarılı ✅ · {tools.length} izinli araç bulundu.</p>}
+                  {error && <p role="alert" className="flex items-center gap-2 text-sm text-destructive"><CircleAlert className="h-4 w-4 shrink-0" />{error}</p>}
                 </>
               )}
             </div>
