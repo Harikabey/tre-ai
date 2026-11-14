@@ -9,7 +9,7 @@ if errorlevel 1 (
   echo Node.js 18 veya uzeri gerekli. Node.js'i resmi kaynaktan yukleyip betigi yeniden calistirin.
   goto :done
 )
-node -e "if (Number(process.versions.node.split('.')[0]) ^< 18) process.exit(1)"
+node -e "if (Number(process.versions.node.split('.')[0]) < 18) process.exit(1)"
 if errorlevel 1 (
   echo Node.js 18 veya uzeri gerekli.
   goto :done
