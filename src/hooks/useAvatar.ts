@@ -66,7 +66,7 @@ const getAvatarObjectPath = (avatarUrl: string | null, userId: string): string |
   if (!avatarUrl) return null;
   if (!/^https?:/i.test(avatarUrl)) {
     const p = avatarUrl.split('?')[0];
-    return p.startsWith(`${userId}.`) ? p : null;
+    return p.startsWith(`${userId}/`) || p.startsWith(`${userId}.`) ? p : null;
   }
 
   try {
@@ -77,7 +77,7 @@ const getAvatarObjectPath = (avatarUrl: string | null, userId: string): string |
     const markerIndex = match.index;
 
     const path = decodeURIComponent(url.pathname.slice(markerIndex + bucketMarker.length));
-    return path.startsWith(`${userId}.`) ? path : null;
+    return path.startsWith(`${userId}/`) || path.startsWith(`${userId}.`) ? path : null;
   } catch {
     return null;
   }
@@ -158,7 +158,7 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    const objectPath = `${user.id}.${extension}`;
+    const objectPath = `${user.id}/avatar.${extension}`;
     const previousAvatarUrl = avatarUrl;
     setIsUploading(true);
 
