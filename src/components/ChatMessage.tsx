@@ -9,6 +9,7 @@ import { useVoice } from '@/hooks/useVoice';
 import { CitationPanel, Citation } from '@/components/CitationPanel';
 import { AnimatedFrames } from '@/components/AnimatedFrames';
 import { CodeBlock } from '@/components/CodeBlock';
+import { InteractiveCodeCard } from '@/components/InteractiveCodeCard';
 import { parseFileBlocks, FileDownloadBlock } from '@/components/FileDownloadBlock';
 import { FileActionButtons } from '@/components/FileActionButtons';
 import ReactMarkdown from 'react-markdown';
@@ -408,9 +409,14 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                     if (isInline) {
                       return <CodeBlock inline>{codeString}</CodeBlock>;
                     }
+
+                    const language = match?.[1]?.toLowerCase();
+                    if (language && ['html', 'css', 'js', 'javascript', 'python', 'py', 'typescript', 'ts', 'jsx', 'tsx'].includes(language)) {
+                      return <InteractiveCodeCard code={codeString} language={language} />;
+                    }
                     
                     return (
-                      <CodeBlock language={match?.[1]}>
+                      <CodeBlock language={language}>
                         {codeString}
                       </CodeBlock>
                     );
