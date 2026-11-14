@@ -174,10 +174,25 @@ ${site.html_body}
         [content instanceof Uint8Array ? new Uint8Array(content) : content],
         { type: contentType },
       );
-      const { error } = await adminClient.storage
+      const objectPath = `${folder}/${name}`;
+      const { error: uploadError } = await adminClient.storage
         .from("generated-files")
-        .upload(`${folder}/${name}`, uploadBody, { contentType, upsert: true });
-      if (error) throw new Error(`Yükleme hatası (${name}): ${error.message}`);
+        .upload(objectPath, uploadBody, { contentType, upsert: false });
+      if (uploadError) {
+        if (!("statusCode" in uploadError) || uploadError.statusCode !== "409") {
+          throw new Error(`Yükleme hatası (${name}): ${uploadError.message}`);
+        }
+
+        const { error: removeError } = await adminClient.storage
+          .from("generated-files")
+          .remove([objectPath]);
+        if (removeError) throw new Error(`Eski dosya silinemedi (${name}): ${removeError.message}`);
+
+        const { error: retryUploadError } = await adminClient.storage
+          .from("generated-files")
+          .upload(objectPath, uploadBody, { contentType, upsert: false });
+        if (retryUploadError) throw new Error(`Yükleme hatası (${name}): ${retryUploadError.message}`);
+      }
     }
 
     const { data: pub } = adminClient.storage

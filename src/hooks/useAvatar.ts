@@ -174,7 +174,21 @@ const AvatarProvider = ({ children }: { children: ReactNode }) => {
           contentType: expectedMimeType,
           upsert: false,
         });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (!('statusCode' in uploadError) || uploadError.statusCode !== '409') throw uploadError;
+
+        const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove([objectPath]);
+        if (removeError) throw removeError;
+
+        const { error: retryUploadError } = await supabase.storage
+          .from(AVATAR_BUCKET)
+          .upload(objectPath, file, {
+            cacheControl: '3600',
+            contentType: expectedMimeType,
+            upsert: false,
+          });
+        if (retryUploadError) throw retryUploadError;
+      }
 
       const { error: profileError } = await supabase
         .from('profiles')
