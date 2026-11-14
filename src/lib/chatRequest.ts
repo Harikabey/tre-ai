@@ -6,6 +6,7 @@ const PROVIDER_URLS = {
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
 } as const;
 const MAX_PAYLOAD_LENGTH = 1024 * 1024 - 1;
+const TREOS_JSON_SYSTEM_PROMPT = 'Sen bir JSON üretim motorusun. Kullanıcının verdiği görevi analiz et ve SADECE şu formatta bir JSON nesnesi döndür: {"nodes": [{"id": "1", "label": "Adım", "tool": "simulate_action", "arguments": {}}], "edges": []}. JSON dışında HİÇBİR ŞEY (açıklama, selamlama, markdown işareti) yazma.';
 
 interface ChatMessage {
   role: string;
@@ -123,25 +124,27 @@ export async function requestChatCompletion({
     }
 
     const sanitizedBody = sanitizePayloadValue(body) as Record<string, unknown>;
-    const systemContext = [
-      "You are Tre, the user's helpful AI assistant.",
-      typeof sanitizedBody.language === 'string' ? `Respond in ${sanitizedBody.language}.` : null,
-      typeof sanitizedBody.personality === 'string' ? `Use a ${sanitizedBody.personality} personality.` : null,
-      typeof sanitizedBody.customPersonality === 'string' ? sanitizedBody.customPersonality : null,
-      typeof sanitizedBody.memoryContext === 'string' ? sanitizedBody.memoryContext : null,
-      typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
-      sanitizedBody.treosMode === true
-        ? [
-          'Görevi listelenen MCP araçlarıyla yürütülebilecek adımlara planla; burada araç çağırma, yalnızca planı döndür.',
-          `Sen TreOS'sun. Kullanıcının verdiği görevi adımlara böl. Yanıtını KESİNLİKLE VE SADECE geçerli bir JSON formatında ver. JSON dışında hiçbir kelime, açıklama veya markdown işareti (\`\`\`) yazma.`,
-          'Örnek format: {"nodes":[{"id":"1","label":"Adım 1"}],"edges":[]}. Yürütülebilir her node ayrıca izin verilen tool ve arguments alanlarını içermelidir.',
-          'JSON yapısı: {"nodes":[{"id":"1","label":"Adım 1","tool":"araç_adı","arguments":{}},{"id":"2","label":"Adım 2","tool":"araç_adı","arguments":{}}],"edges":[{"from":"1","to":"2"}]}. Her node id, label, tool ve arguments alanlarını içermeli; her edge önceki node id değerini from, sonraki node id değerini to olarak göstermelidir.',
-          sanitizedBody.treosConnectionMode === 'demo'
-            ? 'Kullanıcı demo modunda. Gerçek dosya işlemleri yapamazsın; sadece simülasyon araçlarını kullan.'
-            : 'Kullanıcı kendi sunucusuna bağlandı. Planında yalnızca izin verilen güvenli araçları kullan.',
-        ].join('\n')
-        : null,
-    ].filter((part): part is string => Boolean(part)).join('\n\n');
+    const isTreOSMode = sanitizedBody.treosMode === true;
+    const requestMessages = isTreOSMode
+      ? messages.filter((message) => message.role === 'user').slice(-1)
+      : messages;
+    if (!requestMessages.length) {
+      return new Response(JSON.stringify({ error: 'A TreOS task message is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const systemContext = isTreOSMode
+      ? TREOS_JSON_SYSTEM_PROMPT
+      : [
+        "You are Tre, the user's helpful AI assistant.",
+        typeof sanitizedBody.language === 'string' ? `Respond in ${sanitizedBody.language}.` : null,
+        typeof sanitizedBody.personality === 'string' ? `Use a ${sanitizedBody.personality} personality.` : null,
+        typeof sanitizedBody.customPersonality === 'string' ? sanitizedBody.customPersonality : null,
+        typeof sanitizedBody.memoryContext === 'string' ? sanitizedBody.memoryContext : null,
+        typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
+      ].filter((part): part is string => Boolean(part)).join('\n\n');
 
     const payload = {
       model: modelSelection.apiProvider === 'groq'
@@ -151,7 +154,7 @@ export async function requestChatCompletion({
           : 'google/gemini-2.5-flash-lite',
       messages: [
         { role: 'system' as const, content: systemContext },
-        ...messages,
+        ...requestMessages,
       ],
       stream: true,
     };
@@ -195,17 +198,28 @@ export async function requestChatCompletion({
 
   const sanitizedBody = sanitizePayloadValue(body) as Record<string, unknown>;
   const messages = getTextMessages(body.messages);
-  if (Array.isArray(body.messages) && messages.length === 0) {
+  const isTreOSMode = sanitizedBody.treosMode === true;
+  const requestMessages = isTreOSMode
+    ? messages.filter((message) => message.role === 'user').slice(-1)
+    : messages;
+  if (Array.isArray(body.messages) && requestMessages.length === 0) {
     return new Response(JSON.stringify({ error: 'Chat messages are required' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  const payload = {
-    ...sanitizedBody,
-    ...(Array.isArray(body.messages) ? { messages } : {}),
-    provider: 'default',
-  };
+  const payload = isTreOSMode
+    ? {
+      treosMode: true,
+      treosConnectionMode: sanitizedBody.treosConnectionMode,
+      messages: requestMessages,
+      provider: 'default',
+    }
+    : {
+      ...sanitizedBody,
+      ...(Array.isArray(body.messages) ? { messages: requestMessages } : {}),
+      provider: 'default',
+    };
   const serializedPayload = serializePayload(payload);
 
   return fetch(CHAT_URL, {

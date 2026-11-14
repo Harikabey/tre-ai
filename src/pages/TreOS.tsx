@@ -498,7 +498,7 @@ function parseTaskPlan(content: string, tools: McpTool[]): TaskStep[] {
 }
 
 function extractJsonObject(content: string): string {
-  const response = content.replace(/```(?:json)?/gi, '').trim();
+  const response = content.replace(/```[ \t]*(?:json)?[ \t]*\r?\n?/gi, '').trim();
   for (let start = response.indexOf('{'); start !== -1; start = response.indexOf('{', start + 1)) {
     let depth = 0;
     let inString = false;
