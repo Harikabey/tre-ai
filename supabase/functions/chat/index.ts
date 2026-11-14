@@ -609,7 +609,7 @@ ${parts.join("\n")}`;
           method: "POST",
           headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify(groqBody),
-          signal: AbortSignal.timeout(8000), // 15sn → 8sn (daha hızlı fallback)
+          signal: AbortSignal.timeout(60_000),
         });
         if (r.ok) response = r;
         else console.error("Groq error:", r.status, (await r.text()).slice(0, 300));
@@ -754,8 +754,13 @@ ${parts.join("\n")}`;
     });
   } catch (error) {
     console.error("Chat function error:", error);
+    const isTimeout = error instanceof Error &&
+      (error.name === "TimeoutError" || error.name === "AbortError");
+    const message = isTimeout
+      ? "Kod isteği çok uzun sürdüğü için işlem yarıda kaldı. Lütfen daha küçük parçalara bölüp tekrar deneyin."
+      : "Yanıt oluşturulurken bir sorun oluştu. Kod çok uzunsa, lütfen isteği daha küçük parçalara bölüp tekrar deneyin.";
     return streamErrorMessage(
-      "⚠️ Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+      `⚠️ ${message}`,
       corsHeaders,
     );
   }
