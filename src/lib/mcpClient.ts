@@ -23,12 +23,13 @@ export function validateMcpUrl(value: string): URL {
   try {
     url = new URL(value.trim());
   } catch {
-    throw new Error('Geçerli bir tünel URL’si girin.');
+    throw new Error('Geçerli bir MCP URL’si girin.');
   }
 
-  const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase());
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
-    throw new Error('Lütfen HTTPS ile başlayan güvenli bir URL girin. HTTP yalnızca localhost için kullanılabilir.');
+  const isLocalDevelopmentUrl = url.protocol === 'http:' &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase());
+  if (url.protocol !== 'https:' && !isLocalDevelopmentUrl) {
+    throw new Error('Lütfen HTTPS URL’si girin. Geliştirme/test için HTTP yalnızca localhost adreslerinde kullanılabilir.');
   }
   if (url.username || url.password || url.hash) {
     throw new Error('URL kullanıcı bilgisi veya fragment içeremez.');

@@ -2,15 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { requestChatCompletion } from '@/lib/chatRequest';
 import { McpClient, type McpConnectionMode, type McpTool, validateMcpUrl } from '@/lib/mcpClient';
 import { readModelSelection } from '@/hooks/useModelSelection';
@@ -30,14 +23,14 @@ interface TaskStep {
 
 const MAX_STEPS = 10;
 const TREOS_DEMO_MCP_URL = import.meta.env.VITE_TREOS_DEMO_MCP_URL?.trim() ?? '';
-const LOCAL_SIMULATOR_URL = 'http://127.0.0.1:3000/mcp';
 
 const TreOS = () => {
   const [connectionMode, setConnectionMode] = useState<McpConnectionMode | null>(() => {
     return localStorage.getItem('treos_connection_mode') === 'demo' ? 'demo' : null;
   });
-  const [autoSetupOpen, setAutoSetupOpen] = useState(false);
-  const [autoSetupRunning, setAutoSetupRunning] = useState(false);
+  const [setupDownloading, setSetupDownloading] = useState(false);
+  const [setupDownloaded, setSetupDownloaded] = useState(false);
+  const [mcpUrl, setMcpUrl] = useState('');
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
   const [task, setTask] = useState('');
@@ -46,13 +39,8 @@ const TreOS = () => {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
-  const autoSetupInterval = useRef<number | null>(null);
-  const autoSetupTimeout = useRef<number | null>(null);
-  const pollInProgress = useRef(false);
 
   useEffect(() => () => {
-    if (autoSetupInterval.current !== null) window.clearInterval(autoSetupInterval.current);
-    if (autoSetupTimeout.current !== null) window.clearTimeout(autoSetupTimeout.current);
     runId.current += 1;
     client?.close();
   }, [client]);
@@ -103,42 +91,9 @@ const TreOS = () => {
     if (connected) setError(null);
   };
 
-  const stopAutoSetupPolling = () => {
-    if (autoSetupInterval.current !== null) window.clearInterval(autoSetupInterval.current);
-    if (autoSetupTimeout.current !== null) window.clearTimeout(autoSetupTimeout.current);
-    autoSetupInterval.current = null;
-    autoSetupTimeout.current = null;
-    pollInProgress.current = false;
-  };
-
-  const pollLocalSimulator = async () => {
-    if (pollInProgress.current) return;
-    pollInProgress.current = true;
-    try {
-      const response = await fetch(LOCAL_SIMULATOR_URL, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        cache: 'no-store',
-      });
-      if (response.status !== 200) return;
-
-      stopAutoSetupPolling();
-      const connected = await connect(LOCAL_SIMULATOR_URL, 'demo');
-      setAutoSetupRunning(false);
-      if (connected) setError(null);
-    } catch {
-      // The local server is expected to refuse connections until the downloaded script is run.
-    } finally {
-      pollInProgress.current = false;
-    }
-  };
-
   const startAutoSetup = async () => {
-    setAutoSetupOpen(false);
     setError(null);
-    setAutoSetupRunning(true);
-    stopAutoSetupPolling();
+    setSetupDownloading(true);
     try {
       const userAgent = navigator.userAgent;
       const scriptName = /Windows/i.test(userAgent)
@@ -169,23 +124,15 @@ const TreOS = () => {
       downloadLink.click();
       downloadLink.remove();
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
-
-      autoSetupInterval.current = window.setInterval(() => void pollLocalSimulator(), 1000);
-      autoSetupTimeout.current = window.setTimeout(() => {
-        stopAutoSetupPolling();
-        setAutoSetupRunning(false);
-        setError('5 dakika içinde yerel simülatör bulunamadı. İndirdiğiniz betiği çalıştırıp yeniden deneyin.');
-      }, 5 * 60 * 1000);
-      void pollLocalSimulator();
+      setSetupDownloaded(true);
     } catch (reason) {
-      setAutoSetupRunning(false);
       setError(reason instanceof Error ? reason.message : 'Otomatik kurulum başlatılamadı.');
+    } finally {
+      setSetupDownloading(false);
     }
   };
 
   const disconnect = () => {
-    stopAutoSetupPolling();
-    setAutoSetupRunning(false);
     runId.current += 1;
     client?.close();
     setClient(null);
@@ -277,14 +224,29 @@ const TreOS = () => {
                 Yerel simülatörü indirin. Yalnızca simülasyon araçları etkinleşir; bilgisayarınızda
                 gerçek bir işlem yapılmaz ve herhangi bir tünel açılmaz.
               </p>
-              <Button variant="outline" onClick={() => setAutoSetupOpen(true)} disabled={connecting || running || autoSetupRunning}>
-                Otomatik Kurulum (Tek Tıkla)
+              <Button variant="outline" onClick={() => void startAutoSetup()} disabled={connecting || running || setupDownloading}>
+                {setupDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Otomatik Kurulum
               </Button>
-              {autoSetupRunning && (
-                <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Lütfen indirdiğiniz dosyayı çalıştırın. Bağlantı otomatik kurulacaktır.
-                </p>
+              {setupDownloaded && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Betiği çalıştırdıktan sonra size verilen URL'i buraya yapıştırın.
+                  </p>
+                  <label htmlFor="mcp-url" className="block text-sm font-medium">MCP URL'si Gir</label>
+                  <Input
+                    id="mcp-url"
+                    type="url"
+                    value={mcpUrl}
+                    onChange={(event) => setMcpUrl(event.target.value)}
+                    placeholder="http://localhost:3000/mcp veya https://…trycloudflare.com/mcp"
+                    aria-label="MCP URL'si Gir"
+                  />
+                  <Button onClick={() => void connect(mcpUrl, 'demo')} disabled={connecting || running || !mcpUrl.trim()}>
+                    {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Bağlan
+                  </Button>
+                </div>
               )}
             </article>
           </section>
@@ -304,30 +266,6 @@ const TreOS = () => {
             </p>
           </section>
         )}
-
-        <Dialog open={autoSetupOpen} onOpenChange={setAutoSetupOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Otomatik Kurulum (Tek Tıkla)</DialogTitle>
-              <DialogDescription>
-                Bu araç, bilgisayarınızda TreOS bağlantısı için gerekli sunucuyu başlatacaktır. Onaylıyor musunuz?
-              </DialogDescription>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Kurulum yalnızca bu bilgisayarda, 127.0.0.1 üzerinde simülasyon MCP sunucusu çalıştırır.
-              Node.js 18 veya üzeri gereklidir. Cloudflare tüneli açılmaz; gerçek dosya veya uygulama
-              işlemi yapılmaz. Devam ederek betiği indirmeyi onaylarsınız.
-            </p>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setAutoSetupOpen(false)}>
-                İptal
-              </Button>
-              <Button type="button" onClick={() => void startAutoSetup()}>
-                Onayla ve indir
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <section className="mb-5 rounded-xl border border-border bg-card p-5">
           <h2 className="mb-2 font-semibold">Görev</h2>
