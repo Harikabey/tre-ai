@@ -1,5 +1,5 @@
 // FILE: src/App.tsx
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,6 +31,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
+const TreOS = lazy(() => import("./pages/TreOS"));
 const queryClient = new QueryClient();
 
 const ReminderNotificationRunner = () => {
@@ -68,6 +69,13 @@ const App = () => (
               <Route path="/capabilities" element={<Capabilities />} />
               <Route path="/starred" element={<Starred />} />
               <Route path="/store" element={<Store />} />
+              <Route path="/treos" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">TreOS yükleniyor...</main>}>
+                    <TreOS />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
 
               <Route path="/voice-chat" element={<VoiceChat />} />
               <Route path="/auth" element={<Auth />} />

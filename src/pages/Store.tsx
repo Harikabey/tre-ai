@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Check,
@@ -7,12 +7,21 @@ import {
   Database,
   FileImage,
   Loader2,
+  Monitor,
   Package,
   Puzzle,
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useSystemCapabilities } from '@/hooks/useSystemCapabilities';
 import {
   installPlugin,
@@ -45,6 +54,7 @@ const formatSize = (bytes: number) => {
 };
 
 const Store = () => {
+  const navigate = useNavigate();
   const capabilities = useSystemCapabilities();
   const [installed, setInstalled] = useState<PluginId[]>([]);
   const [busyPlugin, setBusyPlugin] = useState<PluginId | null>(null);
@@ -52,6 +62,10 @@ const Store = () => {
   const [graphvizImage, setGraphvizImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [loadedPapaParse, setLoadedPapaParse] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [treOsConsentGranted, setTreOsConsentGranted] = useState(
+    () => localStorage.getItem('treos_consent_granted') === 'true',
+  );
   const stockfishStop = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -217,6 +231,47 @@ const Store = () => {
             <p className="mt-2 text-xs text-muted-foreground">Tarayıcı bellek bilgisini vermediğinden bellek uyumluluğu doğrulanamıyor.</p>
           )}
         </section>
+
+        <section className="mb-6 rounded-xl border border-primary/30 bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-1 items-start gap-3">
+              <div className="rounded-lg bg-primary/10 p-2.5 text-primary"><Monitor className="h-5 w-5" /></div>
+              <div>
+                <h2 className="font-semibold">TreOS Beta</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Güvenli MCP tüneli üzerinden bilgisayarınızda izin verilen işlemleri gerçekleştirin.
+                  Terminal erişimi devre dışıdır.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => treOsConsentGranted ? navigate('/treos') : setConsentOpen(true)}>
+              {treOsConsentGranted ? 'TreOS’u aç' : 'Etkinleştir'}
+            </Button>
+          </div>
+        </section>
+
+        <Dialog open={consentOpen} onOpenChange={setConsentOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>TreOS Beta yetki onayı</DialogTitle>
+              <DialogDescription>
+                TreOS’un bilgisayarınızla (fare, dosya yönetimi) haberleşmesine izin vermek üzeresiniz.
+                Terminal yetkisi devre dışıdır. Bilgisayarınızda MCP sunucusunu başlatıp URL’ini girmeniz gerekecektir.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConsentOpen(false)}>Vazgeç</Button>
+              <Button onClick={() => {
+                localStorage.setItem('treos_consent_granted', 'true');
+                setTreOsConsentGranted(true);
+                setConsentOpen(false);
+                navigate('/treos');
+              }}>
+                Onayla ve devam et
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {STORE_PLUGINS.map((plugin) => {

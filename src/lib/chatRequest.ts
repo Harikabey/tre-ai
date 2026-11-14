@@ -55,20 +55,21 @@ function getTextMessages(messages: unknown): ChatMessage[] {
     .map(({ role, content }) => ({ role, content: sanitizeText(content) }));
 }
 
-function serializePayload(payload: { messages: ChatMessage[]; [key: string]: unknown }): string {
+function serializePayload(payload: { messages?: ChatMessage[]; [key: string]: unknown }): string {
+  const messages = payload.messages ?? [];
   let serialized = JSON.stringify(payload);
   while (
     serialized.length > MAX_PAYLOAD_LENGTH &&
-    payload.messages.filter(message => message.role !== 'system').length > 1
+    messages.filter(message => message.role !== 'system').length > 1
   ) {
-    const oldestConversationMessage = payload.messages.findIndex(message => message.role !== 'system');
-    payload.messages.splice(oldestConversationMessage, 1);
+    const oldestConversationMessage = messages.findIndex(message => message.role !== 'system');
+    messages.splice(oldestConversationMessage, 1);
     serialized = JSON.stringify(payload);
   }
 
   if (serialized.length > MAX_PAYLOAD_LENGTH) {
-    const lastMessage = [...payload.messages].reverse().find(message => message.role !== 'system')
-      ?? payload.messages.at(-1);
+    const lastMessage = [...messages].reverse().find(message => message.role !== 'system')
+      ?? messages.at(-1);
     if (lastMessage) {
       const originalContent = lastMessage.content;
       let low = 0;
@@ -129,6 +130,9 @@ export async function requestChatCompletion({
       typeof sanitizedBody.customPersonality === 'string' ? sanitizedBody.customPersonality : null,
       typeof sanitizedBody.memoryContext === 'string' ? sanitizedBody.memoryContext : null,
       typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
+      sanitizedBody.treosMode === true
+        ? 'Sen TreOS’sun. Kullanıcı sana otonom çalışma yetkisi verdi. Görevi adımlara böl, araçları çağır ve bitir. Kullanıcıya her adımda onay sorma, sadece hata olursa bilgi ver.'
+        : null,
     ].filter((part): part is string => Boolean(part)).join('\n\n');
 
     const payload = {
