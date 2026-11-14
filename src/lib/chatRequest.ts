@@ -132,8 +132,9 @@ export async function requestChatCompletion({
       typeof sanitizedBody.moodContext === 'string' ? sanitizedBody.moodContext : null,
       sanitizedBody.treosMode === true
         ? [
-          'Sen TreOS’sun. Görevi listelenen MCP araçlarıyla yürütülebilecek adımlara planla; burada araç çağırma, yalnızca planı döndür.',
-          'Yanıtını SADECE geçerli JSON olarak ver. Markdown kod bloğu veya başka bir açıklama ekleme.',
+          'Görevi listelenen MCP araçlarıyla yürütülebilecek adımlara planla; burada araç çağırma, yalnızca planı döndür.',
+          `Sen TreOS'sun. Kullanıcının verdiği görevi adımlara böl. Yanıtını KESİNLİKLE VE SADECE geçerli bir JSON formatında ver. JSON dışında hiçbir kelime, açıklama veya markdown işareti (\`\`\`) yazma.`,
+          'Örnek format: {"nodes":[{"id":"1","label":"Adım 1"}],"edges":[]}. Yürütülebilir her node ayrıca izin verilen tool ve arguments alanlarını içermelidir.',
           'JSON yapısı: {"nodes":[{"id":"1","label":"Adım 1","tool":"araç_adı","arguments":{}},{"id":"2","label":"Adım 2","tool":"araç_adı","arguments":{}}],"edges":[{"from":"1","to":"2"}]}. Her node id, label, tool ve arguments alanlarını içermeli; her edge önceki node id değerini from, sonraki node id değerini to olarak göstermelidir.',
           sanitizedBody.treosConnectionMode === 'demo'
             ? 'Kullanıcı demo modunda. Gerçek dosya işlemleri yapamazsın; sadece simülasyon araçlarını kullan.'

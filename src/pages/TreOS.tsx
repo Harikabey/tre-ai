@@ -490,38 +490,45 @@ function parseTaskPlan(content: string, tools: McpTool[]): TaskStep[] {
   } catch (reason) {
     console.error('TreOS görev grafiği yanıtı ayrıştırılamadı.', reason, content.slice(0, 2_000));
     if (reason instanceof SyntaxError) {
-      throw new Error('TreOS yanıtı geçerli JSON biçiminde değil.');
+      throw new Error('Model geçerli bir plan oluşturamadı, lütfen tekrar deneyin');
     }
     if (reason instanceof Error) throw reason;
-    throw new Error('TreOS görev grafiği ayrıştırılamadı.');
+    throw new Error('Model geçerli bir plan oluşturamadı, lütfen tekrar deneyin');
   }
 }
 
 function extractJsonObject(content: string): string {
-  const fencedJson = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const response = (fencedJson?.[1] ?? content).trim();
-  const start = response.indexOf('{');
-  if (start < 0) throw new Error('Model yanıtında JSON nesnesi bulunamadı.');
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let index = start; index < response.length; index += 1) {
-    const character = response[index];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (character === '\\') escaped = true;
-      else if (character === '"') inString = false;
-    } else if (character === '"') {
-      inString = true;
-    } else if (character === '{') {
-      depth += 1;
-    } else if (character === '}') {
-      depth -= 1;
-      if (depth === 0) return response.slice(start, index + 1);
+  const response = content.replace(/```(?:json)?/gi, '').trim();
+  for (let start = response.indexOf('{'); start !== -1; start = response.indexOf('{', start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < response.length; index += 1) {
+      const character = response[index];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') inString = false;
+      } else if (character === '"') {
+        inString = true;
+      } else if (character === '{') {
+        depth += 1;
+      } else if (character === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          const candidate = response.slice(start, index + 1);
+          try {
+            JSON.parse(candidate);
+            return candidate;
+          } catch (reason) {
+            if (!(reason instanceof SyntaxError)) throw reason;
+            break;
+          }
+        }
+      }
     }
   }
-  throw new Error('Model yanıtındaki JSON nesnesi tamamlanmamış.');
+  throw new SyntaxError('Model yanıtında geçerli JSON nesnesi bulunamadı.');
 }
 
 function assertAcyclicPlan(plan: TaskStep[]): void {
