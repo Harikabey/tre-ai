@@ -34,7 +34,7 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
     language === 'html';
 
   return (
-    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50 max-w-full">
+    <div className="relative group my-2 w-full min-w-0 max-w-full rounded-lg overflow-hidden border border-border/50">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/80 border-b border-border/40">
         <span className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider">
@@ -80,7 +80,7 @@ export const CodeBlock = ({ children, language, inline }: CodeBlockProps) => {
         </div>
       </div>
       {/* Code content */}
-      <pre className="p-3 overflow-x-auto bg-secondary/40 text-xs sm:text-sm max-w-full w-0 min-w-full">
+      <pre className="block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain p-3 bg-secondary/40 text-[10px] sm:text-xs">
         <code className="font-mono text-foreground/90 whitespace-pre">
           {children}
         </code>

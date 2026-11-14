@@ -268,7 +268,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
   return (
     <div
       className={cn(
-        'flex gap-2 sm:gap-3 animate-fade-in w-full min-w-0',
+        'flex items-start gap-2 sm:gap-3 animate-fade-in w-full min-w-0',
         isBot ? 'justify-start' : 'justify-end'
       )}
     >
@@ -282,8 +282,8 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
         className={cn(
           'chat-bubble min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl overflow-hidden',
           isBot
-            ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
-            : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[85%] sm:max-w-[75%] break-words overflow-hidden'
+            ? 'bg-card/80 border border-border/40 rounded-tl-md shadow-sm max-w-[calc(100%-2.5rem)] sm:max-w-[75%] break-words'
+            : 'bg-primary/15 border border-primary/20 rounded-tr-md ml-auto max-w-[calc(100%-2.5rem)] sm:max-w-[75%] break-words'
         )}
       >
         {attachedFiles.length > 0 && (

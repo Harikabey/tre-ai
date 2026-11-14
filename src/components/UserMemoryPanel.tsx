@@ -161,7 +161,7 @@ export const UserMemoryPanel = ({
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 max-w-full bg-card border-l border-border/50 shadow-xl z-50 flex flex-col">
+    <div className="fixed inset-0 sm:inset-y-0 sm:left-auto sm:right-0 w-full sm:w-80 max-w-full bg-card border-l border-border/50 shadow-xl z-50 flex flex-col pt-safe pb-safe">
       {/* Header */}
       <div className="p-4 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
