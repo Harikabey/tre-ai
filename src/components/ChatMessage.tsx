@@ -421,7 +421,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                   table({ children }) {
                     return (
                       <div className="my-3 block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border/60">
-                        <table className="w-max min-w-full table-auto border-collapse text-[11px] sm:text-sm">
+                        <table className="w-full table-fixed border-collapse text-[11px] sm:w-max sm:min-w-full sm:table-auto sm:text-sm">
                           {children}
                         </table>
                       </div>
@@ -432,14 +432,14 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                   },
                   th({ children, style }) {
                     return (
-                      <th style={style} scope="col" className="min-w-20 max-w-48 whitespace-normal break-words px-2 py-1.5 text-left font-semibold text-foreground border-b border-border/60 sm:px-3 sm:py-2 [overflow-wrap:anywhere]">
+                      <th style={style} scope="col" className="min-w-0 max-w-full whitespace-normal break-words px-2 py-1.5 text-left font-semibold text-foreground border-b border-border/60 sm:px-3 sm:py-2 [overflow-wrap:anywhere]">
                         {children}
                       </th>
                     );
                   },
                   td({ children, style }) {
                     return (
-                      <td style={style} className="max-w-72 whitespace-normal break-words px-2 py-1.5 border-b border-border/30 text-foreground/90 align-top sm:px-3 sm:py-2 [overflow-wrap:anywhere]">
+                      <td style={style} className="min-w-0 max-w-full whitespace-normal break-words px-2 py-1.5 border-b border-border/30 text-foreground/90 align-top sm:px-3 sm:py-2 [overflow-wrap:anywhere]">
                         {children}
                       </td>
                     );
