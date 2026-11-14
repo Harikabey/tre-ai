@@ -29,7 +29,7 @@ const TreOS = () => {
     return localStorage.getItem('treos_connection_mode') === 'demo' ? 'demo' : null;
   });
   const [setupDownloading, setSetupDownloading] = useState(false);
-  const [setupDownloaded, setSetupDownloaded] = useState(false);
+  const [setupScriptDownloaded, setSetupScriptDownloaded] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('');
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
@@ -124,7 +124,7 @@ const TreOS = () => {
       downloadLink.click();
       downloadLink.remove();
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
-      setSetupDownloaded(true);
+      setSetupScriptDownloaded(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Otomatik kurulum başlatılamadı.');
     } finally {
@@ -221,17 +221,17 @@ const TreOS = () => {
             <article className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-2 font-semibold">🛠️ Kendi Sunucumu Bağla</h2>
               <p className="mb-4 text-sm text-muted-foreground">
-                Yerel simülatörü indirin. Yalnızca simülasyon araçları etkinleşir; bilgisayarınızda
-                gerçek bir işlem yapılmaz ve herhangi bir tünel açılmaz.
+                Kurulum betiğini indirip çalıştırın. Yalnızca simülasyon araçları etkinleşir;
+                bilgisayarınızda gerçek bir işlem yapılmaz.
               </p>
               <Button variant="outline" onClick={() => void startAutoSetup()} disabled={connecting || running || setupDownloading}>
                 {setupDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Otomatik Kurulum
+                Kurulum Betiğini İndir
               </Button>
-              {setupDownloaded && (
+              {setupScriptDownloaded && (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Betiği çalıştırdıktan sonra size verilen URL'i buraya yapıştırın.
+                    Betiği çalıştırdıktan sonra size verilen URL'i buraya yapıştırın ve Bağlan'a basın.
                   </p>
                   <label htmlFor="mcp-url" className="block text-sm font-medium">MCP URL'si Gir</label>
                   <Input
