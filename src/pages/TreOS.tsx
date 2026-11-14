@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
+import { ArrowLeft, Cable, Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { requestChatCompletion } from '@/lib/chatRequest';
 import { McpClient, type McpTool, validateMcpUrl } from '@/lib/mcpClient';
 import { readModelSelection } from '@/hooks/useModelSelection';
@@ -22,9 +30,12 @@ interface TaskStep {
 }
 
 const MAX_STEPS = 10;
+type SetupStep = 1 | 2 | 3;
 
 const TreOS = () => {
   const [tunnelUrl, setTunnelUrl] = useState('');
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupStep, setSetupStep] = useState<SetupStep>(1);
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
   const [task, setTask] = useState('');
@@ -58,11 +69,32 @@ const TreOS = () => {
       if (connected.tools.length === 0) {
         setError('Bağlantı kuruldu ancak güvenli izin listesindeki kullanılabilir araç bulunamadı.');
       }
+      return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'MCP tüneline bağlanılamadı.');
+      return false;
     } finally {
       setConnecting(false);
     }
+  };
+
+  const openSetup = () => {
+    setSetupStep(1);
+    setSetupOpen(true);
+    setError(null);
+  };
+
+  const continueSetup = () => {
+    if (setupStep === 2) {
+      try {
+        validateMcpUrl(tunnelUrl);
+        setError(null);
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Geçerli bir HTTPS URL’si girin.');
+        return;
+      }
+    }
+    setSetupStep((current) => Math.min(3, current + 1) as SetupStep);
   };
 
   const disconnect = () => {
@@ -151,6 +183,9 @@ const TreOS = () => {
               aria-label="MCP tünel URL’si"
               disabled={connecting || running}
             />
+            <Button type="button" variant="outline" onClick={openSetup} disabled={connecting || running}>
+              Kolay Kurulum
+            </Button>
             {client ? (
               <Button variant="outline" onClick={disconnect} disabled={running}>
                 <Unplug className="mr-2 h-4 w-4" /> Bağlantıyı kes
@@ -169,6 +204,109 @@ const TreOS = () => {
             </p>
           )}
         </section>
+
+        <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>TreOS bağlantı kurulumu</DialogTitle>
+              <DialogDescription>
+                Adım {setupStep} / 3 · TreOS yerel bir program indirmez veya arka planda tünel açmaz.
+              </DialogDescription>
+            </DialogHeader>
+
+            <ol className="grid grid-cols-3 gap-2 text-center text-xs">
+              {(['MCP sunucusu', 'HTTPS adresi', 'Bağlantı'] as const).map((label, index) => {
+                const step = (index + 1) as SetupStep;
+                const active = setupStep === step;
+                const complete = setupStep > step || (step === 3 && Boolean(client));
+                return (
+                  <li
+                    key={label}
+                    aria-current={active ? 'step' : undefined}
+                    className={`rounded-md border px-2 py-2 ${
+                      active ? 'border-primary text-foreground' :
+                        complete ? 'border-emerald-500/50 text-emerald-600' : 'border-border text-muted-foreground'
+                    }`}
+                  >
+                    {complete && <Check className="mx-auto mb-1 h-4 w-4" />}
+                    {label}
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="min-h-32 space-y-3 py-2">
+              {setupStep === 1 && (
+                <>
+                  <h3 className="font-medium">Kendi güvendiğiniz MCP sunucunuzu başlatın</h3>
+                  <p className="text-sm text-muted-foreground">
+                    İndirilebilir bir ajan veya otomatik tünel bu kurulumda kullanılmaz. Yalnızca sizin
+                    kurup çalıştırdığınız MCP sunucusunu bağlayın; sunucuyu internete açmanın erişim
+                    ve gizlilik risklerini göz önünde bulundurun.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Terminal araçları engellenir. Dosya yazma işlemi sunucunuzun kendi yetki sınırlarıyla
+                    kısıtlanmalıdır.
+                  </p>
+                </>
+              )}
+              {setupStep === 2 && (
+                <>
+                  <h3 className="font-medium">Sunucunun HTTPS adresini girin</h3>
+                  <p className="text-sm text-muted-foreground">
+                    MCP sunucunuza ait HTTPS uç noktasını sağlayın. Bu sayfa bir sunucu veya tünel
+                    sağlamaz; bağlantı için sunucunun tarayıcı CORS isteklerine izin vermesi gerekir.
+                  </p>
+                  <Input
+                    type="url"
+                    inputMode="url"
+                    autoComplete="url"
+                    placeholder="https://.../mcp"
+                    value={tunnelUrl}
+                    onChange={(event) => setTunnelUrl(event.target.value)}
+                    aria-label="MCP sunucusunun HTTPS adresi"
+                  />
+                </>
+              )}
+              {setupStep === 3 && (
+                <>
+                  <h3 className="font-medium">Bağlantı bekleniyor</h3>
+                  <p className="text-sm text-muted-foreground">
+                    TreOS yalnızca şimdi, verdiğiniz HTTPS adresine doğrudan MCP bağlantı isteği gönderir.
+                    Arka plan polling’i veya Supabase üzerinden tünel araması yapılmaz.
+                  </p>
+                  {connecting && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> MCP sunucusundan yanıt bekleniyor…</p>}
+                  {client && <p className="flex items-center gap-2 text-sm text-emerald-600"><CircleCheck className="h-4 w-4" /> Bağlantı kuruldu · {tools.length} izinli araç bulundu.</p>}
+                </>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+              {setupStep > 1 && !client && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSetupStep((current) => Math.max(1, current - 1) as SetupStep)}
+                  disabled={connecting}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Geri
+                </Button>
+              )}
+              {setupStep < 3 ? (
+                <Button type="button" onClick={continueSetup}>
+                  Devam et <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              ) : client ? (
+                <Button type="button" onClick={() => setSetupOpen(false)}>Tamam</Button>
+              ) : (
+                <Button type="button" onClick={() => void connect()} disabled={connecting || !tunnelUrl.trim()}>
+                  {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {connecting ? 'Bağlanıyor…' : 'Bağlan'}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <section className="mb-5 rounded-xl border border-border bg-card p-5">
           <h2 className="mb-2 font-semibold">Görev</h2>
