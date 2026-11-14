@@ -707,7 +707,7 @@ const AuthenticatedIndex = () => {
           />
 
           <div className="flex-1 flex overflow-hidden min-w-0 w-full max-w-full">
-            <div className="flex-1 overflow-hidden flex flex-col overflow-x-hidden w-full max-w-full" ref={scrollRef}>
+            <div className="flex-1 min-w-0 overflow-hidden flex flex-col overflow-x-hidden w-full max-w-full" ref={scrollRef}>
               {isCurrentHidden ? (
                 <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-secondary/60 border border-border/50 flex items-center justify-center">
@@ -722,8 +722,8 @@ const AuthenticatedIndex = () => {
               ) : messages.length === 0 ? (
                 <EmptyState onSuggestionClick={(text) => sendMessage(text, undefined, text.startsWith('🎨') ? 'image' : undefined)} />
               ) : (
-                <ScrollArea className="h-full w-full max-w-full overflow-x-hidden" onScrollCapture={handleChatScroll}>
-                  <div className="w-full max-w-full overflow-x-hidden px-2 sm:px-4 space-y-3 sm:space-y-4">
+                <ScrollArea className="h-full w-full min-w-0 max-w-full overflow-x-hidden" onScrollCapture={handleChatScroll}>
+                  <div className="w-full min-w-0 max-w-full overflow-x-hidden px-2 sm:px-4 space-y-3 sm:space-y-4">
                     {isLoadingOlder && (
                       <div className="flex justify-center py-2">
                         <span className="text-xs text-muted-foreground animate-pulse">Eski mesajlar yükleniyor…</span>
@@ -733,7 +733,7 @@ const AuthenticatedIndex = () => {
                       <div className="text-center text-[11px] text-muted-foreground/70 py-1">Sohbetin başı</div>
                     )}
                     {messages.map((message) => (
-                      <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 rounded-2xl transition-colors">
+                      <div key={message.id} id={`msg-${message.id}`} className="scroll-mt-20 min-w-0 max-w-full rounded-2xl transition-colors">
                         {preferences.swipe_to_delete_enabled ? (
                           <SwipeableMessage
                             messageId={message.id}

@@ -268,7 +268,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
   return (
     <div
       className={cn(
-        'flex items-start gap-2 sm:gap-3 animate-fade-in w-full min-w-0',
+        'flex items-start gap-2 sm:gap-3 animate-fade-in w-full min-w-0 max-w-full',
         isBot ? 'justify-start' : 'justify-end'
       )}
     >
@@ -396,7 +396,7 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
 
         {displayContent && (
           isBot ? (
-            <div className="text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere] overflow-hidden">
+            <div className="w-full min-w-0 max-w-full text-xs sm:text-sm leading-relaxed prose prose-sm dark:prose-invert prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-a:text-primary prose-a:no-underline hover:prose-a:underline break-words whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere] overflow-hidden">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -420,8 +420,8 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                   },
                   table({ children }) {
                     return (
-                      <div className="my-3 w-full overflow-x-auto rounded-lg border border-border/60">
-                        <table className="w-full text-xs sm:text-sm border-collapse">
+                      <div className="my-3 block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border/60">
+                        <table className="w-max min-w-full border-collapse text-xs sm:text-sm">
                           {children}
                         </table>
                       </div>

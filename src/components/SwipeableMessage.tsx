@@ -27,7 +27,7 @@ export const SwipeableMessage = ({ children, onDelete, messageId }: SwipeableMes
   const deleteOpacity = Math.min(Math.abs(translateX) / 80, 1);
 
   return (
-    <div className="relative overflow-hidden" ref={containerRef}>
+    <div className="relative min-w-0 max-w-full overflow-hidden" ref={containerRef}>
       {/* Delete indicator background */}
       <div 
         className={cn(
@@ -49,7 +49,7 @@ export const SwipeableMessage = ({ children, onDelete, messageId }: SwipeableMes
       {/* Message content */}
       <div
         className={cn(
-          "relative bg-background transition-transform",
+          "relative min-w-0 max-w-full bg-background transition-transform",
           isDragging ? "" : "duration-200"
         )}
         style={{ 
