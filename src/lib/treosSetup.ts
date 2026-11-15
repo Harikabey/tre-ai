@@ -249,7 +249,6 @@ async def main():
             await task
         print(
             f"Self-signed TLS certificate: {CERT_FILE}\n"
-            f"Trust the .crt file in your OS/browser before connecting from TreOS. "
             f"Never import or share the private key: {KEY_FILE}.",
             flush=True,
         )
@@ -317,6 +316,7 @@ export function createTreosSetupScript(
   if (platform === 'windows') {
     return `@echo off
 setlocal
+set "TREOS_DATA_DIR=%USERPROFILE%\\AppData\\Local\\TreOS\\STeLA"
 cd /d "%~dp0"
 set "ALLOWED_COMMANDS=${commandList}"
 set "ALLOWED_FLAGS=-l,-a,-h,--help"
@@ -324,8 +324,6 @@ set "ALLOWED_DIR=%CD%"
 set "ALLOWED_DIRS=%CD%"
 set "TREOS_ALLOWED_ORIGIN_B64=${originBase64}"
 set "TREOS_BASE_PORT=8500"
-set "TREOS_DATA_DIR=%LOCALAPPDATA%\\TreOS\\STeLA"
-if not defined LOCALAPPDATA set "TREOS_DATA_DIR=%USERPROFILE%\\AppData\\Local\\TreOS\\STeLA"
 
 python --version >nul 2>nul
 if errorlevel 1 (
@@ -368,7 +366,11 @@ if errorlevel 1 (
 )
 del "%TREOS_DATA_DIR%\\treos_stela_http_bridge.b64" >nul 2>nul
 echo STeLA MCP baslatiliyor. URL hazir oldugunda asagida gosterilecek.
-"%TREOS_PYTHON%" "%TREOS_DATA_DIR%\\treos_stela_http_bridge.py"
+powershell -NoProfile -Command "$bridge = Join-Path $env:TREOS_DATA_DIR 'treos_stela_http_bridge.py'; $cert = Join-Path $env:TREOS_DATA_DIR 'treos-localhost.crt'; $process = Start-Process -FilePath $env:TREOS_PYTHON -ArgumentList ('"' + $bridge + '"') -PassThru -NoNewWindow; for ($i = 0; $i -lt 10 -and (-not (Test-Path $cert -PathType Leaf) -or (Get-Item $cert).Length -eq 0); $i++) { if ($process.HasExited) { Write-Error 'STeLA MCP sertifikayi olusturamadan kapandi.'; exit 1 }; Start-Sleep -Seconds 1 }; if (-not (Test-Path $cert -PathType Leaf) -or (Get-Item $cert).Length -eq 0) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue; Write-Error 'Sertifika 10 saniye icinde olusturulamadi.'; exit 1 }; try { Import-Certificate -FilePath $cert -CertStoreLocation Cert:\\CurrentUser\\Root -ErrorAction Stop | Out-Null } catch { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue; Write-Error $_; exit 1 }; Write-Host 'Sertifika sisteme otomatik olarak eklendi. TreOS arayüzüne dönüp ''https://localhost:8500/mcp'' adresini girin.'; $process.WaitForExit(); exit $process.ExitCode"
+if errorlevel 1 (
+  echo STeLA MCP sertifikasi olusturulamadi veya guven deposuna eklenemedi.
+  goto :failed
+)
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" echo STeLA MCP bir hata ile kapandi.
 pause
@@ -432,7 +434,56 @@ fi
 BRIDGE="$TREOS_DATA_DIR/treos_stela_http_bridge.py"
 "$TREOS_PYTHON" -c 'import base64,pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(base64.b64decode(sys.argv[2]))' "$BRIDGE" '${bridgeBase64}'
 echo "STeLA MCP baslatiliyor. URL hazir oldugunda asagida gosterilecek."
-if "$TREOS_PYTHON" "$BRIDGE"; then
+CERT_FILE="$TREOS_DATA_DIR/treos-localhost.crt"
+"$TREOS_PYTHON" "$BRIDGE" &
+BRIDGE_PID=$!
+WAITED=0
+while [ ! -s "$CERT_FILE" ] && [ "$WAITED" -lt 10 ]; do
+  if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
+    wait "$BRIDGE_PID" || true
+    echo "STeLA MCP sertifikayi olusturamadan kapandi." >&2
+    exit 1
+  fi
+  sleep 1
+  WAITED=$((WAITED + 1))
+done
+if [ ! -s "$CERT_FILE" ]; then
+  kill "$BRIDGE_PID" 2>/dev/null || true
+  wait "$BRIDGE_PID" 2>/dev/null || true
+  echo "Sertifika 10 saniye icinde olusturulamadi." >&2
+  exit 1
+fi
+
+echo "Sertifikayi sistem guven deposuna eklemek icin yonetici sifreniz istenebilir."
+TRUST_INSTALLED=0
+if [ "$(uname -s)" = "Darwin" ]; then
+  if sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_FILE"; then
+    TRUST_INSTALLED=1
+  fi
+elif [ "$(uname -s)" = "Linux" ]; then
+  if command -v update-ca-certificates >/dev/null 2>&1; then
+    if sudo install -m 0644 "$CERT_FILE" /usr/local/share/ca-certificates/treos-localhost.crt &&
+      sudo update-ca-certificates; then
+      TRUST_INSTALLED=1
+    fi
+  elif command -v update-ca-trust >/dev/null 2>&1; then
+    if sudo install -m 0644 "$CERT_FILE" /etc/pki/ca-trust/source/anchors/treos-localhost.crt &&
+      sudo update-ca-trust extract; then
+      TRUST_INSTALLED=1
+    fi
+  else
+    echo "Bu Linux dagitiminda desteklenen bir sertifika deposu komutu bulunamadi." >&2
+  fi
+else
+  echo "Bu isletim sisteminde otomatik sertifika guveni desteklenmiyor." >&2
+fi
+if [ "$TRUST_INSTALLED" -eq 1 ]; then
+  echo "Sertifika sisteme otomatik olarak eklendi. TreOS arayüzüne dönüp 'https://localhost:8500/mcp' adresini girin."
+else
+  echo "Sertifika sistem guven deposuna eklenemedi; HTTPS baglantisi tarayici tarafindan reddedilebilir." >&2
+fi
+
+if wait "$BRIDGE_PID"; then
   EXIT_CODE=0
 else
   EXIT_CODE=$?
