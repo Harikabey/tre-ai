@@ -61,11 +61,18 @@ export const DANGEROUS_TREOS_COMMANDS = new Set(
 const BRIDGE_SOURCE = String.raw`import asyncio
 import base64
 import contextlib
+import ipaddress
 import os
 import socket
 import sys
 from collections.abc import AsyncIterator
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from stela_mcp.server import LocalSystemServer
@@ -74,16 +81,73 @@ from starlette.routing import Mount
 import uvicorn
 
 HOST = "127.0.0.1"
-BASE_PORT = int(os.environ.get("TREOS_BASE_PORT", "8000"))
+BASE_PORT = int(os.environ.get("TREOS_BASE_PORT", "8500"))
 MAX_PORT = min(BASE_PORT + 99, 65535)
 ALLOWED_ORIGIN = base64.b64decode(
     os.environ["TREOS_ALLOWED_ORIGIN_B64"]
 ).decode("utf-8")
+DATA_DIR = Path(os.environ["TREOS_DATA_DIR"])
+CERT_FILE = DATA_DIR / "treos-localhost.crt"
+KEY_FILE = DATA_DIR / "treos-localhost.key"
 STELA = LocalSystemServer()
 SESSION_MANAGER = StreamableHTTPSessionManager(
     app=STELA.server,
     security_settings=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
+
+
+def ensure_certificate():
+    if CERT_FILE.is_file() and KEY_FILE.is_file():
+        return
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(days=3650))
+        .add_extension(
+            x509.SubjectAlternativeName([
+                x509.DNSName("localhost"),
+                x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+                x509.IPAddress(ipaddress.ip_address("::1")),
+            ]),
+            critical=False,
+        )
+        .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=True,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=True,
+                crl_sign=True,
+                encipher_only=None,
+                decipher_only=None,
+            ),
+            critical=True,
+        )
+        .add_extension(
+            x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]),
+            critical=False,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
+    KEY_FILE.write_bytes(private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ))
+    CERT_FILE.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    if os.name != "nt":
+        os.chmod(KEY_FILE, 0o600)
 
 
 async def handle_streamable_http(scope, receive, send):
@@ -163,13 +227,20 @@ def bind_server():
 
 
 async def main():
+    ensure_certificate()
     listener, port = bind_server()
     app = Starlette(
         routes=[Mount("/mcp", app=handle_streamable_http)],
         lifespan=lifespan,
     )
     app = TreOSOriginGuard(app)
-    server = uvicorn.Server(uvicorn.Config(app, log_level="warning", access_log=False))
+    server = uvicorn.Server(uvicorn.Config(
+        app,
+        log_level="warning",
+        access_log=False,
+        ssl_certfile=str(CERT_FILE),
+        ssl_keyfile=str(KEY_FILE),
+    ))
     task = asyncio.create_task(server.serve(sockets=[listener]))
     try:
         while not server.started and not task.done():
@@ -177,7 +248,13 @@ async def main():
         if task.done():
             await task
         print(
-            f"STeLA MCP başlatıldı: http://localhost:{port}/mcp "
+            f"Self-signed TLS certificate: {CERT_FILE}\n"
+            f"Trust the .crt file in your OS/browser before connecting from TreOS. "
+            f"Never import or share the private key: {KEY_FILE}.",
+            flush=True,
+        )
+        print(
+            f"STeLA MCP başlatıldı: https://localhost:{port}/mcp "
             f"(yerel port {port}; durdurmak için Ctrl+C)",
             flush=True,
         )
@@ -228,6 +305,12 @@ export function createTreosSetupScript(
   allowedOrigin: string,
 ): string {
   const bridgeBase64 = toBase64(BRIDGE_SOURCE);
+  const bridgeChunks = bridgeBase64.match(/.{1,3000}/g) ?? [];
+  const writeBridgeChunks = bridgeChunks
+    .map((chunk, index) =>
+      `${index === 0 ? '>' : '>>'} "%TREOS_DATA_DIR%\\treos_stela_http_bridge.b64" echo ${chunk}`,
+    )
+    .join('\n');
   const originBase64 = toBase64(allowedOrigin);
   const commandList = commands.join(',');
 
@@ -240,7 +323,7 @@ set "ALLOWED_FLAGS=-l,-a,-h,--help"
 set "ALLOWED_DIR=%CD%"
 set "ALLOWED_DIRS=%CD%"
 set "TREOS_ALLOWED_ORIGIN_B64=${originBase64}"
-set "TREOS_BASE_PORT=8000"
+set "TREOS_BASE_PORT=8500"
 set "TREOS_DATA_DIR=%LOCALAPPDATA%\\TreOS\\STeLA"
 if not defined LOCALAPPDATA set "TREOS_DATA_DIR=%USERPROFILE%\\AppData\\Local\\TreOS\\STeLA"
 
@@ -271,16 +354,19 @@ if not exist "%TREOS_DATA_DIR%\\Scripts\\python.exe" (
 set "TREOS_PYTHON=%TREOS_DATA_DIR%\\Scripts\\python.exe"
 
 echo STeLA MCP kuruluyor...
-"%TREOS_PYTHON%" -m pip install --upgrade stela-mcp==0.5.0 "mcp[cli]>=1.25,<2"
+"%TREOS_PYTHON%" -m pip install --upgrade stela-mcp==0.5.0 "mcp[cli]>=1.25,<2" "cryptography>=42"
 if errorlevel 1 (
   echo STeLA MCP kurulumu basarisiz. Python pip kurulumunu kontrol edin.
   goto :failed
 )
-"%TREOS_PYTHON%" -c "import base64,os; open(os.path.join(os.environ['TREOS_DATA_DIR'],'treos_stela_http_bridge.py'),'wb').write(base64.b64decode('${bridgeBase64}'))"
+${writeBridgeChunks}
+"%TREOS_PYTHON%" -c "import base64,os; d=os.environ['TREOS_DATA_DIR']; p=os.path.join(d,'treos_stela_http_bridge.b64'); f=os.path.join(d,'treos_stela_http_bridge.py'); open(f,'wb').write(base64.b64decode(open(p,'rb').read()))"
 if errorlevel 1 (
+  del "%TREOS_DATA_DIR%\\treos_stela_http_bridge.b64" >nul 2>nul
   echo Yerel baglanti koprusu olusturulamadi.
   goto :failed
 )
+del "%TREOS_DATA_DIR%\\treos_stela_http_bridge.b64" >nul 2>nul
 echo STeLA MCP baslatiliyor. URL hazir oldugunda asagida gosterilecek.
 "%TREOS_PYTHON%" "%TREOS_DATA_DIR%\\treos_stela_http_bridge.py"
 set "EXIT_CODE=%ERRORLEVEL%"
@@ -302,8 +388,8 @@ export ALLOWED_FLAGS='-l,-a,-h,--help'
 export ALLOWED_DIR="$(pwd -P)"
 export ALLOWED_DIRS="$ALLOWED_DIR"
 export TREOS_ALLOWED_ORIGIN_B64='${originBase64}'
-export TREOS_BASE_PORT=8000
-TREOS_DATA_DIR="\${XDG_DATA_HOME:-$HOME/.local/share}/treos-stela"
+export TREOS_BASE_PORT=8500
+export TREOS_DATA_DIR="\${XDG_DATA_HOME:-$HOME/.local/share}/treos-stela"
 
 PYTHON=''
 for candidate in python3 python; do
@@ -336,7 +422,7 @@ if [ ! -x "$TREOS_DATA_DIR/venv/bin/python" ]; then
 fi
 TREOS_PYTHON="$TREOS_DATA_DIR/venv/bin/python"
 echo "STeLA MCP kuruluyor..."
-if ! "$TREOS_PYTHON" -m pip install --upgrade stela-mcp==0.5.0 'mcp[cli]>=1.25,<2'; then
+if ! "$TREOS_PYTHON" -m pip install --upgrade stela-mcp==0.5.0 'mcp[cli]>=1.25,<2' 'cryptography>=42'; then
   echo "STeLA MCP kurulumu basarisiz. Python pip kurulumunu kontrol edin." >&2
   printf '%s' "Kapatmak icin Enter'a basin: "
   read -r _

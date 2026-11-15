@@ -90,7 +90,7 @@ const TreOS = () => {
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'MCP sunucusuna bağlanılamadı.';
       setError(mode === 'custom'
-        ? `${message} Sunucunun çalıştığını ve localhost URL’sindeki portun doğru olduğunu kontrol edin.`
+        ? `${message} Sunucunun çalıştığını, localhost portunu ve self-signed sertifikanın bu tarayıcıda güvenilir olduğunu kontrol edin.`
         : message);
       return false;
     } finally {
@@ -287,8 +287,10 @@ const TreOS = () => {
               {setupScriptDownloaded && (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Betiği çalıştırın. Betik size http://localhost:8000/mcp (veya belirlenen port) adresini verecek.
-                    Bu adresi aşağıdaki alana yapıştırın.
+                    Betiği çalıştırın. Betik https://localhost:8500/mcp (veya belirlenen port) adresini verecek.
+                    Betiğin gösterdiği .crt dosyasını bir kez işletim sisteminizin/tarayıcınızın güvenilir
+                    sertifikalarına ekleyin; .key dosyasını paylaşmayın. Güven deposu otomatik değiştirilmez.
+                    Ardından URL’yi aşağıya yapıştırın.
                   </p>
                   <label htmlFor="mcp-url" className="block text-sm font-medium">MCP URL'si Gir</label>
                   <Input
@@ -296,7 +298,7 @@ const TreOS = () => {
                     type="url"
                     value={mcpUrl}
                     onChange={(event) => setMcpUrl(event.target.value)}
-                    placeholder="http://localhost:8000/mcp"
+                    placeholder="https://localhost:8500/mcp"
                     aria-label="MCP URL'si Gir"
                   />
                   <Button onClick={() => void connect(mcpUrl, 'custom', allowedCommands)} disabled={connecting || running || !mcpUrl.trim()}>
