@@ -13,6 +13,7 @@ interface JsonRpcResponse {
 
 const ALLOWED_TOOLS = new Set(['click_mouse', 'open_app', 'write_file']);
 const ALLOWED_DEMO_TOOLS = new Set(['simulate_action', 'preview_action', 'get_demo_status']);
+const ALLOWED_COMMAND_TOOLS = new Set(['execute_command']);
 const BLOCKED_TOOL_NAME = /(shell|terminal|command|exec|powershell|bash|process|script)/i;
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 const MAX_RESPONSE_SIZE = 1024 * 1024;
@@ -37,17 +38,29 @@ export function validateMcpUrl(value: string): URL {
   return url;
 }
 
-export function filterMcpTools(value: unknown, mode: McpConnectionMode = 'custom'): McpTool[] {
+export function filterMcpTools(
+  value: unknown,
+  mode: McpConnectionMode = 'custom',
+  allowedCommands: readonly string[] = [],
+): McpTool[] {
   if (!Array.isArray(value)) throw new Error('MCP sunucusu geçerli bir araç listesi döndürmedi.');
-  const allowedTools = mode === 'demo' ? ALLOWED_DEMO_TOOLS : ALLOWED_TOOLS;
+  const allowedTools = mode === 'demo'
+    ? ALLOWED_DEMO_TOOLS
+    : allowedCommands.length > 0
+      ? ALLOWED_COMMAND_TOOLS
+      : ALLOWED_TOOLS;
 
   return value.filter((tool): tool is McpTool => {
     if (typeof tool !== 'object' || tool === null || Array.isArray(tool)) return false;
     const candidate = tool as Record<string, unknown>;
+    const allowedCommandTool = mode === 'custom' &&
+      candidate.name === 'execute_command' &&
+      allowedCommands.length > 0;
     if (
       typeof candidate.name !== 'string' ||
-      !allowedTools.has(candidate.name) ||
-      BLOCKED_TOOL_NAME.test(candidate.name) ||
+      (!allowedTools.has(candidate.name) &&
+        !allowedCommandTool) ||
+      (BLOCKED_TOOL_NAME.test(candidate.name) && !allowedCommandTool) ||
       typeof candidate.inputSchema !== 'object' ||
       candidate.inputSchema === null ||
       Array.isArray(candidate.inputSchema)
@@ -60,20 +73,23 @@ export function filterMcpTools(value: unknown, mode: McpConnectionMode = 'custom
 export class McpClient {
   private endpoint: URL;
   private mode: McpConnectionMode;
+  private allowedCommands: ReadonlySet<string>;
   private sessionId: string | null = null;
   private requestId = 0;
   private protocolVersion: string | null = null;
 
-  private constructor(endpoint: URL, mode: McpConnectionMode) {
+  private constructor(endpoint: URL, mode: McpConnectionMode, allowedCommands: readonly string[]) {
     this.endpoint = endpoint;
     this.mode = mode;
+    this.allowedCommands = new Set(allowedCommands);
   }
 
   static async connect(
     value: string,
     mode: McpConnectionMode = 'custom',
+    allowedCommands: readonly string[] = [],
   ): Promise<{ client: McpClient; tools: McpTool[] }> {
-    const client = new McpClient(validateMcpUrl(value), mode);
+    const client = new McpClient(validateMcpUrl(value), mode, allowedCommands);
     const initialized = await client.request('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
@@ -88,14 +104,25 @@ export class McpClient {
 
     const result = await client.request('tools/list', {});
     if (!isRecord(result)) throw new Error('MCP araç listesi okunamadı.');
-    const tools = filterMcpTools(result.tools, mode);
+    const tools = filterMcpTools(result.tools, mode, allowedCommands);
     return { client, tools };
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {
-    const allowed = filterMcpTools([{ name, inputSchema: {} }], this.mode);
+    const allowed = filterMcpTools(
+      [{ name, inputSchema: {} }],
+      this.mode,
+      [...this.allowedCommands],
+    );
     if (!allowed.length) throw new Error(`Güvenlik nedeniyle "${name}" aracı engellendi.`);
     validateToolArguments(name, args);
+    if (name === 'execute_command') {
+      const command = args.command;
+      const executable = typeof command === 'string' ? command.trim().split(/\s+/, 1)[0] : '';
+      if (!this.allowedCommands.has(executable)) {
+        throw new Error(`Güvenlik nedeniyle "${executable || 'komut'}" komutuna izin verilmedi.`);
+      }
+    }
 
     const result = await this.request('tools/call', { name, arguments: args });
     if (!isRecord(result)) throw new Error('MCP aracı geçerli bir yanıt döndürmedi.');
@@ -167,7 +194,7 @@ export class McpClient {
         throw new Error('MCP sunucusu 30 saniye içinde yanıt vermedi.');
       }
       if (error instanceof TypeError) {
-        throw new Error('MCP tüneline erişilemedi. URL’yi ve tünel sunucusundaki CORS ayarlarını kontrol edin.');
+        throw new Error('Yerel MCP sunucusuna erişilemedi. Sunucunun çalıştığını, localhost URL’sini ve izinli TreOS kaynağını kontrol edin.');
       }
       throw error;
     } finally {
@@ -251,6 +278,12 @@ function validateToolArguments(name: string, args: Record<string, unknown>): voi
     const content = Object.entries(args).find(([key]) => /^(content|text)$/i.test(key))?.[1];
     if (typeof content !== 'string' || content.length > 100_000) {
       throw new Error('Dosya içeriği geçersiz veya 100 KB sınırını aşıyor.');
+    }
+  }
+  if (name === 'execute_command') {
+    const command = args.command;
+    if (typeof command !== 'string' || !command.trim() || command.length > 1_024) {
+      throw new Error('Komut boş olamaz veya 1024 karakter sınırını aşamaz.');
     }
   }
 }

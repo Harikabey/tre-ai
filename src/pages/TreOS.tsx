@@ -2,10 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { requestChatCompletion } from '@/lib/chatRequest';
 import { McpClient, type McpConnectionMode, type McpTool, validateMcpUrl } from '@/lib/mcpClient';
+import {
+  createTreosSetupScript,
+  DANGEROUS_TREOS_COMMANDS,
+  readTreosAllowedCommands,
+  TREOS_COMMAND_GROUPS,
+} from '@/lib/treosSetup';
 import { readModelSelection } from '@/hooks/useModelSelection';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,6 +38,7 @@ const TreOS = () => {
   const [setupDownloading, setSetupDownloading] = useState(false);
   const [setupScriptDownloaded, setSetupScriptDownloaded] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('');
+  const [allowedCommands, setAllowedCommands] = useState<string[]>(readTreosAllowedCommands);
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
   const [task, setTask] = useState('');
@@ -39,6 +47,10 @@ const TreOS = () => {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
+
+  useEffect(() => {
+    localStorage.setItem('treos_allowed_commands', JSON.stringify(allowedCommands));
+  }, [allowedCommands]);
 
   useEffect(() => () => {
     runId.current += 1;
@@ -52,6 +64,7 @@ const TreOS = () => {
   const connect = async (
     url: string,
     mode: McpConnectionMode = 'demo',
+    commands: string[] = allowedCommands,
   ): Promise<boolean> => {
     setConnecting(true);
     setError(null);
@@ -62,7 +75,7 @@ const TreOS = () => {
     setConnectionMode(mode);
     try {
       validateMcpUrl(url);
-      const connected = await McpClient.connect(url, mode);
+      const connected = await McpClient.connect(url, mode, commands);
       if (connected.tools.length === 0) {
         connected.client.close();
         throw new Error(mode === 'demo'
@@ -75,7 +88,10 @@ const TreOS = () => {
       localStorage.setItem('treos_connection_mode', mode);
       return true;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'MCP tüneline bağlanılamadı.');
+      const message = reason instanceof Error ? reason.message : 'MCP sunucusuna bağlanılamadı.';
+      setError(mode === 'custom'
+        ? `${message} Sunucunun çalıştığını ve localhost URL’sindeki portun doğru olduğunu kontrol edin.`
+        : message);
       return false;
     } finally {
       setConnecting(false);
@@ -91,39 +107,48 @@ const TreOS = () => {
     if (connected) setError(null);
   };
 
+  const toggleAllowedCommand = (command: string, checked: boolean) => {
+    if (
+      checked &&
+      DANGEROUS_TREOS_COMMANDS.has(command) &&
+      !window.confirm('DİKKAT: Bu komutlar bilgisayarınızdaki dosyaları kalıcı olarak silebilir veya sistemi bozabilir. Yapay zekanın bu komutu çalıştırmasına izin vermek istediğinizden emin misiniz?')
+    ) return;
+
+    setAllowedCommands((current) => checked
+      ? [...new Set([...current, command])]
+      : current.filter((allowedCommand) => allowedCommand !== command));
+    setSetupScriptDownloaded(false);
+    setMcpUrl('');
+  };
+
   const startAutoSetup = async () => {
     setError(null);
     setSetupDownloading(true);
     try {
-      const userAgent = navigator.userAgent;
-      const scriptName = /Windows/i.test(userAgent)
-        ? 'treos-auto-setup.bat'
-        : /Macintosh|Mac OS X/i.test(userAgent)
-          ? 'treos-auto-setup.sh'
-          : /Linux/i.test(userAgent)
-            ? 'treos-auto-setup.sh'
-            : null;
-      if (!scriptName) throw new Error('İşletim sisteminiz otomatik tanınamadı. Windows, macOS veya Linux kullanın.');
-
-      const publicBaseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
-      const scriptUrl = new URL(scriptName, publicBaseUrl);
-      const scriptResponse = await fetch(scriptUrl, { cache: 'no-store' });
-      if (!scriptResponse.ok) throw new Error('Kurulum betiği indirilemedi. Lütfen daha sonra tekrar deneyin.');
-      const scriptTemplate = await scriptResponse.text();
-      if (!scriptTemplate.includes('__TREOS_ASSET_BASE_URL__')) {
-        throw new Error('Kurulum betiği geçersiz; indirme başlatılmadı.');
+      if (allowedCommands.length === 0) {
+        throw new Error('Kurulumdan önce en az bir komut izni seçin.');
       }
 
-      const assetBaseUrl = publicBaseUrl.href.replace(/\/$/, '');
-      const script = scriptTemplate.replaceAll('__TREOS_ASSET_BASE_URL__', assetBaseUrl);
-      const downloadUrl = URL.createObjectURL(new Blob([script], { type: 'text/plain' }));
+      const platformInfo = `${navigator.userAgent} ${navigator.platform}`;
+      const platform = /Windows/i.test(platformInfo)
+        ? 'windows'
+        : /Macintosh|Mac OS X|MacIntel|Linux/i.test(platformInfo)
+          ? 'unix'
+          : null;
+      if (!platform) {
+        throw new Error('İşletim sisteminiz otomatik tanınamadı. Windows, macOS veya Linux kullanın.');
+      }
+
+      const scriptName = platform === 'windows' ? 'treos-stela-setup.bat' : 'treos-stela-setup.sh';
+      const script = createTreosSetupScript(platform, allowedCommands, window.location.origin);
+      const downloadUrl = URL.createObjectURL(new Blob([script], { type: 'text/plain;charset=utf-8' }));
       const downloadLink = document.createElement('a');
       downloadLink.href = downloadUrl;
       downloadLink.download = scriptName;
       document.body.append(downloadLink);
       downloadLink.click();
       downloadLink.remove();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
       setSetupScriptDownloaded(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Otomatik kurulum başlatılamadı.');
@@ -150,7 +175,7 @@ const TreOS = () => {
     setRunning(true);
     setSteps([]);
     try {
-      const plan = await createPlan(task.trim(), tools, connectionMode ?? 'demo');
+      const plan = await createPlan(task.trim(), tools, connectionMode ?? 'demo', allowedCommands);
       if (executionId !== runId.current) return;
       if (plan.length === 0) throw new Error('Bu görev için izinli araçlarla güvenli bir adım planlanamadı.');
       setSteps(plan);
@@ -198,9 +223,9 @@ const TreOS = () => {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-semibold">TreOS Beta</h1>
-            <p className="text-sm text-muted-foreground">Yerel MCP simülasyonu üzerinden TreOS’u deneyin.</p>
+            <p className="text-sm text-muted-foreground">Yerel MCP bağlantısı üzerinden TreOS’u deneyin.</p>
           </div>
-          <ShieldCheck className="h-6 w-6 text-emerald-600" aria-label="Terminal erişimi kapalı" />
+          <ShieldCheck className="h-6 w-6 text-emerald-600" aria-label="Komut erişimi izin listesiyle sınırlı" />
         </header>
 
         {!client && (
@@ -221,17 +246,49 @@ const TreOS = () => {
             <article className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-2 font-semibold">🛠️ Kendi Sunucumu Bağla</h2>
               <p className="mb-4 text-sm text-muted-foreground">
-                Kurulum betiğini indirip çalıştırın. Yalnızca simülasyon araçları etkinleşir;
-                bilgisayarınızda gerçek bir işlem yapılmaz.
+                İzin verdiğiniz komutlar bilgisayarınızda çalışabilir. Seçimleriniz yalnızca bu tarayıcıda saklanır;
+                tehlikeli komutlar için ayrıca onay gerekir.
               </p>
+              <div className="mb-4 space-y-4">
+                {TREOS_COMMAND_GROUPS.map((group) => (
+                  <fieldset key={group.name}>
+                    <legend className={`mb-2 text-sm font-medium ${group.dangerous ? 'text-destructive' : ''}`}>
+                      {group.name}
+                    </legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {group.commands.map(({ name, description }) => {
+                        const checkboxId = `allowed-command-${name}`;
+                        return (
+                          <div key={name} className="flex items-start gap-2">
+                            <Checkbox
+                              id={checkboxId}
+                              checked={allowedCommands.includes(name)}
+                              onCheckedChange={(checked) => toggleAllowedCommand(name, checked === true)}
+                              aria-label={`${name}: ${description}`}
+                              className={group.dangerous ? 'border-destructive data-[state=checked]:bg-destructive' : ''}
+                            />
+                            <label htmlFor={checkboxId} className="cursor-pointer text-sm leading-4">
+                              <span className={group.dangerous ? 'font-medium text-destructive' : 'font-medium'}>
+                                {name}
+                              </span>
+                              <span className="ml-2 text-muted-foreground">{description}</span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
               <Button variant="outline" onClick={() => void startAutoSetup()} disabled={connecting || running || setupDownloading}>
                 {setupDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Kurulum Betiğini İndir
+                Otomatik Kurulum (STeLA MCP)
               </Button>
               {setupScriptDownloaded && (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Betiği çalıştırdıktan sonra size verilen URL'i buraya yapıştırın ve Bağlan'a basın.
+                    Betiği çalıştırın. Betik size http://localhost:8000/mcp (veya belirlenen port) adresini verecek.
+                    Bu adresi aşağıdaki alana yapıştırın.
                   </p>
                   <label htmlFor="mcp-url" className="block text-sm font-medium">MCP URL'si Gir</label>
                   <Input
@@ -239,10 +296,10 @@ const TreOS = () => {
                     type="url"
                     value={mcpUrl}
                     onChange={(event) => setMcpUrl(event.target.value)}
-                    placeholder="http://localhost:3000/mcp veya https://…trycloudflare.com/mcp"
+                    placeholder="http://localhost:8000/mcp"
                     aria-label="MCP URL'si Gir"
                   />
-                  <Button onClick={() => void connect(mcpUrl, 'demo')} disabled={connecting || running || !mcpUrl.trim()}>
+                  <Button onClick={() => void connect(mcpUrl, 'custom', allowedCommands)} disabled={connecting || running || !mcpUrl.trim()}>
                     {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Bağlan
                   </Button>
@@ -254,15 +311,17 @@ const TreOS = () => {
 
         {client && (
           <section className="mb-5 rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-2 flex items-center gap-2 font-semibold"><Cable className="h-4 w-4" /> Simülasyon MCP bağlantısı</h2>
+            <h2 className="mb-2 flex items-center gap-2 font-semibold">
+              <Cable className="h-4 w-4" /> {connectionMode === 'custom' ? 'Yerel STeLA MCP bağlantısı' : 'Simülasyon MCP bağlantısı'}
+            </h2>
             <Button variant="outline" onClick={disconnect} disabled={running}>
               <Unplug className="mr-2 h-4 w-4" /> Bağlantıyı kes
             </Button>
             <p className="mt-2 text-sm text-emerald-600">
-              Bağlantı Başarılı ✅ · {tools.length} izinli simülasyon aracı
+              Bağlantı Başarılı ✅ · {tools.length} izinli araç
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              İzinli araçlar: {tools.map((tool) => tool.name).join(', ')}. Gerçek bilgisayar işlemi yapılmaz.
+              İzinli araçlar: {tools.map((tool) => tool.name).join(', ')}.
             </p>
           </section>
         )}
@@ -282,7 +341,9 @@ const TreOS = () => {
               {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
               {running ? 'Görev çalışıyor…' : 'Görevi çalıştır'}
             </Button>
-            <p className="text-xs text-muted-foreground">En fazla {MAX_STEPS} adım; terminal ve shell erişimi yoktur.</p>
+            <p className="text-xs text-muted-foreground">
+              En fazla {MAX_STEPS} adım; yalnızca listelenen araçlar kullanılabilir.
+            </p>
           </div>
         </section>
 
@@ -341,6 +402,7 @@ async function createPlan(
   task: string,
   tools: McpTool[],
   connectionMode: McpConnectionMode,
+  allowedCommands: string[],
 ): Promise<TaskStep[]> {
   const selection = readModelSelection();
   if (selection.provider === 'local') {
@@ -377,7 +439,10 @@ async function createPlan(
           'Sadece listelenen araçlardan uygun olanlarını kullan. Uygun araç yoksa boş nodes ve edges döndür.',
           ...(connectionMode === 'demo'
             ? ['Kullanıcı demo modunda. Gerçek dosya işlemleri yapamazsın; sadece simülasyon araçlarını kullan.']
-            : ['Kullanıcı kendi sunucusuna bağlandı. Yalnızca izin verilen güvenli araçları kullanarak görevleri yerine getir.']),
+            : [
+              'Kullanıcı kendi yerel STeLA sunucusuna bağlandı. Yalnızca izin verilen araçları ve komutları kullan.',
+              `Kullanıcının izin verdiği komutlar: ${allowedCommands.join(', ')}`,
+            ]),
           `En fazla ${MAX_STEPS} node oluştur. Her node için id, label, tool ve arguments (JSON object) üret; bağımlılıkları from/to alanlı edges ile belirt.`,
           'Yanıtı yalnızca nodes ve edges alanlarını içeren JSON nesnesi olarak döndür.',
           `Görev: ${task}`,
