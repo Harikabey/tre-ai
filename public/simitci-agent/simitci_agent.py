@@ -21,6 +21,15 @@ from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 HOST = "127.0.0.1"
 PORT = 8501
 MAX_PAGE_TEXT = 8_000
+DEFAULT_ALLOWED_ORIGINS = {"https://tre-ai-app.vercel.app"}
+ALLOWED_PREFLIGHT_METHODS = {"GET", "POST", "DELETE"}
+ALLOWED_PREFLIGHT_HEADERS = {
+    "accept",
+    "content-type",
+    "mcp-protocol-version",
+    "mcp-session-id",
+    "last-event-id",
+}
 DATA_DIR = Path(".")
 ACTION_PATH = re.compile(
     r"(?:^|/)(?:checkout|purchase|buy|order|payment|pay|cart|unsubscribe|logout|delete|remove|transfer|submit|confirm)(?:/|$)",
@@ -214,9 +223,9 @@ async def screenshot() -> str:
 
 
 class OriginGuard:
-    def __init__(self, app: Any, allowed_origin: str):
+    def __init__(self, app: Any, allowed_origins: set[str]):
         self.app = app
-        self.allowed_origin = allowed_origin
+        self.allowed_origins = allowed_origins
 
     async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope["type"] != "http":
@@ -226,7 +235,7 @@ class OriginGuard:
         headers = dict(scope.get("headers", []))
         origin = headers.get(b"origin", b"").decode("latin-1")
         host = headers.get(b"host", b"").decode("latin-1").lower()
-        if origin != self.allowed_origin or host not in {
+        if origin not in self.allowed_origins or host not in {
             f"localhost:{PORT}",
             f"127.0.0.1:{PORT}",
         }:
@@ -234,13 +243,28 @@ class OriginGuard:
             return
 
         if scope["method"] == "OPTIONS":
+            requested_method = headers.get(b"access-control-request-method", b"").decode("latin-1").upper()
+            requested_headers = {
+                header.strip().lower()
+                for header in headers.get(b"access-control-request-headers", b"").decode("latin-1").split(",")
+                if header.strip()
+            }
+            if (
+                requested_method not in ALLOWED_PREFLIGHT_METHODS
+                or not requested_headers.issubset(ALLOWED_PREFLIGHT_HEADERS)
+            ):
+                await self._respond(send, 403, [(b"content-type", b"text/plain")], b"Preflight request not allowed")
+                return
+
             response_headers = [
-                (b"access-control-allow-origin", self.allowed_origin.encode("latin-1")),
+                (b"access-control-allow-origin", origin.encode("latin-1")),
                 (b"access-control-allow-methods", b"GET, POST, DELETE, OPTIONS"),
-                (b"access-control-allow-headers", b"accept, content-type, mcp-protocol-version, mcp-session-id, last-event-id"),
+                (b"access-control-allow-headers", b", ".join(
+                    header.encode("latin-1") for header in sorted(requested_headers)
+                )),
                 (b"access-control-allow-private-network", b"true"),
                 (b"access-control-max-age", b"600"),
-                (b"vary", b"Origin"),
+                (b"vary", b"Origin, Access-Control-Request-Headers, Access-Control-Request-Method"),
             ]
             await self._respond(send, 204, response_headers, b"")
             return
@@ -249,7 +273,7 @@ class OriginGuard:
             if message["type"] == "http.response.start":
                 headers_out = list(message.get("headers", []))
                 headers_out.extend([
-                    (b"access-control-allow-origin", self.allowed_origin.encode("latin-1")),
+                    (b"access-control-allow-origin", origin.encode("latin-1")),
                     (b"access-control-expose-headers", b"Mcp-Session-Id, MCP-Protocol-Version"),
                     (b"access-control-allow-private-network", b"true"),
                     (b"vary", b"Origin"),
@@ -268,12 +292,18 @@ class OriginGuard:
 def main() -> None:
     global DATA_DIR
     parser = argparse.ArgumentParser(description="si-MİTÇİ yerel salt-okunur web araştırma MCP sunucusu")
-    parser.add_argument("--allowed-origin", required=True, help="TreOS web uygulamasının tam origin adresi")
+    parser.add_argument(
+        "--allowed-origin",
+        action="append",
+        default=[],
+        help="Ek izinli TreOS origin adresi; tekrarlanabilir. HTTP yalnızca localhost için kabul edilir.",
+    )
     parser.add_argument("--data-dir", type=Path, default=default_data_dir())
     arguments = parser.parse_args()
     DATA_DIR = arguments.data_dir.expanduser()
+    allowed_origins = set(DEFAULT_ALLOWED_ORIGINS)
     try:
-        allowed_origin = validate_origin(arguments.allowed_origin)
+        allowed_origins.update(validate_origin(origin) for origin in arguments.allowed_origin)
     except ValueError as error:
         parser.error(str(error))
 
@@ -286,9 +316,10 @@ def main() -> None:
         )
 
     print(f"si-MİTÇİ MCP hazır: https://localhost:{PORT}/mcp", flush=True)
+    print(f"İzinli originler: {', '.join(sorted(allowed_origins))}", flush=True)
     print("Görünür tarayıcı salt-okunur araştırma için açılır; form gönderimi ve satın alma araçları yoktur.", flush=True)
     uvicorn.run(
-        OriginGuard(mcp.streamable_http_app(), allowed_origin),
+        OriginGuard(mcp.streamable_http_app(), allowed_origins),
         host=HOST,
         port=PORT,
         ssl_certfile=str(certificate),
