@@ -4,7 +4,7 @@ export interface McpTool {
   inputSchema: Record<string, unknown>;
 }
 
-export type McpConnectionMode = 'custom' | 'demo';
+export type McpConnectionMode = 'custom' | 'demo' | 'simitci';
 
 interface JsonRpcResponse {
   result?: unknown;
@@ -13,6 +13,7 @@ interface JsonRpcResponse {
 
 const ALLOWED_TOOLS = new Set(['click_mouse', 'open_app', 'write_file']);
 const ALLOWED_DEMO_TOOLS = new Set(['simulate_action', 'preview_action', 'get_demo_status']);
+const ALLOWED_SIMITCI_TOOLS = new Set(['search_web', 'open_page', 'read_page', 'screenshot']);
 const ALLOWED_COMMAND_TOOLS = new Set(['execute_command']);
 const BLOCKED_TOOL_NAME = /(shell|terminal|command|exec|powershell|bash|process|script)/i;
 const MCP_PROTOCOL_VERSION = '2024-11-05';
@@ -46,9 +47,11 @@ export function filterMcpTools(
   if (!Array.isArray(value)) throw new Error('MCP sunucusu geçerli bir araç listesi döndürmedi.');
   const allowedTools = mode === 'demo'
     ? ALLOWED_DEMO_TOOLS
-    : allowedCommands.length > 0
-      ? ALLOWED_COMMAND_TOOLS
-      : ALLOWED_TOOLS;
+    : mode === 'simitci'
+      ? ALLOWED_SIMITCI_TOOLS
+      : allowedCommands.length > 0
+        ? ALLOWED_COMMAND_TOOLS
+        : ALLOWED_TOOLS;
 
   return value.filter((tool): tool is McpTool => {
     if (typeof tool !== 'object' || tool === null || Array.isArray(tool)) return false;
@@ -254,6 +257,35 @@ function validateToolArguments(name: string, args: Record<string, unknown>): voi
   if (!isRecord(args)) throw new Error('Araç argümanları geçersiz.');
   if (JSON.stringify(args).length > 100_000) {
     throw new Error('Araç argümanları izin verilen boyutu aşıyor.');
+  }
+  if (name === 'search_web') {
+    if (
+      Object.keys(args).length !== 1 ||
+      typeof args.query !== 'string' ||
+      !args.query.trim() ||
+      args.query.length > 300
+    ) {
+      throw new Error('Arama sorgusu boş olamaz veya 300 karakter sınırını aşamaz.');
+    }
+  }
+  if (name === 'open_page') {
+    if (Object.keys(args).length !== 1 || typeof args.url !== 'string' || args.url.length > 2_000) {
+      throw new Error('Açılacak sayfa adresi geçersiz.');
+    }
+    let url: URL;
+    try {
+      url = new URL(args.url);
+    } catch {
+      throw new Error('Açılacak sayfa adresi geçersiz.');
+    }
+    if (url.protocol !== 'https:' || url.username || url.password) {
+      throw new Error('Yalnızca kimlik bilgisi içermeyen HTTPS sayfaları açılabilir.');
+    }
+  }
+  if (name === 'read_page' || name === 'screenshot') {
+    if (Object.keys(args).length !== 0) {
+      throw new Error(`${name} aracı argüman kabul etmez.`);
+    }
   }
   if (name === 'open_app') {
     const appNames = Object.values(args).filter((value): value is string => typeof value === 'string');

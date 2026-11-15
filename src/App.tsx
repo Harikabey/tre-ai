@@ -32,6 +32,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const TreOS = lazy(() => import("./pages/TreOS"));
+const SimitciPage = lazy(() => import("./pages/SimitciPage"));
 const queryClient = new QueryClient();
 
 const ReminderNotificationRunner = () => {
@@ -75,6 +76,11 @@ const App = () => (
                     <TreOS />
                   </Suspense>
                 </ProtectedRoute>
+              } />
+              <Route path="/simitci" element={
+                <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">si-MİTÇİ yükleniyor...</main>}>
+                  <SimitciPage />
+                </Suspense>
               } />
 
               <Route path="/voice-chat" element={<VoiceChat />} />
