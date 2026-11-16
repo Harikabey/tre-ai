@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import {
+  Activity,
   ArrowLeft,
   Brush,
   Check,
@@ -57,7 +58,7 @@ const pluginIcons = {
   z3: Cpu,
 } satisfies Record<PluginId, typeof Cpu>;
 
-type AgentModuleId = 'treos' | 'trejen' | 'simitci' | 'tre-nt' | 'treforge';
+type AgentModuleId = 'treos' | 'trejen' | 'simitci' | 'tre-nt' | 'treforge' | 'tre-fik';
 type StoreModuleId = AgentModuleId | PluginId;
 
 const pluginGradients: Record<PluginId, string> = {
@@ -73,7 +74,7 @@ const categories = [
   { id: 'custom-tre', title: 'Özelleştirilmiş Tre', modules: ['treos', 'trejen', 'simitci', 'tre-nt', 'treforge'] },
   { id: 'extensions', title: 'Tre Eklentisi', modules: STORE_PLUGINS.map((plugin) => plugin.id) },
   { id: 'creativity', title: 'Yaratıcılık', modules: ['trejen', 'tre-nt', 'image'] },
-  { id: 'data-analysis', title: 'Veri Analizi', modules: ['treforge', 'papaparse', 'graphviz'] },
+  { id: 'data-analysis', title: 'Veri Analizi', modules: ['tre-fik', 'treforge', 'papaparse', 'graphviz'] },
   { id: 'advanced-tools', title: 'Gelişmiş Araçlar', modules: ['treos', 'z3', 'sqlite'] },
 ] satisfies { id: string; title: string; modules: StoreModuleId[] }[];
 
@@ -307,6 +308,16 @@ const Store = () => {
       activate: () => navigate('/treforge'),
       actionLabel: 'Etkinleştir',
     },
+    {
+      id: 'tre-fik',
+      title: 'Tre-fik 🚦',
+      description: 'Verilerinizi görselleştirin, şemalara dökün. Trafik polisi gibi düzenli!',
+      icon: <Activity />,
+      gradient: 'from-emerald-500/20 via-card to-cyan-500/10',
+      requirements: ['📊 Veri analizi', '🧠 Akıllı grafik'],
+      activate: () => navigate('/tre-fik'),
+      actionLabel: 'Etkinleştir',
+    },
   ];
   const normalizedSearch = search.trim().toLocaleLowerCase('tr');
   const matchesSearch = (title: string, description: string) => (
@@ -443,6 +454,7 @@ const Store = () => {
       || moduleId === 'simitci'
       || moduleId === 'tre-nt'
       || moduleId === 'treforge'
+      || moduleId === 'tre-fik'
     ) {
       return renderAgentCard(moduleId, className);
     }
