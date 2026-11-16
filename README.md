@@ -32,6 +32,11 @@ Tre, günümüzdeki yapay zeka modellerinin yetersiz veya eksik olduğunu fark e
   * 114 dil desteği, web push bildirimleri ile hatırlatıcı kurma.
   * Yüksek kontrast, yazı ölçeği ve animasyon azaltma seçenekleri.
 * 🔨 **TreForge:** CORS erişimi olan web sayfalarını veya GitHub depolarını tarayıcıda işler; çok dilli yerel embedding’leri IndexedDB’de saklar ve soruları cihazdaki yerel modelle yanıtlar.
+* 🎛️ **Trejen:** Tarayıcı içi Web Audio müzik stüdyosu; kanal rack, piyano rulosu, mikser, çalma listesi, WAV dışa aktarma ve projeyi yerel düzenleyen Tre asistanı sunar.
+
+### Trejen stüdyosu
+
+Tre Mağazası'ndan **Trejen**'i etkinleştirerek 16 adımlı davul/synth kanalları oluşturun, piyano rulosuna notalar yerleştirin ve miks ayarlarını düzenleyin. Tre; yerel kural tabanlı komutlarla melodi, ritim ve akor önerileri oluşturabilir veya bas kanalını ayarlayabilir. Sesler Web Audio API ile cihazda sentezlenir, proje tarayıcının yerel depolamasına kaydedilir ve aranjman WAV olarak dışa aktarılabilir. Sunucuya ses veya proje gönderilmez.
 
 
 ## Teknolojiler

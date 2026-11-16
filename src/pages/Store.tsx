@@ -250,6 +250,21 @@ const Store = () => {
           </div>
         </section>
 
+        <section className="mb-6 rounded-xl border border-cyan-500/30 bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-1 items-start gap-3">
+              <div className="rounded-lg bg-cyan-500/10 p-2.5 text-cyan-500">🎛️</div>
+              <div>
+                <h2 className="font-semibold">Trejen 🎛️</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Yapay zeka destekli, tarayıcıda çalışan müzik prodüksiyon stüdyosu. Tre ile melodiler üret, ritimler yaz.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate('/trejen')}>Etkinleştir</Button>
+          </div>
+        </section>
+
         <section className="mb-6 rounded-xl border border-amber-500/30 bg-card p-5 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex flex-1 items-start gap-3">

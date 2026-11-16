@@ -32,6 +32,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import "./hooks/useUICustomization"; // Apply UI customization on load (prevent FOUC)
 
 const TreOS = lazy(() => import("./pages/TreOS"));
+const TrejenPage = lazy(() => import("./pages/TrejenPage"));
 const SimitciPage = lazy(() => import("./pages/SimitciPage"));
 const TreNtPage = lazy(() => import("./pages/TreNtPage"));
 const TreForgePage = lazy(() => import("./pages/TreForgePage"));
@@ -72,6 +73,11 @@ const App = () => (
               <Route path="/capabilities" element={<Capabilities />} />
               <Route path="/starred" element={<Starred />} />
               <Route path="/store" element={<Store />} />
+              <Route path="/trejen" element={
+                <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">Trejen yükleniyor...</main>}>
+                  <TrejenPage />
+                </Suspense>
+              } />
               <Route path="/treos" element={
                 <ProtectedRoute>
                   <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">TreOS yükleniyor...</main>}>
