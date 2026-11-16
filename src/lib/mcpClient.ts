@@ -4,7 +4,7 @@ export interface McpTool {
   inputSchema: Record<string, unknown>;
 }
 
-export type McpConnectionMode = 'custom' | 'demo' | 'simitci';
+export type McpConnectionMode = 'custom' | 'simitci';
 
 interface JsonRpcResponse {
   result?: unknown;
@@ -12,7 +12,6 @@ interface JsonRpcResponse {
 }
 
 const ALLOWED_TOOLS = new Set(['click_mouse', 'open_app', 'write_file']);
-const ALLOWED_DEMO_TOOLS = new Set(['simulate_action', 'preview_action', 'get_demo_status']);
 const ALLOWED_SIMITCI_TOOLS = new Set(['search_web', 'open_page', 'read_page', 'screenshot']);
 const ALLOWED_COMMAND_TOOLS = new Set(['execute_command']);
 const BLOCKED_TOOL_NAME = /(shell|terminal|command|exec|powershell|bash|process|script)/i;
@@ -45,13 +44,11 @@ export function filterMcpTools(
   allowedCommands: readonly string[] = [],
 ): McpTool[] {
   if (!Array.isArray(value)) throw new Error('MCP sunucusu geçerli bir araç listesi döndürmedi.');
-  const allowedTools = mode === 'demo'
-    ? ALLOWED_DEMO_TOOLS
-    : mode === 'simitci'
-      ? ALLOWED_SIMITCI_TOOLS
-      : allowedCommands.length > 0
-        ? ALLOWED_COMMAND_TOOLS
-        : ALLOWED_TOOLS;
+  const allowedTools = mode === 'simitci'
+    ? ALLOWED_SIMITCI_TOOLS
+    : allowedCommands.length > 0
+      ? ALLOWED_COMMAND_TOOLS
+      : ALLOWED_TOOLS;
 
   return value.filter((tool): tool is McpTool => {
     if (typeof tool !== 'object' || tool === null || Array.isArray(tool)) return false;
@@ -77,22 +74,30 @@ export class McpClient {
   private endpoint: URL;
   private mode: McpConnectionMode;
   private allowedCommands: ReadonlySet<string>;
+  private authToken: string;
   private sessionId: string | null = null;
   private requestId = 0;
   private protocolVersion: string | null = null;
 
-  private constructor(endpoint: URL, mode: McpConnectionMode, allowedCommands: readonly string[]) {
+  private constructor(
+    endpoint: URL,
+    mode: McpConnectionMode,
+    allowedCommands: readonly string[],
+    authToken: string,
+  ) {
     this.endpoint = endpoint;
     this.mode = mode;
     this.allowedCommands = new Set(allowedCommands);
+    this.authToken = authToken;
   }
 
   static async connect(
     value: string,
     mode: McpConnectionMode = 'custom',
     allowedCommands: readonly string[] = [],
+    authToken = '',
   ): Promise<{ client: McpClient; tools: McpTool[] }> {
-    const client = new McpClient(validateMcpUrl(value), mode, allowedCommands);
+    const client = new McpClient(validateMcpUrl(value), mode, allowedCommands, authToken);
     const initialized = await client.request('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
@@ -175,6 +180,7 @@ export class McpClient {
           'Content-Type': 'application/json',
           ...(this.sessionId ? { 'Mcp-Session-Id': this.sessionId } : {}),
           ...(this.protocolVersion ? { 'MCP-Protocol-Version': this.protocolVersion } : {}),
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
         },
         body: JSON.stringify(payload),
       });
