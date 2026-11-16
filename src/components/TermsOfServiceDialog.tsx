@@ -20,7 +20,7 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">Tre Kullanım Sözleşmesi</DialogTitle>
-          <DialogDescription>Son güncelleme: 20 Eylül 2026</DialogDescription>
+          <DialogDescription>Son güncelleme: 16 Kasım 2026</DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
@@ -220,6 +220,44 @@ export const TermsOfServiceDialog = ({ open, onOpenChange }: TermsOfServiceDialo
               <h3 className="text-base font-semibold text-foreground mb-2">Madde 32 — Özel Kişilik</h3>
               <p className="italic">
                 Tre, kullanıcıların Ayarlar menüsünden kendi kişiliklerini tanımlamasına izin verir. Kullanıcı kişilik kutusuna istediği talimatı yazabilir. Tre bu talimatı kalıcı olarak uygular; kullanıcı değiştirene kadar devam eder. Özel kişilik metni kullanıcının cihazında (tarayıcı yerel depolama alanında) saklanır; sohbet yanıtı üretmek için Tre sunucusuna ve kullanılan yapay zeka hizmetine iletilir, reklam veya başka amaçlarla kullanılmaz. Kullanıcı özel kişiliğini istediği zaman düzenleyebilir veya silebilir. Özel kişilik silindiğinde Tre varsayılan kişiliğe döner. Tre özel kişilik talimatını uygularken doğru bilgiden taviz vermez, saygıyı korur, hakaret etmez, yasadışı içerik üretmez. Kullanıcı özel kişilik talimatının içeriğinden kendisi sorumludur.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 36 — TreOS Beta (Otonom Ajan)</h3>
+              <p className="italic">
+                TreOS Beta, kullanıcının yazdığı görevi yapay zeka ile adımlara ayırır ve seçilen MCP sunucusundaki araçları kullanarak bu adımları çalıştırır. Demo bağlantısı simülasyon araçlarıyla sınırlıdır; kullanıcının kendi bilgisayarındaki STeLA MCP sunucusuna bağlantı ise kullanıcının seçtiği izinli komutlar kapsamında dosya ve sistem bilgilerine erişebilir veya dosyalarda değişiklik yapabilir. Görev metni, kullanılabilir araçların adları/açıklamaları ve gerekli görev planlama bağlamı, seçilen yapay zeka sağlayıcısına iletilir; araç çıktıları arayüzde gösterilir. İzinli komut tercihleri ve bağlantı modu tarayıcının yerel depolama alanında tutulur. Kullanıcı yalnızca güvendiği yerel sunucuya bağlanmayı, görev metnini ve komut izinlerini dikkatle belirlemeyi, önemli verilerin yedeğini almayı, sonuçları doğrulamayı ve görev metnine gizli bilgi yazmamayı kabul eder. TreOS Beta hatalı veya beklenmeyen işlemler yapabilir; dosya kaybı ve sistem üzerindeki sonuçlardan kullanıcı sorumludur. İzin verilen bir komut geri alınamaz silme, biçimlendirme veya sistemin kapanması gibi sonuçlar doğurabilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 37 — Tre-nt (Çizim ve AR)</h3>
+              <p className="italic">
+                Tre-nt, kullanıcının çizim tuvalinde bir Pet oluşturmasına, çizimi canlandırmasına ve AR Atölyesi’nde görüntüleyip el hareketleriyle etkileşmesine imkân verir. Kullanıcının çizimi, Pet görseli ve iskelet noktaları AR kullanımına aktarılmak üzere tarayıcının yerel depolama alanında saklanır; kullanıcı bu yerel kaydı silebilir. AR ve el takibi, yalnızca kullanıcı kamera izni verip özelliği başlattığında çalışır; kamera akışı tarayıcıda işlenir ve Tre-nt tarafından kayıtlı bir video olarak saklanmaz veya sunucuya gönderilmez. Kamera iznini tarayıcıdan geri çekmek ve kayıtlı Pet verisini silmek kullanıcının kontrolündedir. Kullanıcı çizdiği veya eklediği içeriklerin haklarına sahip olduğunu, kamera görüntüsüne giren kişiler için gerekli izinleri aldığını ve başkalarının mahremiyetine saygı gösterdiğini kabul eder. Tarayıcı depolama alanının silinmesi Pet kaydının kaybolmasına yol açabilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 38 — TreForge</h3>
+              <p className="italic">
+                TreForge, kullanıcının verdiği herkese açık web sayfası veya GitHub deposundan okunabilir metinleri tarayıcıda alıp parçalara ayırır, yerel vektör bilgi tabanına kaydeder ve kullanıcının sorularını cihazında çalışan yerel modelle yanıtlar. Kaynak adresine yönelik istekler ilgili web sitesine veya GitHub hizmetine gider; çıkarılan metinler ve vektör kayıtları bu tarayıcının IndexedDB alanında tutulur. Soru-cevap için TreForge harici bir yapay zeka API’sine başvurmaz. Kullanıcı yalnızca erişmeye yetkili olduğu ve paylaşılması hukuka uygun kaynakları kullanmayı, kaynakların kullanım koşullarına uymayı ve gizli, kişisel veya özel erişim gerektiren adresleri eklememeyi kabul eder. Kaynak içeriğinin işlenmesi ve bu içerik temelinde oluşturulan yanıtların doğruluğu, ayrıca içeriğin telif ve kullanım hakları kullanıcı sorumluluğundadır. Tarayıcı verileri silinirse yerel bilgi tabanı da kaybolabilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 39 — Trejen</h3>
+              <p className="italic">
+                Trejen, tarayıcı içinde müzik düzenleme, ritim ve nota oluşturma, miks yapma ve WAV dışa aktarma özellikleri sunar. Kanal, nota, tempo, aranjman ve efekt ayarlarını içeren proje tarayıcının yerel depolama alanında saklanır; ses cihazda sentezlenir ve WAV dışa aktarma cihazda yapılır. Trejen’in yerel asistanı, kullanıcının girdiği komut ve açık projedeki müzik verileri üzerinden tarayıcıda kural tabanlı öneri ve düzenlemeler yapar; proje veya ses Trejen tarafından sunucuya gönderilmez. Kullanıcı projelerini yedeklemekten, ürettiği veya kullandığı ses/müzik içeriklerinin hukuka uygunluğundan ve dışa aktardığı dosyaların kullanımından sorumludur. Tarayıcı depolama alanının temizlenmesi kayıtlı projeyi silebilir.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">Madde 40 — Tre Mağazası ve si-MİTÇİ</h3>
+              <p className="italic">
+                Tre Mağazası; isteğe bağlı modül ve eklentileri etkinleştirmeye, çalıştırmaya ve kaldırmaya yarar. Kullanıcı tarafından seçilen eklenti dosyaları ilgili üçüncü taraf dağıtım sunucularından indirilebilir ve tarayıcının Cache API alanında saklanabilir; kurulu eklenti kimlikleri tarayıcının yerel depolama alanında tutulur. Kullanıcı modülleri seçip kaldırabilir; tarayıcı verilerinin temizlenmesi kurulum tercihlerini veya önbellekteki dosyaları etkileyebilir. Üçüncü taraf paketlerin ve hizmetlerin kendi koşulları da geçerlidir.
+              </p>
+              <p className="italic mt-2">
+                Mağaza üzerinden sunulan si-MİTÇİ, kullanıcının açık onayıyla yalnızca kullanıcının bilgisayarındaki HTTPS localhost MCP sunucusuna bağlanarak herkese açık web sayfalarında salt-okunur araştırma yapar; arama, sayfa açma/okuma ve ekran görüntüsü araçlarıyla sınırlıdır. Form doldurma veya gönderme, sayfaya yazma, oturum açma ve satın alma araçları sunulmaz. Araştırma görevi ve planlama için gerekli araç bilgileri, seçilen yapay zeka sağlayıcısına iletilir; web aramaları ve sayfa istekleri ilgili üçüncü taraf sitelere gider. Kullanıcı yalnızca herkese açık ve erişmeye yetkili olduğu sayfaları araştırmayı, görev alanına gizli bilgi koymamayı, web sitelerinin kullanım koşullarına uymayı ve sonuçları doğrulamayı kabul eder. Yerel ajanı kurma, çalıştırma ve bilgisayarındaki bağlantı/güvenlik ayarlarını yönetme sorumluluğu kullanıcıya aittir.
               </p>
             </section>
 
