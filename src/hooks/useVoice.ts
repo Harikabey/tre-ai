@@ -60,7 +60,7 @@ export const useVoice = () => {
       if (!token) { toast.error("Sesli okuma için giriş yapmalısın"); return; }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/text-to-speech`,
         {
           method: 'POST',
           headers: {

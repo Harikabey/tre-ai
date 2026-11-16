@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.elevenlabs-tts]
 verify_jwt = false
 
+[functions.text-to-speech]
+verify_jwt = false
+
 [functions.read-document]
 verify_jwt = false
 
