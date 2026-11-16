@@ -338,7 +338,7 @@ const Store = () => {
         requirements={module.requirements}
         className={className}
       >
-        <Button className="shadow-[0_0_18px_hsl(var(--primary)/0.28)]" onClick={module.activate}>
+        <Button className="w-full whitespace-normal shadow-[0_0_18px_hsl(var(--primary)/0.28)]" onClick={module.activate}>
           {module.actionLabel}
         </Button>
       </ModuleCard>
@@ -375,9 +375,9 @@ const Store = () => {
         className={className}
       >
         <p className="mb-3 text-xs text-muted-foreground">Boyut: {plugin.sizeLabel}</p>
-        {plugin.note && <p className="mb-3 rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">{plugin.note}</p>}
+        {plugin.note && <p className="mb-3 break-words rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">{plugin.note}</p>}
         {compatibility.length > 0 && (
-          <ul className="mb-3 list-disc space-y-1 pl-5 text-xs text-destructive">
+          <ul className="mb-3 list-disc space-y-1 break-words pl-5 text-xs text-destructive">
             {compatibility.map((reason) => <li key={reason}>{reason}</li>)}
           </ul>
         )}
@@ -387,13 +387,13 @@ const Store = () => {
             <input
               type="file"
               accept="image/jpeg"
-              className="mt-1 block w-full text-xs"
+              className="mt-1 block w-full max-w-full text-xs"
               onChange={(event) => setSelectedImageFile(event.currentTarget.files?.[0] ?? null)}
             />
           </label>
         )}
         {output[plugin.id] && (
-          <pre className="mb-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">{output[plugin.id]}</pre>
+          <pre className="mb-3 max-h-32 max-w-full break-words overflow-auto whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">{output[plugin.id]}</pre>
         )}
         {plugin.id === 'graphviz' && graphvizImage && (
           <img src={graphvizImage} alt="Graphviz DOT diyagramı" className="mb-3 max-h-44 max-w-full rounded border border-border bg-white p-2" />
@@ -403,25 +403,26 @@ const Store = () => {
             <img src={processedImage} alt="İşlenmiş JPEG görseli" className="max-h-44 max-w-full rounded border border-border" />
           </a>
         )}
-        <div className="mt-auto flex flex-wrap items-center gap-2">
+        <div className="mt-auto flex w-full flex-wrap items-center gap-2">
           {plugin.id === 'papaparse' ? (
-            <Button size="sm" onClick={() => void runPlugin(plugin.id)} disabled={busy}>
+            <Button size="sm" className="w-full whitespace-normal" onClick={() => void runPlugin(plugin.id)} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" /> : <Package />}
               {loadedPapaParse ? 'Örneği yeniden çalıştır' : 'Dinamik yükle ve dene'}
             </Button>
           ) : isInstalled ? (
             <>
-              <Button size="sm" onClick={() => void runPlugin(plugin.id)} disabled={busy}>
+              <Button size="sm" className="w-full whitespace-normal" onClick={() => void runPlugin(plugin.id)} disabled={busy}>
                 {busy ? <Loader2 className="animate-spin" /> : <Check />}
                 {plugin.id === 'stockfish' && stockfishStop.current ? 'Durdur' : 'Çalıştır'}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => void handleRemove(plugin.id)} disabled={busy}>
+              <Button size="sm" className="w-full whitespace-normal" variant="outline" onClick={() => void handleRemove(plugin.id)} disabled={busy}>
                 <Trash2 /> Kaldır
               </Button>
             </>
           ) : (
             <Button
               size="sm"
+              className="w-full whitespace-normal"
               onClick={() => void handleInstall(plugin.id)}
               disabled={busy || capabilities.checking || compatibility.length > 0}
             >
@@ -517,9 +518,9 @@ const Store = () => {
               <h2 id="featured-title" className="text-xl font-semibold">Öne Çıkan Trelar</h2>
               <p className="text-sm text-muted-foreground">Tre’nin popüler stüdyolarını keşfet.</p>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-3">
+            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4">
               {visibleFeaturedModules.map((module) => (
-                <div key={module.id} className="w-[85%] shrink-0 md:w-[calc((100%-2rem)/3)]">
+                <div key={module.id} className="w-[85%] flex-none md:w-[45%] lg:w-[30%]">
                   {renderAgentCard(module.id, 'min-h-52 p-5')}
                 </div>
               ))}
@@ -562,10 +563,10 @@ const Store = () => {
             {visibleCategories.map((category) => (
               <section key={category.id} id={category.id} aria-labelledby={`${category.id}-title`} className="scroll-mt-6">
                 <h2 id={`${category.id}-title`} className="mb-3 text-xl font-semibold">{category.title}</h2>
-                <div className="flex gap-0 overflow-x-auto pb-3">
+                <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4">
                   {category.modules
                     .filter((moduleId) => visibleModuleIds.has(moduleId))
-                    .map((moduleId) => renderCatalogCard(moduleId, 'w-[33.33%] shrink-0 md:w-[16.66%]'))}
+                    .map((moduleId) => renderCatalogCard(moduleId, 'w-[85%] flex-none sm:w-[45%] md:w-[30%] lg:w-[16.66%]'))}
                 </div>
               </section>
             ))}
