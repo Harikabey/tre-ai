@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,8 @@ const MAX_STEPS = 10;
 const TreOS = () => {
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [autoSetupStarted, setAutoSetupStarted] = useState(false);
+  const [autoConnectRequested, setAutoConnectRequested] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('http://127.0.0.1:8765/mcp');
   const [authToken, setAuthToken] = useState('');
   const [client, setClient] = useState<McpClient | null>(null);
@@ -49,6 +52,50 @@ const TreOS = () => {
     runId.current += 1;
     client?.close();
   }, [client]);
+
+  useEffect(() => {
+    if (!autoConnectRequested || client) return;
+    let cancelled = false;
+
+    const pollForConnection = async () => {
+      let lastError = 'Rigout henüz yanıt vermedi.';
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (cancelled) return;
+        try {
+          const connected = await McpClient.connect(mcpUrl, 'custom', [], authToken.trim());
+          if (connected.tools.length === 0) {
+            connected.client.close();
+            throw new Error('Rigout güvenli araç listesinde kullanılabilir araç sunmadı.');
+          }
+          if (cancelled) {
+            connected.client.close();
+            return;
+          }
+          setClient(connected.client);
+          setTools(connected.tools);
+          setError(null);
+          setAutoConnectRequested(false);
+          toast.success('Bağlantı Başarılı');
+          return;
+        } catch (reason) {
+          lastError = reason instanceof Error ? reason.message : 'Rigout bağlantısı kurulamadı.';
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 3_000));
+      }
+
+      if (!cancelled) {
+        setAutoConnectRequested(false);
+        const message = `Rigout'a otomatik bağlanılamadı: ${lastError} URL ve token'ı kontrol edip yeniden deneyin.`;
+        setError(message);
+        toast.error(message);
+      }
+    };
+
+    void pollForConnection();
+    return () => {
+      cancelled = true;
+    };
+  }, [autoConnectRequested, authToken, client, mcpUrl]);
 
   if (localStorage.getItem('treos_consent_granted') !== 'true') {
     return <Navigate to="/store" replace />;
@@ -77,6 +124,7 @@ const TreOS = () => {
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'MCP sunucusuna bağlanılamadı.';
       setError(`${message} Rigout'un çalıştığını, URL'yi ve token'ı kontrol edin.`);
+      toast.error(`${message} Rigout'un çalıştığını, URL'yi ve token'ı kontrol edin.`);
       return false;
     } finally {
       setConnecting(false);
@@ -90,6 +138,57 @@ const TreOS = () => {
     setTools([]);
     setSteps([]);
     setError(null);
+  };
+
+  const downloadRigoutSetup = () => {
+    try {
+      const isWindows = navigator.userAgent.toLowerCase().includes('windows');
+      const extension = isWindows ? 'bat' : 'sh';
+      const link = document.createElement('a');
+      link.href = `/rigout-auto-setup.${extension}`;
+      link.download = `rigout-auto-setup.${extension}`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setSetupComplete(true);
+      setAutoSetupStarted(true);
+      toast.success('Betik indirildi. İndirilen betiği çalıştırın; kurulum otomatik yapılacak.');
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : 'Kurulum betiği indirilemedi.';
+      toast.error(`Kurulum betiği indirilemedi: ${message}`);
+    }
+  };
+
+  const importRigoutConfig = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 64 * 1024) throw new Error('Yapılandırma dosyası 64 KB sınırını aşıyor.');
+      const config: unknown = JSON.parse(await file.text());
+      if (!isRecord(config)) throw new Error('Yapılandırma dosyası geçerli bir JSON nesnesi değil.');
+
+      const url = typeof config.url === 'string' ? config.url : '';
+      const tokenValue = config.token ?? config.authToken ?? config.bearerToken;
+      if (
+        typeof tokenValue !== 'string' ||
+        tokenValue.length > 4_096 ||
+        /[\r\n]/.test(tokenValue)
+      ) {
+        throw new Error('Yapılandırma dosyasında geçerli bir token bulunamadı.');
+      }
+      validateMcpUrl(url);
+      setMcpUrl(url);
+      setAuthToken(tokenValue);
+      setAutoConnectRequested(true);
+      toast.success('Yapılandırma yüklendi. Rigout bağlantısı aranıyor.');
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : 'Yapılandırma dosyası okunamadı.';
+      setError(message);
+      toast.error(`Rigout yapılandırması yüklenemedi: ${message}`);
+    } finally {
+      input.value = '';
+    }
   };
 
   const executeTask = async () => {
@@ -158,13 +257,40 @@ const TreOS = () => {
             <p className="mb-4 text-sm text-muted-foreground">
               Rigout bilgisayarınızda çalışır ve TreOS’un güvenli araç listesi üzerinden gerçek işlemler yapar.
             </p>
-            {!setupComplete ? (
-              <Button onClick={() => setSetupDialogOpen(true)} disabled={connecting || running}>
-                <Cable className="mr-2 h-4 w-4" />
-                Rigout ile Bağlan
-              </Button>
-            ) : (
+            {!setupComplete && (
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={downloadRigoutSetup} disabled={connecting || running}>
+                  <Cable className="mr-2 h-4 w-4" />
+                  Rigout'u Otomatik Kur ve Bağlan
+                </Button>
+                <Button variant="outline" onClick={() => setSetupDialogOpen(true)} disabled={connecting || running}>
+                  Rigout ile Bağlan
+                </Button>
+              </div>
+            )}
+            {setupComplete && (
               <div className="space-y-4">
+                {autoSetupStarted && (
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-sm text-muted-foreground">
+                      İndirilen betiği çalıştırın, kurulum otomatik yapılacak. Ardından oluşturulan rigout-config.json dosyasını buradan seçin.
+                    </p>
+                    <label htmlFor="rigout-config" className="block text-sm font-medium">
+                      Rigout yapılandırma dosyası
+                    </label>
+                    <Input
+                      id="rigout-config"
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={(event) => void importRigoutConfig(event)}
+                    />
+                    {autoConnectRequested && (
+                      <p role="status" className="text-sm text-muted-foreground">
+                        Rigout bağlantısı aranıyor; bu sırada URL veya token'ı güncelleyebilirsiniz.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label htmlFor="mcp-url" className="block text-sm font-medium">Rigout URL'si</label>
                   <Input
@@ -289,13 +415,13 @@ const TreOS = () => {
             <DialogHeader>
               <DialogTitle>Rigout kurulumu</DialogTitle>
               <DialogDescription>
-                Rigout'u kurmak için terminalinizi açın ve şu komutu çalıştırın:
+                Kurulumu elle yapmak isterseniz terminalinizi açıp şu komutu çalıştırın:
               </DialogDescription>
             </DialogHeader>
             <code className="rounded-md bg-muted p-3 text-sm">pipx install rigout</code>
             <p className="text-sm text-muted-foreground">
               Alternatif olarak <code className="rounded bg-muted px-1">uvx rigout</code> komutunu kullanabilirsiniz.
-              Kurulumdan sonra Rigout'u başlatın; ardından MCP URL'nizi ve Bearer Token'ınızı girin.
+              Kurulumdan sonra Rigout'u başlatın; ardından MCP URL'nizi ve Bearer Token'ınızı girin. Otomatik kurulum seçeneği indirilen betiği çalıştırır; tarayıcı güvenlik nedeniyle betiği sizin yerinize başlatamaz veya yerel dosyaları izniniz olmadan okuyamaz.
             </p>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSetupDialogOpen(false)}>Kapat</Button>
