@@ -266,6 +266,21 @@ const Store = () => {
           </div>
         </section>
 
+        <section className="mb-6 rounded-xl border border-fuchsia-500/30 bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-1 items-start gap-3">
+              <div className="rounded-lg bg-fuchsia-500/10 p-2.5 text-fuchsia-500">🖍️</div>
+              <div>
+                <h2 className="font-semibold">Tre-nt 🖍️</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Kendi Pet’ini çiz, canlandır ve el hareketlerinle AR atölyesinde şekillendir.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate('/tre-nt')}>Stüdyoyu aç</Button>
+          </div>
+        </section>
+
         <Dialog open={consentOpen} onOpenChange={setConsentOpen}>
           <DialogContent>
             <DialogHeader>

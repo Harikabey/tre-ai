@@ -33,6 +33,7 @@ import "./hooks/useUICustomization"; // Apply UI customization on load (prevent 
 
 const TreOS = lazy(() => import("./pages/TreOS"));
 const SimitciPage = lazy(() => import("./pages/SimitciPage"));
+const TreNtPage = lazy(() => import("./pages/TreNtPage"));
 const queryClient = new QueryClient();
 
 const ReminderNotificationRunner = () => {
@@ -80,6 +81,11 @@ const App = () => (
               <Route path="/simitci" element={
                 <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">si-MİTÇİ yükleniyor...</main>}>
                   <SimitciPage />
+                </Suspense>
+              } />
+              <Route path="/tre-nt" element={
+                <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">Tre-nt yükleniyor...</main>}>
+                  <TreNtPage />
                 </Suspense>
               } />
 
