@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, AudioLines, Download, ListMusic, Pause, Play, Plus, Radio, Save, SlidersHorizontal, Trash2, Volume2, VolumeX,
+  ArrowLeft, AudioLines, Download, ListMusic, Mic2, Pause, Play, Plus, Radio, Save, SlidersHorizontal, Trash2, Volume2, VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import TreAssistant from '@/components/TreAssistant';
 import {
   DEFAULT_PROJECT, exportProjectWav, loadStudioProject, saveStudioProject, useAudioEngine,
   type InstrumentType, type PianoNote, type StudioChannel, type StudioProject,
 } from '@/hooks/useAudioEngine';
+import { useMelodySpeech, type Note } from '@/hooks/useMelodySpeech';
 
-type StudioTab = 'rack' | 'piano' | 'mixer' | 'playlist';
+type StudioTab = 'rack' | 'piano' | 'mixer' | 'playlist' | 'sing';
+type MelodySelection = 'piano-roll' | 'arrangement';
 
 const instrumentOptions: { type: InstrumentType; name: string }[] = [
   { type: 'kick', name: 'Kick' },
@@ -34,9 +37,31 @@ const TrejenPage = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [playhead, setPlayhead] = useState(0);
   const [newChannelType, setNewChannelType] = useState<InstrumentType>('synth');
+  const [lyrics, setLyrics] = useState('');
+  const [melodySelection, setMelodySelection] = useState<MelodySelection>('arrangement');
   const projectRef = useRef(project);
   const playheadRef = useRef(0);
   const { playSound } = useAudioEngine();
+  const {
+    synthesizeAndPlay,
+    stop: stopMelodySpeech,
+    isLoading: isSpeechLoading,
+    isPlaying: isSpeechPlaying,
+  } = useMelodySpeech(project.bpm);
+  const selectedMelodyNotes = useMemo<Note[]>(() => {
+    if (melodySelection === 'piano-roll') {
+      return project.notes.map(({ step, pitch, duration }) => ({ step, pitch, duration }));
+    }
+    const firstActiveBar = project.arrangement.findIndex(Boolean);
+    if (firstActiveBar < 0) return [];
+    return project.arrangement.flatMap((active, bar) => active
+      ? project.notes.map(({ step, pitch, duration }) => ({
+        step: (bar - firstActiveBar) * 16 + step,
+        pitch,
+        duration,
+      }))
+      : []);
+  }, [melodySelection, project.arrangement, project.notes]);
 
   useEffect(() => {
     try {
@@ -188,6 +213,7 @@ const TrejenPage = () => {
     { id: 'piano', label: 'Piyano Rulosu', icon: AudioLines },
     { id: 'mixer', label: 'Mikser', icon: SlidersHorizontal },
     { id: 'playlist', label: 'Çalma Listesi', icon: ListMusic },
+    { id: 'sing', label: 'Sözlerini Söylet 🎤', icon: Mic2 },
   ];
 
   return (
@@ -402,6 +428,63 @@ const TrejenPage = () => {
               </div>
               <div className="mt-4 flex items-center gap-2 text-xs text-slate-500"><Save className="h-3.5 w-3.5 text-cyan-300" />Düzenleme ve proje değişiklikleri bu tarayıcıya otomatik kaydedilir.</div>
               <div className="mt-3 flex items-center gap-2 text-xs text-slate-500"><span className="h-2 w-2 rounded-full bg-cyan-300" />Çalma konumu: Ölçü {Math.floor(playhead / 16) + 1}, adım {(playhead % 16) + 1}</div>
+            </div>
+          )}
+
+          {activeTab === 'sing' && (
+            <div className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.8fr)]">
+              <div>
+                <label htmlFor="trejen-lyrics" className="mb-2 block text-sm font-medium text-slate-200">Şarkı sözleri</label>
+                <Textarea
+                  id="trejen-lyrics"
+                  value={lyrics}
+                  onChange={(event) => setLyrics(event.target.value)}
+                  maxLength={5000}
+                  placeholder="Söyletmek istediğiniz sözleri buraya yazın…"
+                  rows={9}
+                  className="resize-y border-white/10 bg-black/20 text-slate-100 placeholder:text-slate-600 focus-visible:ring-cyan-300"
+                />
+                <p className="mt-2 text-right text-xs text-slate-500">{lyrics.length}/5000</p>
+              </div>
+              <div className="flex flex-col gap-4 rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                <div>
+                  <label htmlFor="trejen-melody" className="mb-2 block text-sm font-medium text-slate-200">Melodi seçimi</label>
+                  <select
+                    id="trejen-melody"
+                    value={melodySelection}
+                    onChange={(event) => setMelodySelection(event.target.value as MelodySelection)}
+                    className="h-10 w-full rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-slate-200"
+                  >
+                    <option value="arrangement">Aktif çalma listesi · {project.arrangement.filter(Boolean).length} ölçü</option>
+                    <option value="piano-roll">Piyano rulosu · tek ölçü</option>
+                  </select>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {selectedMelodyNotes.length
+                    ? `${selectedMelodyNotes.length} nota seçili · ${project.bpm} BPM`
+                    : 'Seçilen melodide nota yok. Önce Piyano Rulosu sekmesinde nota ekleyin.'}
+                </p>
+                <Button
+                  onClick={() => {
+                    if (isSpeechPlaying) {
+                      stopMelodySpeech();
+                    } else {
+                      void synthesizeAndPlay(lyrics, selectedMelodyNotes);
+                    }
+                  }}
+                  disabled={isSpeechLoading || (!isSpeechPlaying && !lyrics.trim())}
+                  className="mt-auto bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+                >
+                  {isSpeechLoading
+                    ? <><AudioLines className="mr-2 h-4 w-4 animate-pulse" />Sözler hazırlanıyor…</>
+                    : isSpeechPlaying
+                      ? <><Pause className="mr-2 h-4 w-4" />Durdur</>
+                      : <><Play className="mr-2 h-4 w-4" />Söylet 🎶</>}
+                </Button>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Sözler ve seçili melodi birlikte başlar. Seslendirme melodi süresine sığmazsa oynatma başlamaz.
+                </p>
+              </div>
             </div>
           )}
         </section>
