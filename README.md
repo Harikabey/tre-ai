@@ -31,6 +31,7 @@ Tre, günümüzdeki yapay zeka modellerinin yetersiz veya eksik olduğunu fark e
   * Google (Gmail/Drive) hesap bağlantıları ve web arama/kaynak gösterimi.
   * 114 dil desteği, web push bildirimleri ile hatırlatıcı kurma.
   * Yüksek kontrast, yazı ölçeği ve animasyon azaltma seçenekleri.
+* 🔨 **TreForge:** CORS erişimi olan web sayfalarını veya GitHub depolarını tarayıcıda işler; çok dilli yerel embedding’leri IndexedDB’de saklar ve soruları cihazdaki yerel modelle yanıtlar.
 
 
 ## Teknolojiler
@@ -40,6 +41,7 @@ Tre, günümüzdeki yapay zeka modellerinin yetersiz veya eksik olduğunu fark e
 - Shadcn UI
 - Supabase (Veritabanı & Edge Functions)
 - Google Gemini AI
+- Transformers.js (TreForge için tarayıcı içi embedding)
 - ElevenLabs TTS
 
 # ⚙️ Kurulum ve Çalıştırma

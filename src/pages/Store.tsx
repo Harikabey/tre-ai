@@ -281,6 +281,21 @@ const Store = () => {
           </div>
         </section>
 
+        <section className="mb-6 rounded-xl border border-amber-500/30 bg-card p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-1 items-start gap-3">
+              <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-600">🔨</div>
+              <div>
+                <h2 className="font-semibold">TreForge 🔨</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Sıfırdan eğitilebilir yapay zeka. Ona bir link verin, kendini geliştirsin.
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate('/treforge')}>TreForge’u aç</Button>
+          </div>
+        </section>
+
         <Dialog open={consentOpen} onOpenChange={setConsentOpen}>
           <DialogContent>
             <DialogHeader>
