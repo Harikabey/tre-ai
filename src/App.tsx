@@ -15,7 +15,7 @@ import VoiceChat from "./pages/VoiceChat";
 import Capabilities from "./pages/Capabilities";
 import Starred from "./pages/Starred";
 import Stats from "./pages/Stats";
-import Store from "./pages/Store";
+import Store from "./pages/TreStore";
 
 import NotFound from "./pages/NotFound";
 import ExtensionFeaturePreview from "./components/ExtensionFeaturePreview";
