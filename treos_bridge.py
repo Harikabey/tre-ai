@@ -7,7 +7,9 @@ import http.client
 import json
 import os
 import re
+import runpy
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -21,6 +23,8 @@ PROXY_PORT = 8765
 RIGOUT_HOST = "127.0.0.1"
 RIGOUT_PORT = 8766
 MCP_PATH = "/mcp"
+HEALTH_PATH = "/healthz"
+RIGOUT_CHILD_FLAG = "--treos-rigout-child"
 MAX_REQUEST_SIZE = 2 * 1024 * 1024
 MAX_RESPONSE_SIZE = 2 * 1024 * 1024
 ALLOWED_HEADERS = {
@@ -52,6 +56,7 @@ TOKEN_PATTERN = re.compile(
     re.IGNORECASE,
 )
 DEFAULT_ALLOWED_ORIGINS = (
+    "https://tre-ai-app.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:4173",
@@ -103,7 +108,12 @@ def parse_allowed_origins(value: str | None) -> frozenset[str]:
 
 
 def write_config(token: str) -> None:
-    config_path = Path(__file__).resolve().with_name("rigout-config.json")
+    app_directory = (
+        Path(sys.executable).resolve().parent
+        if getattr(sys, "frozen", False)
+        else Path(__file__).resolve().parent
+    )
+    config_path = app_directory / "rigout-config.json"
     temp_path = config_path.with_suffix(".json.tmp")
     temp_path.write_text(
         json.dumps({"url": f"http://{PROXY_HOST}:{PROXY_PORT}{MCP_PATH}", "token": token}),
@@ -153,20 +163,21 @@ def make_handler(allowed_origins: frozenset[str]) -> type[BaseHTTPRequestHandler
             self.wfile.write(body)
             self.close_connection = True
 
-        def _validate_browser_request(self) -> bool:
+        def _validate_browser_request(self, allow_health: bool = False) -> bool:
             if not self._host_is_local():
                 self._send_error_response(403, "Local proxy host is not allowed.")
                 return False
             if not self._origin_is_allowed():
                 self._send_error_response(403, "Request origin is not allowed.")
                 return False
-            if self.path != MCP_PATH:
+            allowed_paths = {MCP_PATH, HEALTH_PATH} if allow_health else {MCP_PATH}
+            if self.path not in allowed_paths:
                 self._send_error_response(404, "Only the MCP endpoint is available.")
                 return False
             return True
 
         def do_OPTIONS(self) -> None:
-            if not self._validate_browser_request():
+            if not self._validate_browser_request(allow_health=True):
                 return
             requested_method = self.headers.get("Access-Control-Request-Method", "").upper()
             if requested_method not in {"GET", "POST"}:
@@ -194,10 +205,35 @@ def make_handler(allowed_origins: frozenset[str]) -> type[BaseHTTPRequestHandler
             self.end_headers()
 
         def do_GET(self) -> None:
+            if self.path == HEALTH_PATH:
+                self._send_health()
+                return
             self._proxy_request()
 
         def do_POST(self) -> None:
             self._proxy_request()
+
+        def _send_health(self) -> None:
+            if not self._validate_browser_request(allow_health=True):
+                return
+            try:
+                with socket.create_connection((RIGOUT_HOST, RIGOUT_PORT), timeout=1):
+                    rigout_available = True
+            except OSError:
+                rigout_available = False
+            body = json.dumps({
+                "bridge": "online",
+                "rigout": "online" if rigout_available else "offline",
+            }).encode("utf-8")
+            self.send_response(200 if rigout_available else 503)
+            self._add_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+            self.close_connection = True
 
         def _proxy_request(self) -> None:
             if not self._validate_browser_request():
@@ -267,7 +303,16 @@ def stop_rigout(process: subprocess.Popen[str]) -> None:
         process.wait(timeout=5)
 
 
+def run_packaged_rigout() -> int:
+    sys.argv = ["rigout", *sys.argv[2:]]
+    runpy.run_module("rigout", run_name="__main__", alter_sys=True)
+    return 0
+
+
 def main() -> int:
+    if getattr(sys, "frozen", False) and sys.argv[1:2] == [RIGOUT_CHILD_FLAG]:
+        return run_packaged_rigout()
+
     try:
         allowed_origins = parse_allowed_origins(os.environ.get("TREOS_ALLOWED_ORIGINS"))
         server = ThreadingHTTPServer(
@@ -279,9 +324,14 @@ def main() -> int:
         return 1
 
     creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    rigout_command = (
+        [sys.executable, RIGOUT_CHILD_FLAG, "serve", "--port", str(RIGOUT_PORT)]
+        if getattr(sys, "frozen", False)
+        else [sys.executable, "-u", "-m", "rigout", "serve", "--port", str(RIGOUT_PORT)]
+    )
     try:
         rigout = subprocess.Popen(
-            [sys.executable, "-u", "-m", "rigout", "serve", "--port", str(RIGOUT_PORT)],
+            rigout_command,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

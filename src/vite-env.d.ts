@@ -1,5 +1,11 @@
 /// <reference types="vite/client" />
 
+declare global {
+  interface ImportMetaEnv {
+    readonly TREOS_BRIDGE_EXE_AVAILABLE: boolean;
+  }
+}
+
 declare module '@graphviz-wasm-wrapper' {
   interface GraphvizInstance {
     layout(source: string, format: string, engine: string): string;

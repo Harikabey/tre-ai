@@ -19,6 +19,7 @@ import { readModelSelection } from '@/hooks/useModelSelection';
 import { supabase } from '@/integrations/supabase/client';
 
 type StepStatus = 'pending' | 'running' | 'done' | 'error';
+type BridgeStatus = 'checking' | 'online' | 'rigout-offline' | 'offline';
 
 interface TaskStep {
   id: string;
@@ -34,6 +35,7 @@ const MAX_STEPS = 10;
 const MAX_POLL_ATTEMPTS = 9;
 const INITIAL_POLL_DELAY_MS = 1_000;
 const MAX_POLL_DELAY_MS = 15_000;
+const BRIDGE_HEALTH_URL = 'http://127.0.0.1:8765/healthz';
 
 const TreOS = () => {
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
@@ -50,8 +52,57 @@ const TreOS = () => {
   const [steps, setSteps] = useState<TaskStep[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [running, setRunning] = useState(false);
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('checking');
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
+  const isWindows = navigator.userAgent.toLowerCase().includes('windows');
+  const hasBridgeExe = isWindows && import.meta.env.TREOS_BRIDGE_EXE_AVAILABLE;
+
+  useEffect(() => {
+    if (!isLocalBridgeUrl(mcpUrl)) return;
+    let cancelled = false;
+    let timeout: number | undefined;
+    let delay = INITIAL_POLL_DELAY_MS;
+    setBridgeStatus('checking');
+
+    const pollBridge = async () => {
+      let nextStatus: BridgeStatus = 'offline';
+      try {
+        const response = await fetch(BRIDGE_HEALTH_URL, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'no-store',
+          redirect: 'error',
+        });
+        if (response.status === 503) {
+          nextStatus = 'rigout-offline';
+        } else if (response.ok) {
+          const health: unknown = await response.json();
+          if (
+            isRecord(health) &&
+            health.bridge === 'online' &&
+            health.rigout === 'online'
+          ) {
+            nextStatus = 'online';
+          }
+        }
+      } catch {
+        nextStatus = 'offline';
+      }
+
+      if (cancelled) return;
+      setBridgeStatus(nextStatus);
+      timeout = window.setTimeout(pollBridge, delay);
+      delay = Math.min(delay * 2, MAX_POLL_DELAY_MS);
+    };
+
+    void pollBridge();
+    return () => {
+      cancelled = true;
+      if (timeout !== undefined) window.clearTimeout(timeout);
+    };
+  }, [mcpUrl]);
 
   useEffect(() => () => {
     runId.current += 1;
@@ -276,6 +327,59 @@ const TreOS = () => {
           </div>
           <ShieldCheck className="h-6 w-6 text-emerald-600" aria-label="Komut erişimi izin listesiyle sınırlı" />
         </header>
+
+        {isLocalBridgeUrl(mcpUrl) && bridgeStatus !== 'online' && (
+          <section aria-label="Yerel köprü durumu" className="mb-5 rounded-xl border border-amber-500/40 bg-card p-5">
+            <h2 className="mb-2 flex items-center gap-2 font-semibold">
+              {bridgeStatus === 'checking'
+                ? <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                : <CircleAlert className="h-4 w-4 text-amber-600" />}
+              {bridgeStatus === 'checking'
+                ? 'Yerel köprü kontrol ediliyor'
+                : bridgeStatus === 'rigout-offline'
+                  ? 'Köprü çalışıyor, Rigout yanıt vermiyor'
+                  : 'Yerel köprü çalışmıyor'}
+            </h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {bridgeStatus === 'rigout-offline'
+                ? 'TreOS Bridge açık ancak 8766 portundaki Rigout servisine erişemiyor.'
+                : 'Bilgisayar bağlantısı için TreOS Bridge uygulamasını başlatın. Durum otomatik olarak yeniden kontrol ediliyor.'}
+            </p>
+            {bridgeStatus !== 'rigout-offline' && (
+              <div className="flex flex-wrap gap-2">
+                {hasBridgeExe ? (
+                  <Button asChild>
+                    <a href={`${import.meta.env.BASE_URL}TreOS-Bridge.exe`} download>
+                      <Cable className="mr-2 h-4 w-4" />
+                      TreOS-Bridge.exe indir
+                    </a>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild variant="outline">
+                      <a href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`} download>
+                        Köprü betiğini indir
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <a
+                        href={`${import.meta.env.BASE_URL}treos-bridge/baslat_kopru.${isWindows ? 'bat' : 'sh'}`}
+                        download
+                      >
+                        Başlatıcıyı indir
+                      </a>
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+            {bridgeStatus !== 'rigout-offline' && !hasBridgeExe && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Bu dağıtımda EXE henüz yayımlanmamış; kaynak başlatıcıyı kullanabilir veya depoda build.bat ile oluşturabilirsiniz.
+              </p>
+            )}
+          </section>
+        )}
 
         {!client && (
           <section aria-label="Rigout bağlantısı" className="mb-5 rounded-xl border border-primary/30 bg-card p-5">
@@ -727,6 +831,18 @@ function topologicalSort(plan: TaskStep[]): TaskStep[] {
     ordered.push(next);
   }
   return ordered;
+}
+
+function isLocalBridgeUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase()) &&
+      url.port === '8765' &&
+      url.pathname === '/mcp';
+  } catch {
+    return false;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

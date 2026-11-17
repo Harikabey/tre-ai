@@ -14,7 +14,7 @@ python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)
 if errorlevel 1 goto python_too_old
 
 set "TREOS_ALLOWED_ORIGINS="
-set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa localhost gelistirme kaynaklari kullanilir): "
+set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa yayinlanan TreOS ve localhost izinleri kullanilir): "
 echo TreOS koprusu arka planda baslatiliyor...
 echo Rigout kuruluyor veya guncelleniyor...
 python -m pip install --upgrade rigout
@@ -29,7 +29,7 @@ exit /b 0
 
 :use_py
 set "TREOS_ALLOWED_ORIGINS="
-set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa localhost gelistirme kaynaklari kullanilir): "
+set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa yayinlanan TreOS ve localhost izinleri kullanilir): "
 echo TreOS koprusu arka planda baslatiliyor...
 echo Rigout kuruluyor veya guncelleniyor...
 py -3 -m pip install --upgrade rigout

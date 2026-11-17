@@ -19,7 +19,7 @@ else
 fi
 
 if [ -z "${TREOS_ALLOWED_ORIGINS:-}" ]; then
-  printf '%s' "TreOS sayfa kaynagini girin (bos birakilirsa localhost gelistirme kaynaklari kullanilir): "
+  printf '%s' "TreOS sayfa kaynagini girin (bos birakilirsa yayinlanan TreOS ve localhost izinleri kullanilir): "
   IFS= read -r TREOS_ALLOWED_ORIGINS || TREOS_ALLOWED_ORIGINS=
   if [ -n "$TREOS_ALLOWED_ORIGINS" ]; then
     export TREOS_ALLOWED_ORIGINS
