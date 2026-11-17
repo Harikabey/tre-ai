@@ -28,5 +28,5 @@ if [ -z "${TREOS_ALLOWED_ORIGINS:-}" ]; then
   fi
 fi
 
-"$python_cmd" -m pip install --upgrade rigout
+"$python_cmd" -m pip install --upgrade rigout cryptography
 exec "$python_cmd" "$script_dir/treos_bridge.py"

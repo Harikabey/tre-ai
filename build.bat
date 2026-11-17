@@ -7,12 +7,12 @@ if errorlevel 1 goto no_python
 py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
 if errorlevel 1 goto python_too_old
 
-echo Rigout ve PyInstaller kuruluyor...
-py -3 -m pip install --upgrade rigout pyinstaller
+echo Rigout, HTTPS sertifika bagimliligi ve PyInstaller kuruluyor...
+py -3 -m pip install --upgrade rigout cryptography pyinstaller
 if errorlevel 1 goto install_failed
 
 echo TreOS-Bridge.exe olusturuluyor...
-py -3 -m PyInstaller --clean --noconfirm --onefile --console --name TreOS-Bridge --distpath build\dist --workpath build\work --specpath build --collect-all rigout treos_bridge.py
+py -3 -m PyInstaller --clean --noconfirm --onefile --console --name TreOS-Bridge --distpath build\dist --workpath build\work --specpath build --collect-all rigout --collect-all cryptography treos_bridge.py
 if errorlevel 1 goto build_failed
 
 if not exist "public\treos-bridge" mkdir "public\treos-bridge"

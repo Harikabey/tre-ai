@@ -37,7 +37,9 @@ const MAX_STEPS = 10;
 const MAX_POLL_ATTEMPTS = 9;
 const INITIAL_POLL_DELAY_MS = 1_000;
 const MAX_POLL_DELAY_MS = 15_000;
-const BRIDGE_HEALTH_URL = 'http://127.0.0.1:8765/healthz';
+const BRIDGE_HEALTH_URL = 'https://127.0.0.1:8765/healthz';
+const BRIDGE_OFFLINE_MESSAGE =
+  'Köprü çalışmıyor. Lütfen baslat_kopru.bat dosyasını çalıştırın ve healthz endpoint\'ini kontrol edin.';
 // Köprü varlıkları public/treos-bridge/ altında tutulur. Vercel'de statik sunum
 // import.meta.env.BASE_URL üzerinden yapılır; böylece alt dizin dağıtımları da bozulmaz.
 const BRIDGE_DIR = 'treos-bridge';
@@ -110,7 +112,7 @@ const TreOS = () => {
   const [setupCommand, setSetupCommand] = useState('');
   const [setupLauncher, setSetupLauncher] = useState<SetupLauncher>('sh');
   const [autoConnectRequested, setAutoConnectRequested] = useState(false);
-  const [mcpUrl, setMcpUrl] = useState('http://127.0.0.1:8765/mcp');
+  const [mcpUrl, setMcpUrl] = useState('https://127.0.0.1:8765/mcp');
   const [authToken, setAuthToken] = useState('');
   const [client, setClient] = useState<McpClient | null>(null);
   const [tools, setTools] = useState<McpTool[]>([]);
@@ -119,6 +121,7 @@ const TreOS = () => {
   const [connecting, setConnecting] = useState(false);
   const [running, setRunning] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('checking');
+  const bridgeStatusRef = useRef<BridgeStatus>('checking');
   const [exeProbe, setExeProbe] = useState<ExeProbe>(isWindows ? 'checking' : 'missing');
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
@@ -143,6 +146,7 @@ const TreOS = () => {
     let timeout: number | undefined;
     let activeRequest: AbortController | undefined;
     let delay = INITIAL_POLL_DELAY_MS;
+    bridgeStatusRef.current = 'checking';
     setBridgeStatus('checking');
 
     const pollBridge = async () => {
@@ -151,6 +155,9 @@ const TreOS = () => {
       activeRequest = controller;
       const requestTimeout = window.setTimeout(() => controller.abort(), 5_000);
       try {
+        if (new URL(mcpUrl).protocol !== 'https:') {
+          throw new Error('TreOS Bridge yalnızca HTTPS üzerinden kullanılabilir.');
+        }
         const response = await fetch(BRIDGE_HEALTH_URL, {
           method: 'GET',
           mode: 'cors',
@@ -179,6 +186,7 @@ const TreOS = () => {
       }
 
       if (cancelled) return;
+      bridgeStatusRef.current = nextStatus;
       setBridgeStatus(nextStatus);
       timeout = window.setTimeout(pollBridge, delay);
       delay = Math.min(delay * 2, MAX_POLL_DELAY_MS);
@@ -221,7 +229,7 @@ const TreOS = () => {
           setTools(connected.tools);
           setError(null);
           setAutoConnectRequested(false);
-          toast.success('Bağlantı Başarılı');
+          toast.success('Bağlantı Başarılı ✅');
           return;
         } catch (reason) {
           lastError = reason instanceof Error ? reason.message : 'Rigout bağlantısı kurulamadı.';
@@ -236,7 +244,9 @@ const TreOS = () => {
 
       if (!cancelled) {
         setAutoConnectRequested(false);
-        const message = `Rigout'a otomatik bağlanılamadı: ${lastError} URL ve token'ı kontrol edip yeniden deneyin.`;
+        const message = isLocalBridgeUrl(mcpUrl) && bridgeStatusRef.current === 'offline'
+          ? BRIDGE_OFFLINE_MESSAGE
+          : `Rigout'a otomatik bağlanılamadı: ${lastError} URL ve token'ı kontrol edip yeniden deneyin.`;
         setError(message);
         toast.error(message);
       }
@@ -275,8 +285,16 @@ const TreOS = () => {
       return true;
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'MCP sunucusuna bağlanılamadı.';
-      setError(`${message} Rigout'un çalıştığını, URL'yi ve token'ı kontrol edin.`);
-      toast.error(`${message} Rigout'un çalıştığını, URL'yi ve token'ı kontrol edin.`);
+      const localBridgeUnavailable = isLocalBridgeUrl(url) && (
+        new URL(url).protocol !== 'https:' ||
+        bridgeStatusRef.current === 'offline' ||
+        message.startsWith('Yerel MCP sunucusuna erişilemedi.')
+      );
+      const connectionMessage = localBridgeUnavailable
+        ? BRIDGE_OFFLINE_MESSAGE
+        : `${message} Rigout'un çalıştığını, URL'yi ve token'ı kontrol edin.`;
+      setError(connectionMessage);
+      toast.error(connectionMessage);
       return false;
     } finally {
       setConnecting(false);
@@ -360,7 +378,7 @@ const TreOS = () => {
       const config: unknown = JSON.parse(await file.text());
       if (!isRecord(config)) throw new Error('Yapılandırma dosyası geçerli bir JSON nesnesi değil.');
 
-      const url = typeof config.url === 'string' ? config.url : '';
+      const url = typeof config.url === 'string' ? upgradeLocalBridgeUrl(config.url) : '';
       const tokenValue = config.token ?? config.authToken ?? config.bearerToken;
       if (
         typeof tokenValue !== 'string' ||
@@ -478,8 +496,24 @@ const TreOS = () => {
             <p className="mb-4 text-sm text-muted-foreground">
               {bridgeStatus === 'rigout-offline'
                 ? 'TreOS Bridge açık ancak 8766 portundaki Rigout servisine erişemiyor.'
-                : 'Bilgisayar bağlantısı için TreOS Bridge uygulamasını başlatın. Durum otomatik olarak yeniden kontrol ediliyor.'}
+                : bridgeStatus === 'offline'
+                  ? BRIDGE_OFFLINE_MESSAGE
+                  : 'Bilgisayar bağlantısı için TreOS Bridge uygulamasını başlatın. Durum otomatik olarak yeniden kontrol ediliyor.'}
             </p>
+            {bridgeStatus === 'offline' && (
+              <p className="mb-4 text-sm text-muted-foreground">
+                İlk kullanımda{' '}
+                <a
+                  className="font-medium text-primary underline underline-offset-2"
+                  href={BRIDGE_HEALTH_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  sağlık kontrolü adresini
+                </a>{' '}
+                açın ve tarayıcıdaki yerel self-signed sertifika uyarısını onaylayın.
+              </p>
+            )}
             {bridgeStatus !== 'rigout-offline' && (
               <div className="flex flex-wrap gap-2">
                 {hasBridgeExe && (
@@ -562,6 +596,18 @@ const TreOS = () => {
                             portunda, Rigout ise 8766 portunda açılacak.
                           </li>
                           <li>
+                            İlk kullanımda{' '}
+                            <a
+                              className="font-medium text-primary underline underline-offset-2"
+                              href={BRIDGE_HEALTH_URL}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              https://127.0.0.1:8765/healthz
+                            </a>{' '}
+                            adresini açıp tarayıcıdaki self-signed sertifika uyarısını onaylayın.
+                          </li>
+                          <li>
                             Windows SmartScreen uyarısı çıkarsa <strong>Ek bilgi</strong> →{' '}
                             <strong>Yine de çalıştır</strong> seçin.
                           </li>
@@ -604,6 +650,18 @@ const TreOS = () => {
                             <code className="rounded bg-background px-1 py-0.5">{window.location.origin}</code>.
                             Ardından aynı klasördeki rigout-config.json dosyasını seçin.
                           </li>
+                          <li>
+                            İlk kullanımda{' '}
+                            <a
+                              className="font-medium text-primary underline underline-offset-2"
+                              href={BRIDGE_HEALTH_URL}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              https://127.0.0.1:8765/healthz
+                            </a>{' '}
+                            adresini açıp tarayıcıdaki self-signed sertifika uyarısını onaylayın.
+                          </li>
                         </ol>
                         <a
                           className="text-sm font-medium text-primary underline underline-offset-2"
@@ -636,7 +694,7 @@ const TreOS = () => {
                     type="url"
                     value={mcpUrl}
                     onChange={(event) => setMcpUrl(event.target.value)}
-                    placeholder="http://127.0.0.1:8765/mcp"
+                    placeholder="https://127.0.0.1:8765/mcp"
                     autoComplete="url"
                   />
                 </div>
@@ -674,7 +732,7 @@ const TreOS = () => {
             <p className="mt-2 text-sm text-emerald-600">
               <span className="inline-flex items-center gap-1.5">
                 <Check className="h-4 w-4" aria-hidden="true" />
-                Bağlantı Başarılı · {tools.length} izinli araç
+                Bağlantı Başarılı ✅ · {tools.length} izinli araç
               </span>
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -1064,13 +1122,31 @@ function topologicalSort(plan: TaskStep[]): TaskStep[] {
 function isLocalBridgeUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'http:' &&
+    return ['http:', 'https:'].includes(url.protocol) &&
       ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase()) &&
       url.port === '8765' &&
       url.pathname === '/mcp';
   } catch {
     return false;
   }
+}
+
+function upgradeLocalBridgeUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase()) &&
+      url.port === '8765' &&
+      url.pathname === '/mcp'
+    ) {
+      url.protocol = 'https:';
+      return url.toString();
+    }
+  } catch {
+    return value;
+  }
+  return value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

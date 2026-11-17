@@ -16,12 +16,13 @@ if errorlevel 1 goto python_too_old
 set "TREOS_ALLOWED_ORIGINS="
 set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa yayinlanan TreOS ve localhost izinleri kullanilir): "
 echo TreOS koprusu arka planda baslatiliyor...
-echo Rigout kuruluyor veya guncelleniyor...
-python -m pip install --upgrade rigout
+echo Rigout ve HTTPS sertifika bagimliligi kuruluyor veya guncelleniyor...
+python -m pip install --upgrade rigout cryptography
 if errorlevel 1 goto install_failed
 start "TreOS Rigout Koprusu" /min python "%~dp0treos_bridge.py"
 echo.
-echo TreOS koprusu http://127.0.0.1:8765/mcp adresinde baslatildi.
+echo TreOS koprusu https://127.0.0.1:8765/mcp adresinde baslatildi.
+echo Ilk kullanimda https://127.0.0.1:8765/healthz adresinde sertifika uyarisi onaylanmalidir.
 echo Rigout servis portu 8766 olarak ayrildi.
 echo Uretim TreOS adresini yetkilendirmek icin TREOS_ALLOWED_ORIGINS ortam degiskenini ayarlayin.
 pause
@@ -31,12 +32,13 @@ exit /b 0
 set "TREOS_ALLOWED_ORIGINS="
 set /p "TREOS_ALLOWED_ORIGINS=TreOS sayfa kaynagini girin (bos birakilirsa yayinlanan TreOS ve localhost izinleri kullanilir): "
 echo TreOS koprusu arka planda baslatiliyor...
-echo Rigout kuruluyor veya guncelleniyor...
-py -3 -m pip install --upgrade rigout
+echo Rigout ve HTTPS sertifika bagimliligi kuruluyor veya guncelleniyor...
+py -3 -m pip install --upgrade rigout cryptography
 if errorlevel 1 goto install_failed
 start "TreOS Rigout Koprusu" /min py -3 "%~dp0treos_bridge.py"
 echo.
-echo TreOS koprusu http://127.0.0.1:8765/mcp adresinde baslatildi.
+echo TreOS koprusu https://127.0.0.1:8765/mcp adresinde baslatildi.
+echo Ilk kullanimda https://127.0.0.1:8765/healthz adresinde sertifika uyarisi onaylanmalidir.
 echo Rigout servis portu 8766 olarak ayrildi.
 echo Uretim TreOS adresini yetkilendirmek icin TREOS_ALLOWED_ORIGINS ortam degiskenini ayarlayin.
 pause

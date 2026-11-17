@@ -10,9 +10,12 @@ import re
 import runpy
 import signal
 import socket
+import ssl
 import subprocess
 import sys
 import threading
+from datetime import datetime, timedelta, timezone
+from ipaddress import ip_address
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -20,6 +23,9 @@ from urllib.parse import urlsplit
 
 PROXY_HOST = "127.0.0.1"
 PROXY_PORT = 8765
+CERT_DIRECTORY = Path.home() / ".treos"
+CERT_PATH = CERT_DIRECTORY / "bridge-cert.pem"
+KEY_PATH = CERT_DIRECTORY / "bridge-key.pem"
 RIGOUT_HOST = "127.0.0.1"
 RIGOUT_PORT = 8766
 MCP_PATH = "/mcp"
@@ -116,13 +122,79 @@ def write_config(token: str) -> None:
     config_path = app_directory / "rigout-config.json"
     temp_path = config_path.with_suffix(".json.tmp")
     temp_path.write_text(
-        json.dumps({"url": f"http://{PROXY_HOST}:{PROXY_PORT}{MCP_PATH}", "token": token}),
+        json.dumps({"url": f"https://{PROXY_HOST}:{PROXY_PORT}{MCP_PATH}", "token": token}),
         encoding="utf-8",
     )
     if os.name != "nt":
         temp_path.chmod(0o600)
     os.replace(temp_path, config_path)
     print(f"Rigout baglanti bilgisi yazildi: {config_path}", flush=True)
+
+
+def create_tls_context() -> ssl.SSLContext:
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    CERT_DIRECTORY.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        CERT_DIRECTORY.chmod(0o700)
+    if CERT_PATH.exists() and KEY_PATH.exists():
+        cert_path = CERT_PATH
+        key_path = KEY_PATH
+    else:
+        now = datetime.now(timezone.utc)
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "TreOS local bridge")])
+        certificate = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(subject)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - timedelta(minutes=1))
+            .not_valid_after(now + timedelta(days=365))
+            .add_extension(
+                x509.SubjectAlternativeName([
+                    x509.IPAddress(ip_address("127.0.0.1")),
+                    x509.IPAddress(ip_address("::1")),
+                    x509.DNSName("localhost"),
+                ]),
+                critical=False,
+            )
+            .add_extension(
+                x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]),
+                critical=False,
+            )
+            .sign(key, hashes.SHA256())
+        )
+        key_temp_path = KEY_PATH.with_suffix(".pem.tmp")
+        cert_temp_path = CERT_PATH.with_suffix(".pem.tmp")
+        key_bytes = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        key_descriptor = os.open(
+            key_temp_path,
+            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+            0o600,
+        )
+        with os.fdopen(key_descriptor, "wb") as key_file:
+            key_file.write(key_bytes)
+        cert_temp_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+        os.replace(key_temp_path, KEY_PATH)
+        os.replace(cert_temp_path, CERT_PATH)
+        cert_path = CERT_PATH
+        key_path = KEY_PATH
+
+    if os.name != "nt":
+        key_path.chmod(0o600)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(certfile=cert_path, keyfile=key_path)
+    return context
 
 
 def make_handler(allowed_origins: frozenset[str]) -> type[BaseHTTPRequestHandler]:
@@ -167,7 +239,12 @@ def make_handler(allowed_origins: frozenset[str]) -> type[BaseHTTPRequestHandler
             if not self._host_is_local():
                 self._send_error_response(403, "Local proxy host is not allowed.")
                 return False
-            if not self._origin_is_allowed():
+            originless_health_check = (
+                allow_health
+                and self.path == HEALTH_PATH
+                and self.headers.get("Origin") is None
+            )
+            if not self._origin_is_allowed() and not originless_health_check:
                 self._send_error_response(403, "Request origin is not allowed.")
                 return False
             allowed_paths = {MCP_PATH, HEALTH_PATH} if allow_health else {MCP_PATH}
@@ -315,11 +392,13 @@ def main() -> int:
 
     try:
         allowed_origins = parse_allowed_origins(os.environ.get("TREOS_ALLOWED_ORIGINS"))
+        tls_context = create_tls_context()
         server = ThreadingHTTPServer(
             (PROXY_HOST, PROXY_PORT),
             make_handler(allowed_origins),
         )
-    except (OSError, ValueError) as error:
+        server.socket = tls_context.wrap_socket(server.socket, server_side=True)
+    except (ImportError, OSError, ValueError) as error:
         print(f"TreOS koprusu baslatilamadi: {error}", file=sys.stderr)
         return 1
 
@@ -366,8 +445,13 @@ def main() -> int:
     )
     server_thread.start()
     print(
-        f"TreOS koprusu: http://{PROXY_HOST}:{PROXY_PORT}{MCP_PATH} "
+        f"TreOS koprusu: https://{PROXY_HOST}:{PROXY_PORT}{MCP_PATH} "
         f"(Rigout: http://{RIGOUT_HOST}:{RIGOUT_PORT}{MCP_PATH})",
+        flush=True,
+    )
+    print(
+        f"Ilk kullanimda sertifika guvenini onaylayin: "
+        f"https://{PROXY_HOST}:{PROXY_PORT}{HEALTH_PATH}",
         flush=True,
     )
     print(

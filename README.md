@@ -61,9 +61,9 @@ Projeyi kendi bilgisayarınızda çalıştırmak için:
 
 ## TreOS yerel köprüsü
 
-TreOS, yerel MCP proxy'sine `http://127.0.0.1:8765/mcp` adresinden bağlanır. Köprü, Rigout'u ayrı `8766` portunda çalıştırır ve `/healthz` uç noktasından durum bildirir.
+TreOS, yerel MCP proxy'sine `https://127.0.0.1:8765/mcp` adresinden bağlanır. Köprü, ilk çalıştırmada kullanıcı ana dizinindeki `.treos/` altında self-signed sertifika üretir; Rigout'u ayrı `8766` portunda çalıştırır ve `/healthz` uç noktasından durum bildirir. İlk bağlantıdan önce `https://127.0.0.1:8765/healthz` adresini aynı tarayıcıda açıp sertifika uyarısını onaylayın.
 
-Windows EXE'sini oluşturmak için Python 3.10+ yüklü bir Windows bilgisayarda depo kökündeki `build.bat` dosyasını çalıştırın. Betik Rigout ve PyInstaller'ı kurar, `TreOS-Bridge.exe` dosyasını üretip `public/treos-bridge` klasörüne kopyalar. EXE'nin Vercel'den indirilebilmesi için bu dosyayı depoya ekleyip uygulamayı yeniden dağıtın. EXE bulunmuyorsa TreOS kartı kaynak betiklerini ve Windows başlatıcısını sunar.
+Windows EXE'sini oluşturmak için Python 3.10+ yüklü bir Windows bilgisayarda depo kökündeki `build.bat` dosyasını çalıştırın. Betik Rigout, cryptography ve PyInstaller'ı kurar, `TreOS-Bridge.exe` dosyasını üretip `public/treos-bridge` klasörüne kopyalar. EXE'nin Vercel'den indirilebilmesi için bu dosyayı depoya ekleyip uygulamayı yeniden dağıtın. EXE bulunmuyorsa TreOS kartı kaynak betiklerini ve Windows başlatıcısını sunar.
 
 Proxy CORS'u `https://tre-ai-app.vercel.app` ve yerel geliştirme kaynaklarıyla sınırlar; tüm sitelere açık wildcard CORS kullanmaz. Başka bir dağıtım kaynağı için başlatıcı çalışırken tam HTTPS origin'ini girin veya `TREOS_ALLOWED_ORIGINS` ortam değişkenini ayarlayın. `rigout-config.json` erişim token'ı içerdiğinden dosyayı gizli tutun.
 
