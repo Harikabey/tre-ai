@@ -393,4 +393,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    packaged_parent = (
+        getattr(sys, "frozen", False)
+        and sys.argv[1:2] != [RIGOUT_CHILD_FLAG]
+    )
+    try:
+        exit_code = main()
+    finally:
+        if packaged_parent:
+            try:
+                input("Çıkmak için ENTER'a basın...")
+            except EOFError:
+                pass
+    raise SystemExit(exit_code)

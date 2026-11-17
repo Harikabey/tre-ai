@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
+import { ArrowLeft, BookOpen, Cable, Check, CircleAlert, Loader2, Play, ShieldCheck, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -97,6 +97,7 @@ async function probeBridgeExe(): Promise<ExeProbe> {
 
 const TreOS = () => {
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+  const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupCommand, setSetupCommand] = useState('');
@@ -119,11 +120,15 @@ const TreOS = () => {
     if (!isLocalBridgeUrl(mcpUrl)) return;
     let cancelled = false;
     let timeout: number | undefined;
+    let activeRequest: AbortController | undefined;
     let delay = INITIAL_POLL_DELAY_MS;
     setBridgeStatus('checking');
 
     const pollBridge = async () => {
       let nextStatus: BridgeStatus = 'offline';
+      const controller = new AbortController();
+      activeRequest = controller;
+      const requestTimeout = window.setTimeout(() => controller.abort(), 5_000);
       try {
         const response = await fetch(BRIDGE_HEALTH_URL, {
           method: 'GET',
@@ -131,6 +136,7 @@ const TreOS = () => {
           credentials: 'omit',
           cache: 'no-store',
           redirect: 'error',
+          signal: controller.signal,
         });
         if (response.status === 503) {
           nextStatus = 'rigout-offline';
@@ -146,6 +152,9 @@ const TreOS = () => {
         }
       } catch {
         nextStatus = 'offline';
+      } finally {
+        window.clearTimeout(requestTimeout);
+        if (activeRequest === controller) activeRequest = undefined;
       }
 
       if (cancelled) return;
@@ -157,6 +166,7 @@ const TreOS = () => {
     void pollBridge();
     return () => {
       cancelled = true;
+      activeRequest?.abort();
       if (timeout !== undefined) window.clearTimeout(timeout);
     };
   }, [mcpUrl]);
@@ -400,7 +410,7 @@ const TreOS = () => {
   return (
     <main className="min-h-[100dvh] bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        <header className="mb-6 flex items-center gap-3">
+        <header className="mb-6 flex flex-wrap items-center gap-3">
           <Link to="/store" aria-label="Mağazaya dön" className="rounded-full border border-border p-2 hover:bg-muted">
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -408,8 +418,28 @@ const TreOS = () => {
             <h1 className="text-2xl font-semibold">TreOS Beta</h1>
             <p className="text-sm text-muted-foreground">Rigout ile gerçek bilgisayarınızı kontrol edin.</p>
           </div>
-          <ShieldCheck className="h-6 w-6 text-emerald-600" aria-label="Komut erişimi izin listesiyle sınırlı" />
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGuideDialogOpen(true)}
+              className="max-w-full whitespace-normal text-left leading-tight"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              📖 Nasıl Bağlanırım? (Adım Adım Rehber)
+            </Button>
+            <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-600" aria-label="Komut erişimi izin listesiyle sınırlı" />
+          </div>
         </header>
+
+        {isLocalBridgeUrl(mcpUrl) && bridgeStatus === 'online' && (
+          <section aria-label="Yerel köprü durumu" role="status" className="mb-5 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_theme(colors.emerald.500)]" />
+              TreOS Bridge ve Rigout bağlı
+            </p>
+          </section>
+        )}
 
         {isLocalBridgeUrl(mcpUrl) && bridgeStatus !== 'online' && (
           <section aria-label="Yerel köprü durumu" className="mb-5 rounded-xl border border-amber-500/40 bg-card p-5">
@@ -432,10 +462,7 @@ const TreOS = () => {
               <div className="flex flex-wrap gap-2">
                 {isWindows && (
                   <Button asChild>
-                    <a
-                      href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`}
-                      download
-                    >
+                    <a href={`${import.meta.env.BASE_URL}treos-bridge/TreOS-Bridge.exe`} download>
                       <Cable className="mr-2 h-4 w-4" />
                       TreOS-Bridge.exe indir
                     </a>
@@ -465,6 +492,22 @@ const TreOS = () => {
             <p className="mb-4 text-sm text-muted-foreground">
               Rigout bilgisayarınızda çalışır ve TreOS’un güvenli araç listesi üzerinden gerçek işlemler yapar.
             </p>
+            <div className="mb-4 space-y-2">
+              <label htmlFor="rigout-config" className="block text-sm font-medium">
+                Rigout yapılandırma dosyası
+              </label>
+              <Input
+                id="rigout-config"
+                type="file"
+                accept=".json,application/json"
+                onChange={(event) => void importRigoutConfig(event)}
+              />
+              {autoConnectRequested && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Rigout bağlantısı aranıyor; bu sırada URL veya token'ı güncelleyebilirsiniz.
+                </p>
+              )}
+            </div>
             {!setupComplete && (
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -557,19 +600,22 @@ const TreOS = () => {
                     <p className="text-xs text-muted-foreground">
                       Tarayıcı güvenlik nedeniyle dosyaları sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
                     </p>
-                    <label htmlFor="rigout-config" className="block text-sm font-medium">
-                      Rigout yapılandırma dosyası
-                    </label>
-                    <Input
-                      id="rigout-config"
-                      type="file"
-                      accept=".json,application/json"
-                      onChange={(event) => void importRigoutConfig(event)}
-                    />
-                    {autoConnectRequested && (
-                      <p role="status" className="text-sm text-muted-foreground">
-                        Rigout bağlantısı aranıyor; bu sırada URL veya token'ı güncelleyebilirsiniz.
-                      </p>
+                    <a
+                      className="text-sm font-medium text-primary underline underline-offset-2"
+                      href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`}
+                      download
+                    >
+                      treos_bridge.py dosyasını indir
+                    </a>
+                    {setupCommand && (
+                      <>
+                        <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">
+                          {setupCommand}
+                        </code>
+                        <p className="text-xs text-muted-foreground">
+                          Dosya başka bir klasöre indiyse komuttaki ~/Downloads yolunu güncelleyin.
+                        </p>
+                      </>
                     )}
                   </div>
                 )}
@@ -717,6 +763,65 @@ const TreOS = () => {
                 Kurulumu tamamladım
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={guideDialogOpen} onOpenChange={setGuideDialogOpen}>
+          <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto overscroll-contain">
+            <DialogHeader>
+              <DialogTitle>📖 Nasıl Bağlanırım? (Adım Adım Rehber)</DialogTitle>
+              <DialogDescription>
+                Yerel köprüyü çalıştırıp TreOS’a güvenli biçimde bağlanmak için adımları izleyin.
+              </DialogDescription>
+            </DialogHeader>
+            <ol className="space-y-4 text-sm">
+              <li className="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="mb-1 font-semibold">1. Adım — Uygulamayı indir</h3>
+                <p className="text-muted-foreground">
+                  Masaüstünüzde “TreOS” adında boş bir klasör oluşturun. Aşağıdaki indirme düğmesi görünüyorsa
+                  TreOS-Bridge.exe dosyasını bu klasöre indirin. Düğme görünmüyorsa bu dağıtımda EXE henüz
+                  yayımlanmamıştır; sayfadaki kaynak başlatıcılarını kullanabilir veya Windows derlemesini
+                  <code className="mx-1 rounded bg-background px-1 py-0.5">build.bat</code>
+                  ile oluşturabilirsiniz.
+                </p>
+                {hasBridgeExe && (
+                  <Button asChild size="sm" className="mt-3">
+                    <a href={`${import.meta.env.BASE_URL}treos-bridge/TreOS-Bridge.exe`} download>
+                      <Cable className="mr-2 h-4 w-4" />
+                      TreOS-Bridge.exe indir
+                    </a>
+                  </Button>
+                )}
+              </li>
+              <li className="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="mb-1 font-semibold">2. Adım — Çalıştır ve açık bırak</h3>
+                <p className="text-muted-foreground">
+                  TreOS-Bridge.exe dosyasına çift tıklayın. Açılan siyah konsol penceresini kapatmayın;
+                  bağlantı boyunca açık bırakın. İlk çalıştırmada Windows güvenlik uyarısı gösterirse,
+                  yalnızca uygulamanın kaynağına güveniyorsanız çalıştırmaya devam edin.
+                </p>
+              </li>
+              <li className="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="mb-1 font-semibold">3. Adım — Konfigürasyon dosyasını bul</h3>
+                <p className="text-muted-foreground">
+                  Uygulamayı çalıştırdığınız klasörde servis tarafından otomatik oluşturulan
+                  <code className="mx-1 rounded bg-background px-1 py-0.5">rigout-config.json</code>
+                  dosyasını bulun. Bu dosya bağlantı token’ı içerir; kimseyle paylaşmayın.
+                </p>
+              </li>
+              <li className="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="mb-1 font-semibold">4. Adım — Arayüze yükle</h3>
+                <p className="text-muted-foreground">
+                  Aşağıdaki “Rigout yapılandırma dosyası” alanından rigout-config.json dosyasını seçin.
+                  TreOS yapılandırmayı okur ve bağlantıyı otomatik dener; köprü ile Rigout çalışıyorsa
+                  durum yeşile döner ve izinli araçlar kullanıma hazır olur.
+                </p>
+              </li>
+            </ol>
+            <p className="text-xs text-muted-foreground">
+              Tarayıcı güvenliği nedeniyle TreOS yerel dosyaları kendiliğinden okuyamaz veya EXE’yi sizin
+              yerinize başlatamaz. Köprü, yalnızca izin verilen web kaynağından gelen istekleri kabul eder.
+            </p>
           </DialogContent>
         </Dialog>
       </div>

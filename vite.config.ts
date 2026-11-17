@@ -72,7 +72,7 @@ const rigoutBridgeDownloadPlugin = (): Plugin => ({
 export default defineConfig(({ mode }) => ({
   define: {
     "import.meta.env.TREOS_BRIDGE_EXE_AVAILABLE": JSON.stringify(
-      existsSync(path.resolve(__dirname, "public/TreOS-Bridge.exe")),
+      existsSync(path.resolve(__dirname, "public/treos-bridge/TreOS-Bridge.exe")),
     ),
   },
   server: {

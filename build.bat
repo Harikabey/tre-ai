@@ -15,11 +15,12 @@ echo TreOS-Bridge.exe olusturuluyor...
 py -3 -m PyInstaller --clean --noconfirm --onefile --console --name TreOS-Bridge --distpath build\dist --workpath build\work --specpath build --collect-all rigout treos_bridge.py
 if errorlevel 1 goto build_failed
 
-copy /y "build\dist\TreOS-Bridge.exe" "public\TreOS-Bridge.exe" >nul
+if not exist "public\treos-bridge" mkdir "public\treos-bridge"
+copy /y "build\dist\TreOS-Bridge.exe" "public\treos-bridge\TreOS-Bridge.exe" >nul
 if errorlevel 1 goto copy_failed
 
 echo.
-echo Basarili: public\TreOS-Bridge.exe
+echo Basarili: public\treos-bridge\TreOS-Bridge.exe
 echo Vercel dagitiminda kullanmak icin degisikligi commit edip yeniden deploy edin.
 pause
 exit /b 0
