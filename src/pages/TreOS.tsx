@@ -31,11 +31,15 @@ interface TaskStep {
 }
 
 const MAX_STEPS = 10;
+const MAX_POLL_ATTEMPTS = 9;
+const INITIAL_POLL_DELAY_MS = 1_000;
+const MAX_POLL_DELAY_MS = 15_000;
 
 const TreOS = () => {
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
+  const [setupCommand, setSetupCommand] = useState('');
   const [autoConnectRequested, setAutoConnectRequested] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('http://127.0.0.1:8765/mcp');
   const [authToken, setAuthToken] = useState('');
@@ -56,10 +60,12 @@ const TreOS = () => {
   useEffect(() => {
     if (!autoConnectRequested || client) return;
     let cancelled = false;
+    let timeout: number | undefined;
 
     const pollForConnection = async () => {
       let lastError = 'Rigout henüz yanıt vermedi.';
-      for (let attempt = 0; attempt < 10; attempt += 1) {
+      let delay = INITIAL_POLL_DELAY_MS;
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
         if (cancelled) return;
         try {
           const connected = await McpClient.connect(mcpUrl, 'custom', [], authToken.trim());
@@ -80,7 +86,12 @@ const TreOS = () => {
         } catch (reason) {
           lastError = reason instanceof Error ? reason.message : 'Rigout bağlantısı kurulamadı.';
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 3_000));
+        if (attempt < MAX_POLL_ATTEMPTS - 1) {
+          await new Promise<void>((resolve) => {
+            timeout = window.setTimeout(resolve, delay);
+          });
+          delay = Math.min(delay * 2, MAX_POLL_DELAY_MS);
+        }
       }
 
       if (!cancelled) {
@@ -94,6 +105,7 @@ const TreOS = () => {
     void pollForConnection();
     return () => {
       cancelled = true;
+      if (timeout !== undefined) window.clearTimeout(timeout);
     };
   }, [autoConnectRequested, authToken, client, mcpUrl]);
 
@@ -142,17 +154,27 @@ const TreOS = () => {
 
   const downloadRigoutSetup = () => {
     try {
-      const isWindows = navigator.userAgent.toLowerCase().includes('windows');
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isWindows = userAgent.includes('windows');
+      const isMac = userAgent.includes('macintosh') || userAgent.includes('mac os');
       const extension = isWindows ? 'bat' : 'sh';
       const link = document.createElement('a');
-      link.href = `/rigout-auto-setup.${extension}`;
+      link.href = `${import.meta.env.BASE_URL}rigout-auto-setup.${extension}`;
       link.download = `rigout-auto-setup.${extension}`;
       document.body.append(link);
       link.click();
       link.remove();
       setSetupComplete(true);
       setAutoSetupStarted(true);
-      toast.success('Betik indirildi. İndirilen betiği çalıştırın; kurulum otomatik yapılacak.');
+      const runInstructions = isWindows
+        ? 'İndirilen .bat dosyasını açın.'
+        : isMac
+          ? 'Terminal’de chmod +x komutuyla çalıştırma izni verip betiği çalıştırın.'
+          : 'İndirilen .sh dosyasına çalıştırma izni verip betiği çalıştırın.';
+      if (!isWindows) {
+        setSetupCommand('chmod +x ~/Downloads/rigout-auto-setup.sh && ~/Downloads/rigout-auto-setup.sh');
+      }
+      toast.success(`Kurulum betiği indirildi. ${runInstructions} Ardından rigout-config.json dosyasını seçin.`);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'Kurulum betiği indirilemedi.';
       toast.error(`Kurulum betiği indirilemedi: ${message}`);
@@ -259,8 +281,12 @@ const TreOS = () => {
             </p>
             {!setupComplete && (
               <div className="flex flex-wrap gap-3">
-                <Button onClick={downloadRigoutSetup} disabled={connecting || running}>
-                  <Cable className="mr-2 h-4 w-4" />
+                <Button
+                  onClick={downloadRigoutSetup}
+                  disabled={connecting || running}
+                  className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <Cable className="mr-2 h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
                   Rigout'u Otomatik Kur ve Bağlan
                 </Button>
                 <Button variant="outline" onClick={() => setSetupDialogOpen(true)} disabled={connecting || running}>
@@ -272,9 +298,23 @@ const TreOS = () => {
               <div className="space-y-4">
                 {autoSetupStarted && (
                   <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
-                    <p className="text-sm text-muted-foreground">
-                      İndirilen betiği çalıştırın, kurulum otomatik yapılacak. Ardından oluşturulan rigout-config.json dosyasını buradan seçin.
+                    <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+                      <li>İndirilen betiği çalıştırın; Rigout kurulup başlatılacak.</li>
+                      <li>Betikle aynı klasördeki rigout-config.json dosyasını seçin; TreOS bağlantıyı otomatik deneyecek.</li>
+                    </ol>
+                    <p className="text-xs text-muted-foreground">
+                      Güvenlik nedeniyle tarayıcı betiği sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
                     </p>
+                    {setupCommand && (
+                      <>
+                        <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">
+                          {setupCommand}
+                        </code>
+                        <p className="text-xs text-muted-foreground">
+                          Dosya başka bir klasöre indiyse komuttaki ~/Downloads yolunu güncelleyin.
+                        </p>
+                      </>
+                    )}
                     <label htmlFor="rigout-config" className="block text-sm font-medium">
                       Rigout yapılandırma dosyası
                     </label>
@@ -334,7 +374,10 @@ const TreOS = () => {
               <Unplug className="mr-2 h-4 w-4" /> Bağlantıyı kes
             </Button>
             <p className="mt-2 text-sm text-emerald-600">
-              Bağlantı Başarılı ✅ · {tools.length} izinli araç
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Bağlantı Başarılı · {tools.length} izinli araç
+              </span>
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               İzinli araçlar: {tools.map((tool) => tool.name).join(', ')}.

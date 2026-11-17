@@ -203,7 +203,10 @@ export class McpClient {
         throw new Error('MCP sunucusu 30 saniye içinde yanıt vermedi.');
       }
       if (error instanceof TypeError) {
-        throw new Error('Yerel MCP sunucusuna erişilemedi. Sunucunun çalıştığını, localhost URL’sini ve izinli TreOS kaynağını kontrol edin.');
+        throw new Error(
+          'Yerel MCP sunucusuna erişilemedi. Sunucunun çalıştığını ve TreOS kaynağı için CORS izinlerini kontrol edin. ' +
+          'Tarayıcıdaki CORS/Private Network Access denetimleri frontend’den aşılamaz; sunucu bunları desteklemelidir.',
+        );
       }
       throw error;
     } finally {
