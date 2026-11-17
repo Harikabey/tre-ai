@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { createReadStream, existsSync, readFileSync } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import path from "path";
 import type { Plugin } from "vite";
 
@@ -70,11 +70,6 @@ const rigoutBridgeDownloadPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  define: {
-    "import.meta.env.TREOS_BRIDGE_EXE_AVAILABLE": JSON.stringify(
-      existsSync(path.resolve(__dirname, "public/treos-bridge/TreOS-Bridge.exe")),
-    ),
-  },
   server: {
     host: "::",
     port: 8080,

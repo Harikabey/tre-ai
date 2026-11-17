@@ -21,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 type StepStatus = 'pending' | 'running' | 'done' | 'error';
 type BridgeStatus = 'checking' | 'online' | 'rigout-offline' | 'offline';
 type SetupLauncher = 'bat' | 'sh' | 'exe';
-type ExeProbe = 'available' | 'missing' | 'unknown';
+type ExeProbe = 'checking' | 'available' | 'missing' | 'unknown';
 
 interface TaskStep {
   id: string;
@@ -48,9 +48,7 @@ const BRIDGE_EXE_NAME = 'TreOS-Bridge.exe';
 // Environment Variables'a VITE_TREOS_BRIDGE_EXE_AVAILABLE=true ekleyin.
 // Bu flag set edildiğinde HEAD isteği hiç yapılmaz → Vercel statik sunucunun
 // CORS/405/SPA-fallback davranışlarından kaynaklanan yanlış negatifler elenir.
-const BRIDGE_EXE_FLAG = (
-  import.meta.env.VITE_TREOS_BRIDGE_EXE_AVAILABLE as string | undefined
-)?.toLowerCase();
+const BRIDGE_EXE_FLAG = import.meta.env.VITE_TREOS_BRIDGE_EXE_AVAILABLE?.trim().toLowerCase();
 
 function downloadFile(href: string, fileName: string) {
   const link = document.createElement('a');
@@ -83,8 +81,14 @@ async function probeBridgeExe(): Promise<ExeProbe> {
   if (BRIDGE_EXE_FLAG === 'false') return 'missing';
 
   const exeUrl = `${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 5_000);
   try {
-    const response = await fetch(exeUrl, { method: 'HEAD', cache: 'no-store' });
+    const response = await fetch(exeUrl, {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
     if (response.status === 404) return 'missing';
     if (!response.ok) return 'unknown';
     const contentType = response.headers.get('content-type') ?? '';
@@ -92,10 +96,13 @@ async function probeBridgeExe(): Promise<ExeProbe> {
     return 'available';
   } catch {
     return 'unknown';
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
 const TreOS = () => {
+  const isWindows = navigator.userAgent.toLowerCase().includes('windows');
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
@@ -112,9 +119,23 @@ const TreOS = () => {
   const [connecting, setConnecting] = useState(false);
   const [running, setRunning] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('checking');
+  const [exeProbe, setExeProbe] = useState<ExeProbe>(isWindows ? 'checking' : 'missing');
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
-  const isWindows = navigator.userAgent.toLowerCase().includes('windows');
+  const hasBridgeExe = isWindows && (exeProbe === 'available' || exeProbe === 'unknown');
+
+  useEffect(() => {
+    if (!isWindows) return;
+
+    let cancelled = false;
+    void probeBridgeExe().then((result) => {
+      if (!cancelled) setExeProbe(result);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isWindows]);
 
   useEffect(() => {
     if (!isLocalBridgeUrl(mcpUrl)) return;
@@ -294,6 +315,7 @@ const TreOS = () => {
       }
 
       const probe = await probeBridgeExe();
+      setExeProbe(probe);
 
       if (probe === 'missing') {
         // Exe yayında değil — betik moduna temiz geçiş.
@@ -460,9 +482,9 @@ const TreOS = () => {
             </p>
             {bridgeStatus !== 'rigout-offline' && (
               <div className="flex flex-wrap gap-2">
-                {isWindows && (
+                {hasBridgeExe && (
                   <Button asChild>
-                    <a href={`${import.meta.env.BASE_URL}treos-bridge/TreOS-Bridge.exe`} download>
+                    <a href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`} download>
                       <Cable className="mr-2 h-4 w-4" />
                       TreOS-Bridge.exe indir
                     </a>
@@ -482,6 +504,11 @@ const TreOS = () => {
                   </a>
                 </Button>
               </div>
+            )}
+            {isWindows && exeProbe === 'missing' && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Bu dağıtımda EXE bulunamadı; Python köprü betiği ve Windows başlatıcısını kullanabilirsiniz.
+              </p>
             )}
           </section>
         )}
@@ -600,23 +627,6 @@ const TreOS = () => {
                     <p className="text-xs text-muted-foreground">
                       Tarayıcı güvenlik nedeniyle dosyaları sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
                     </p>
-                    <a
-                      className="text-sm font-medium text-primary underline underline-offset-2"
-                      href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`}
-                      download
-                    >
-                      treos_bridge.py dosyasını indir
-                    </a>
-                    {setupCommand && (
-                      <>
-                        <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">
-                          {setupCommand}
-                        </code>
-                        <p className="text-xs text-muted-foreground">
-                          Dosya başka bir klasöre indiyse komuttaki ~/Downloads yolunu güncelleyin.
-                        </p>
-                      </>
-                    )}
                   </div>
                 )}
                 <div className="space-y-2">
@@ -786,7 +796,7 @@ const TreOS = () => {
                 </p>
                 {hasBridgeExe && (
                   <Button asChild size="sm" className="mt-3">
-                    <a href={`${import.meta.env.BASE_URL}treos-bridge/TreOS-Bridge.exe`} download>
+                    <a href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`} download>
                       <Cable className="mr-2 h-4 w-4" />
                       TreOS-Bridge.exe indir
                     </a>

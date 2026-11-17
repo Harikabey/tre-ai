@@ -2,7 +2,7 @@
 
 declare global {
   interface ImportMetaEnv {
-    readonly TREOS_BRIDGE_EXE_AVAILABLE: boolean;
+    readonly VITE_TREOS_BRIDGE_EXE_AVAILABLE?: string;
   }
 }
 
