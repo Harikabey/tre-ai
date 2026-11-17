@@ -29,6 +29,45 @@ const z3RuntimePlugin = (): Plugin => ({
   },
 });
 
+const rigoutBridgeAssets = [
+  ["treos_bridge.py", "treos_bridge.py"],
+  ["baslat_kopru.bat", "baslat_kopru.bat"],
+  ["baslat_kopru.sh", "baslat_kopru.sh"],
+] as const;
+
+const rigoutBridgeDownloadPlugin = (): Plugin => ({
+  name: "treos-rigout-bridge-downloads",
+  configureServer(server) {
+    server.middlewares.use((request, response, next) => {
+      const pathName = request.url?.split("?")[0];
+      const asset = rigoutBridgeAssets.find(([, fileName]) =>
+        pathName === `/treos-bridge/${fileName}`,
+      );
+      if (!asset) {
+        next();
+        return;
+      }
+
+      const [sourceName, fileName] = asset;
+      response.setHeader(
+        "Content-Type",
+        fileName.endsWith(".py") ? "text/x-python; charset=utf-8" : "application/octet-stream",
+      );
+      response.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      response.end(readFileSync(path.resolve(__dirname, sourceName)));
+    });
+  },
+  buildStart() {
+    for (const [sourceName, fileName] of rigoutBridgeAssets) {
+      this.emitFile({
+        type: "asset",
+        fileName: `treos-bridge/${fileName}`,
+        source: readFileSync(path.resolve(__dirname, sourceName)),
+      });
+    }
+  },
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -39,7 +78,7 @@ export default defineConfig(({ mode }) => ({
       "Cross-Origin-Embedder-Policy": "credentialless",
     },
   },
-  plugins: [react(), z3RuntimePlugin()].filter(Boolean),
+  plugins: [react(), z3RuntimePlugin(), rigoutBridgeDownloadPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

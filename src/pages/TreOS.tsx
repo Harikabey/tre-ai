@@ -40,6 +40,7 @@ const TreOS = () => {
   const [setupComplete, setSetupComplete] = useState(false);
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupCommand, setSetupCommand] = useState('');
+  const [setupLauncher, setSetupLauncher] = useState<'bat' | 'sh'>('sh');
   const [autoConnectRequested, setAutoConnectRequested] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('http://127.0.0.1:8765/mcp');
   const [authToken, setAuthToken] = useState('');
@@ -158,23 +159,26 @@ const TreOS = () => {
       const isWindows = userAgent.includes('windows');
       const isMac = userAgent.includes('macintosh') || userAgent.includes('mac os');
       const extension = isWindows ? 'bat' : 'sh';
-      const link = document.createElement('a');
-      link.href = `${import.meta.env.BASE_URL}rigout-auto-setup.${extension}`;
-      link.download = `rigout-auto-setup.${extension}`;
-      document.body.append(link);
-      link.click();
-      link.remove();
+      for (const fileName of [`baslat_kopru.${extension}`, 'treos_bridge.py']) {
+        const link = document.createElement('a');
+        link.href = `${import.meta.env.BASE_URL}treos-bridge/${fileName}`;
+        link.download = fileName;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      }
       setSetupComplete(true);
       setAutoSetupStarted(true);
+      setSetupLauncher(extension);
       const runInstructions = isWindows
-        ? 'İndirilen .bat dosyasını açın.'
+        ? 'İki dosyayı aynı klasöre koyup baslat_kopru.bat dosyasını açın.'
         : isMac
-          ? 'Terminal’de chmod +x komutuyla çalıştırma izni verip betiği çalıştırın.'
-          : 'İndirilen .sh dosyasına çalıştırma izni verip betiği çalıştırın.';
+          ? 'İki dosyayı aynı klasöre koyup başlatıcıyı çalıştırın.'
+          : 'İki dosyayı aynı klasöre koyup başlatıcıyı çalıştırın.';
       if (!isWindows) {
-        setSetupCommand('chmod +x ~/Downloads/rigout-auto-setup.sh && ~/Downloads/rigout-auto-setup.sh');
+        setSetupCommand('chmod +x ~/Downloads/baslat_kopru.sh && ~/Downloads/baslat_kopru.sh');
       }
-      toast.success(`Kurulum betiği indirildi. ${runInstructions} Ardından rigout-config.json dosyasını seçin.`);
+      toast.success(`Köprü dosyaları indirildi. ${runInstructions} Ardından rigout-config.json dosyasını seçin.`);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'Kurulum betiği indirilemedi.';
       toast.error(`Kurulum betiği indirilemedi: ${message}`);
@@ -299,12 +303,33 @@ const TreOS = () => {
                 {autoSetupStarted && (
                   <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
                     <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
-                      <li>İndirilen betiği çalıştırın; Rigout kurulup başlatılacak.</li>
-                      <li>Betikle aynı klasördeki rigout-config.json dosyasını seçin; TreOS bağlantıyı otomatik deneyecek.</li>
+                      <li>
+                        İki dosyayı aynı klasöre kaydedin ve{' '}
+                        <a
+                          className="font-medium text-primary underline underline-offset-2"
+                          href={`${import.meta.env.BASE_URL}treos-bridge/baslat_kopru.${setupLauncher}`}
+                          download
+                        >
+                          baslat_kopru.{setupLauncher}
+                        </a>
+                        {' '}başlatıcısını çalıştırın. Rigout kurulup 8766 portunda, köprü 8765 portunda açılacak.
+                      </li>
+                      <li>
+                        Başlatıcı sorarsa bu sayfanın kökenini girin:{' '}
+                        <code className="rounded bg-background px-1 py-0.5">{window.location.origin}</code>.
+                        Ardından aynı klasördeki rigout-config.json dosyasını seçin.
+                      </li>
                     </ol>
                     <p className="text-xs text-muted-foreground">
-                      Güvenlik nedeniyle tarayıcı betiği sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
+                      Tarayıcı güvenlik nedeniyle dosyaları sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
                     </p>
+                    <a
+                      className="text-sm font-medium text-primary underline underline-offset-2"
+                      href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`}
+                      download
+                    >
+                      treos_bridge.py dosyasını indir
+                    </a>
                     {setupCommand && (
                       <>
                         <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">

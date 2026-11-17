@@ -9,11 +9,24 @@ if command -v python3 >/dev/null 2>&1; then
     printf '%s\n' "Python 3.10 veya daha yeni bir surum gerekli." >&2
     exit 1
   }
-  exec python3 "$script_dir/treos_bridge.py"
+  python_cmd=python3
 elif command -v python >/dev/null 2>&1 &&
   python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"; then
-  exec python "$script_dir/treos_bridge.py"
+  python_cmd=python
+else
+  printf '%s\n' "Python 3.10 veya daha yeni bir surum bulunamadi. Python'u kurup yeniden deneyin." >&2
+  exit 1
 fi
 
-printf '%s\n' "Python 3.10 veya daha yeni bir surum bulunamadi. Python'u kurup yeniden deneyin." >&2
-exit 1
+if [ -z "${TREOS_ALLOWED_ORIGINS:-}" ]; then
+  printf '%s' "TreOS sayfa kaynagini girin (bos birakilirsa localhost gelistirme kaynaklari kullanilir): "
+  IFS= read -r TREOS_ALLOWED_ORIGINS || TREOS_ALLOWED_ORIGINS=
+  if [ -n "$TREOS_ALLOWED_ORIGINS" ]; then
+    export TREOS_ALLOWED_ORIGINS
+  else
+    unset TREOS_ALLOWED_ORIGINS
+  fi
+fi
+
+"$python_cmd" -m pip install --upgrade rigout
+exec "$python_cmd" "$script_dir/treos_bridge.py"

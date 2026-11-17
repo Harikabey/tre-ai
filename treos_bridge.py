@@ -61,10 +61,10 @@ DEFAULT_ALLOWED_ORIGINS = (
 
 def parse_allowed_origins(value: str | None) -> frozenset[str]:
     """Load exact origins; production origins must be explicitly configured."""
-    entries = value.split(",") if value is not None else DEFAULT_ALLOWED_ORIGINS
+    entries = value.split(",") if value and value.strip() else DEFAULT_ALLOWED_ORIGINS
     origins: set[str] = set()
     for entry in entries:
-        origin = entry.strip()
+        origin = entry.strip().rstrip("/")
         if not origin:
             continue
         parsed = urlsplit(origin)
@@ -86,7 +86,17 @@ def parse_allowed_origins(value: str | None) -> frozenset[str]:
             "::1",
         }:
             raise ValueError("Non-loopback TREOS_ALLOWED_ORIGINS entries must use HTTPS.")
-        origins.add(origin.rstrip("/"))
+        scheme = parsed.scheme.lower()
+        hostname = parsed.hostname.lower()
+        if ":" in hostname:
+            hostname = f"[{hostname}]"
+        port = parsed.port
+        if port is not None and not (
+            (scheme == "http" and port == 80)
+            or (scheme == "https" and port == 443)
+        ):
+            hostname = f"{hostname}:{port}"
+        origins.add(f"{scheme}://{hostname}")
     if not origins:
         raise ValueError("TREOS_ALLOWED_ORIGINS must contain at least one allowed origin.")
     return frozenset(origins)
