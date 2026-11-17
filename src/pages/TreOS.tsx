@@ -20,6 +20,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 type StepStatus = 'pending' | 'running' | 'done' | 'error';
 type BridgeStatus = 'checking' | 'online' | 'rigout-offline' | 'offline';
+type SetupLauncher = 'bat' | 'sh' | 'exe';
+type ExeProbe = 'available' | 'missing' | 'unknown';
 
 interface TaskStep {
   id: string;
@@ -36,13 +38,69 @@ const MAX_POLL_ATTEMPTS = 9;
 const INITIAL_POLL_DELAY_MS = 1_000;
 const MAX_POLL_DELAY_MS = 15_000;
 const BRIDGE_HEALTH_URL = 'http://127.0.0.1:8765/healthz';
+// Köprü varlıkları public/treos-bridge/ altında tutulur. Vercel'de statik sunum
+// import.meta.env.BASE_URL üzerinden yapılır; böylece alt dizin dağıtımları da bozulmaz.
+const BRIDGE_DIR = 'treos-bridge';
+const BRIDGE_EXE_NAME = 'TreOS-Bridge.exe';
+
+// Vite yalnızca VITE_ öneki taşıyan env değişkenlerini istemciye açar.
+// public/treos-bridge/TreOS-Bridge.exe yayına alındığında .env veya Vercel
+// Environment Variables'a VITE_TREOS_BRIDGE_EXE_AVAILABLE=true ekleyin.
+// Bu flag set edildiğinde HEAD isteği hiç yapılmaz → Vercel statik sunucunun
+// CORS/405/SPA-fallback davranışlarından kaynaklanan yanlış negatifler elenir.
+const BRIDGE_EXE_FLAG = (
+  import.meta.env.VITE_TREOS_BRIDGE_EXE_AVAILABLE as string | undefined
+)?.toLowerCase();
+
+function downloadFile(href: string, fileName: string) {
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function downloadScripts(isWindows: boolean): 'bat' | 'sh' {
+  const base = import.meta.env.BASE_URL;
+  const extension = isWindows ? 'bat' : 'sh';
+  for (const fileName of [`baslat_kopru.${extension}`, 'treos_bridge.py']) {
+    downloadFile(`${base}${BRIDGE_DIR}/${fileName}`, fileName);
+  }
+  return extension;
+}
+
+/**
+ * .exe'nin gerçekten yayında olup olmadığını belirler.
+ * - Build-time flag varsa tek doğru kaynak odur.
+ * - Flag yoksa HEAD probe çalışır; ama yalnızca KESİN "yok" sinyallerini
+ *   (404 veya text/html SPA fallback) missing sayar. Ağ/CORS hatası "unknown"
+ *   döner ki bu durumda çağıran taraf exe indirmeyi yine de denesin —
+ *   böylece CORS yüzünden exe sessizce betiklere düşmez.
+ */
+async function probeBridgeExe(): Promise<ExeProbe> {
+  if (BRIDGE_EXE_FLAG === 'true') return 'available';
+  if (BRIDGE_EXE_FLAG === 'false') return 'missing';
+
+  const exeUrl = `${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`;
+  try {
+    const response = await fetch(exeUrl, { method: 'HEAD', cache: 'no-store' });
+    if (response.status === 404) return 'missing';
+    if (!response.ok) return 'unknown';
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('text/html')) return 'missing'; // Vercel SPA fallback
+    return 'available';
+  } catch {
+    return 'unknown';
+  }
+}
 
 const TreOS = () => {
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [autoSetupStarted, setAutoSetupStarted] = useState(false);
   const [setupCommand, setSetupCommand] = useState('');
-  const [setupLauncher, setSetupLauncher] = useState<'bat' | 'sh'>('sh');
+  const [setupLauncher, setSetupLauncher] = useState<SetupLauncher>('sh');
   const [autoConnectRequested, setAutoConnectRequested] = useState(false);
   const [mcpUrl, setMcpUrl] = useState('http://127.0.0.1:8765/mcp');
   const [authToken, setAuthToken] = useState('');
@@ -56,7 +114,6 @@ const TreOS = () => {
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
   const isWindows = navigator.userAgent.toLowerCase().includes('windows');
-  const hasBridgeExe = isWindows && import.meta.env.TREOS_BRIDGE_EXE_AVAILABLE;
 
   useEffect(() => {
     if (!isLocalBridgeUrl(mcpUrl)) return;
@@ -204,35 +261,61 @@ const TreOS = () => {
     setError(null);
   };
 
-  const downloadRigoutSetup = () => {
+  /**
+   * Windows kullanıcılarında birincil hedef TreOS-Bridge.exe'dir.
+   * Sırasıyla:
+   *   1) VITE_TREOS_BRIDGE_EXE_AVAILABLE build-time flag'i ('true'/'false')
+   *   2) Flag yoksa HEAD probe (yalnızca kesin 404 / SPA fallback missing sayılır)
+   *   3) Sadece "missing" sonucunda betiklere düşülür — ağ/CORS hatası
+   *      exe indirmeyi engellemez, kullanıcıya fallback uyarısı gösterilir.
+   */
+  const downloadRigoutSetup = async () => {
     try {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isWindows = userAgent.includes('windows');
-      const isMac = userAgent.includes('macintosh') || userAgent.includes('mac os');
-      const extension = isWindows ? 'bat' : 'sh';
-      for (const fileName of [`baslat_kopru.${extension}`, 'treos_bridge.py']) {
-        const link = document.createElement('a');
-        link.href = `${import.meta.env.BASE_URL}treos-bridge/${fileName}`;
-        link.download = fileName;
-        document.body.append(link);
-        link.click();
-        link.remove();
+      if (!isWindows) {
+        const extension = downloadScripts(false);
+        setSetupComplete(true);
+        setAutoSetupStarted(true);
+        setSetupLauncher(extension);
+        setSetupCommand('chmod +x ~/Downloads/baslat_kopru.sh && ~/Downloads/baslat_kopru.sh');
+        toast.success(
+          'Köprü dosyaları indirildi. İki dosyayı aynı klasöre koyup başlatıcıyı çalıştırın. Ardından rigout-config.json dosyasını seçin.',
+        );
+        return;
       }
+
+      const probe = await probeBridgeExe();
+
+      if (probe === 'missing') {
+        // Exe yayında değil — betik moduna temiz geçiş.
+        const extension = downloadScripts(true);
+        setSetupComplete(true);
+        setAutoSetupStarted(true);
+        setSetupLauncher(extension);
+        toast.success(
+          'Köprü betikleri indirildi. İki dosyayı aynı klasöre koyup baslat_kopru.bat dosyasını açın. Ardından rigout-config.json dosyasını seçin.',
+        );
+        return;
+      }
+
+      // probe 'available' veya 'unknown' → exe'yi dene.
+      const exeUrl = `${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`;
+      downloadFile(exeUrl, BRIDGE_EXE_NAME);
       setSetupComplete(true);
       setAutoSetupStarted(true);
-      setSetupLauncher(extension);
-      const runInstructions = isWindows
-        ? 'İki dosyayı aynı klasöre koyup baslat_kopru.bat dosyasını açın.'
-        : isMac
-          ? 'İki dosyayı aynı klasöre koyup başlatıcıyı çalıştırın.'
-          : 'İki dosyayı aynı klasöre koyup başlatıcıyı çalıştırın.';
-      if (!isWindows) {
-        setSetupCommand('chmod +x ~/Downloads/baslat_kopru.sh && ~/Downloads/baslat_kopru.sh');
+      setSetupLauncher('exe');
+
+      if (probe === 'unknown') {
+        toast.warning(
+          'TreOS-Bridge.exe indirmesi başlatıldı. Dosya 404 dönerse aşağıdaki "Betikleri indir" bağlantısını kullanın.',
+        );
+      } else {
+        toast.success(
+          'TreOS-Bridge.exe indirildi. Dosyayı çalıştırın; köprü 8765 portunda açılacak.',
+        );
       }
-      toast.success(`Köprü dosyaları indirildi. ${runInstructions} Ardından rigout-config.json dosyasını seçin.`);
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Kurulum betiği indirilemedi.';
-      toast.error(`Kurulum betiği indirilemedi: ${message}`);
+      const message = reason instanceof Error ? reason.message : 'Kurulum dosyaları indirilemedi.';
+      toast.error(`Kurulum dosyaları indirilemedi: ${message}`);
     }
   };
 
@@ -347,36 +430,31 @@ const TreOS = () => {
             </p>
             {bridgeStatus !== 'rigout-offline' && (
               <div className="flex flex-wrap gap-2">
-                {hasBridgeExe ? (
+                {isWindows && (
                   <Button asChild>
-                    <a href={`${import.meta.env.BASE_URL}TreOS-Bridge.exe`} download>
+                    <a
+                      href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/${BRIDGE_EXE_NAME}`}
+                      download
+                    >
                       <Cable className="mr-2 h-4 w-4" />
                       TreOS-Bridge.exe indir
                     </a>
                   </Button>
-                ) : (
-                  <>
-                    <Button asChild variant="outline">
-                      <a href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`} download>
-                        Köprü betiğini indir
-                      </a>
-                    </Button>
-                    <Button asChild variant="outline">
-                      <a
-                        href={`${import.meta.env.BASE_URL}treos-bridge/baslat_kopru.${isWindows ? 'bat' : 'sh'}`}
-                        download
-                      >
-                        Başlatıcıyı indir
-                      </a>
-                    </Button>
-                  </>
                 )}
+                <Button asChild variant="outline">
+                  <a href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/treos_bridge.py`} download>
+                    Köprü betiğini indir
+                  </a>
+                </Button>
+                <Button asChild variant="outline">
+                  <a
+                    href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/baslat_kopru.${isWindows ? 'bat' : 'sh'}`}
+                    download
+                  >
+                    Başlatıcıyı indir
+                  </a>
+                </Button>
               </div>
-            )}
-            {bridgeStatus !== 'rigout-offline' && !hasBridgeExe && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Bu dağıtımda EXE henüz yayımlanmamış; kaynak başlatıcıyı kullanabilir veya depoda build.bat ile oluşturabilirsiniz.
-              </p>
             )}
           </section>
         )}
@@ -390,7 +468,7 @@ const TreOS = () => {
             {!setupComplete && (
               <div className="flex flex-wrap gap-3">
                 <Button
-                  onClick={downloadRigoutSetup}
+                  onClick={() => void downloadRigoutSetup()}
                   disabled={connecting || running}
                   className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                 >
@@ -406,44 +484,79 @@ const TreOS = () => {
               <div className="space-y-4">
                 {autoSetupStarted && (
                   <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
-                    <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
-                      <li>
-                        İki dosyayı aynı klasöre kaydedin ve{' '}
+                    {setupLauncher === 'exe' ? (
+                      <>
+                        <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+                          <li>
+                            İndirilen <strong>TreOS-Bridge.exe</strong> dosyasını çalıştırın. Köprü 8765
+                            portunda, Rigout ise 8766 portunda açılacak.
+                          </li>
+                          <li>
+                            Windows SmartScreen uyarısı çıkarsa <strong>Ek bilgi</strong> →{' '}
+                            <strong>Yine de çalıştır</strong> seçin.
+                          </li>
+                          <li>
+                            Ardından aşağıdaki alandan <code>rigout-config.json</code> dosyasını seçin.
+                          </li>
+                        </ol>
+                        <div className="rounded border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-800 dark:text-amber-300">
+                          EXE indirilemediyse veya çalışmazsa{' '}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const extension = downloadScripts(true);
+                              setSetupLauncher(extension);
+                              toast.success('Köprü betikleri indirildi. baslat_kopru.bat dosyasını çalıştırın.');
+                            }}
+                            className="font-medium underline underline-offset-2"
+                          >
+                            betikleri indirin
+                          </button>
+                          .
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+                          <li>
+                            İki dosyayı aynı klasöre kaydedin ve{' '}
+                            <a
+                              className="font-medium text-primary underline underline-offset-2"
+                              href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/baslat_kopru.${setupLauncher}`}
+                              download
+                            >
+                              baslat_kopru.{setupLauncher}
+                            </a>
+                            {' '}başlatıcısını çalıştırın. Rigout kurulup 8766 portunda, köprü 8765 portunda açılacak.
+                          </li>
+                          <li>
+                            Başlatıcı sorarsa bu sayfanın kökenini girin:{' '}
+                            <code className="rounded bg-background px-1 py-0.5">{window.location.origin}</code>.
+                            Ardından aynı klasördeki rigout-config.json dosyasını seçin.
+                          </li>
+                        </ol>
                         <a
-                          className="font-medium text-primary underline underline-offset-2"
-                          href={`${import.meta.env.BASE_URL}treos-bridge/baslat_kopru.${setupLauncher}`}
+                          className="text-sm font-medium text-primary underline underline-offset-2"
+                          href={`${import.meta.env.BASE_URL}${BRIDGE_DIR}/treos_bridge.py`}
                           download
                         >
-                          baslat_kopru.{setupLauncher}
+                          treos_bridge.py dosyasını indir
                         </a>
-                        {' '}başlatıcısını çalıştırın. Rigout kurulup 8766 portunda, köprü 8765 portunda açılacak.
-                      </li>
-                      <li>
-                        Başlatıcı sorarsa bu sayfanın kökenini girin:{' '}
-                        <code className="rounded bg-background px-1 py-0.5">{window.location.origin}</code>.
-                        Ardından aynı klasördeki rigout-config.json dosyasını seçin.
-                      </li>
-                    </ol>
+                        {setupCommand && (
+                          <>
+                            <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">
+                              {setupCommand}
+                            </code>
+                            <p className="text-xs text-muted-foreground">
+                              Dosya başka bir klasöre indiyse komuttaki ~/Downloads yolunu güncelleyin.
+                            </p>
+                          </>
+                        )}
+                      </>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Tarayıcı güvenlik nedeniyle dosyaları sizin yerinize çalıştıramaz veya yapılandırma dosyasını kendiliğinden okuyamaz.
                     </p>
-                    <a
-                      className="text-sm font-medium text-primary underline underline-offset-2"
-                      href={`${import.meta.env.BASE_URL}treos-bridge/treos_bridge.py`}
-                      download
-                    >
-                      treos_bridge.py dosyasını indir
-                    </a>
-                    {setupCommand && (
-                      <>
-                        <code className="block overflow-x-auto rounded bg-background px-3 py-2 text-xs">
-                          {setupCommand}
-                        </code>
-                        <p className="text-xs text-muted-foreground">
-                          Dosya başka bir klasöre indiyse komuttaki ~/Downloads yolunu güncelleyin.
-                        </p>
-                      </>
-                    )}
                     <label htmlFor="rigout-config" className="block text-sm font-medium">
                       Rigout yapılandırma dosyası
                     </label>
