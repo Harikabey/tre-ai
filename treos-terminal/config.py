@@ -81,7 +81,7 @@ def set_provider(provider: str) -> None:
 def get_model(provider: str) -> str:
     """Sağlayıcı için yapılandırılmış modeli döndürür."""
     defaults = {
-        "groq": "llama-3.3-70b-versatile",
+        "groq": "llama-3.1-8b-instant",
         "openrouter": "openai/gpt-4o-mini",
     }
     if provider not in defaults:
