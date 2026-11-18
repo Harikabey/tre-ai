@@ -101,7 +101,7 @@ export const FileActionButtons = ({
 
   return (
     <>
-      <div className={`flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 ${className || ''}`}>
+      <div data-file-actions className={`flex w-full flex-row flex-wrap items-center gap-2 sm:w-auto ${className || ''}`}>
         <Button asChild variant="outline" size="sm">
           <a href={fileUrl} download={safeFileName} onClick={(event) => { void handleDownload(event); }}>
             <Download aria-hidden="true" />

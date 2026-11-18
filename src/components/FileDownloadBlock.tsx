@@ -72,7 +72,7 @@ export const FileDownloadBlock = ({ file, onPreview }: FileDownloadBlockProps) =
   }, [file.content, file.fileName, file.fileUrl]);
 
   return (
-    <div className="my-2 flex max-w-full items-center gap-3 overflow-hidden rounded-lg border border-border/50 bg-secondary/50 p-3">
+    <div className="my-2 flex max-w-full flex-col items-stretch gap-2 overflow-hidden rounded-lg border border-border/50 bg-secondary/50 p-3 sm:flex-row sm:items-center sm:gap-3">
       <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center">
         <FileText className="w-5 h-5 text-primary" />
       </div>

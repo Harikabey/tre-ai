@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -175,19 +175,22 @@
 
 @media (max-width: 767px) {
   #root {
-    width: min(100vw, 430px);
+    width: 100%;
+    max-width: none;
+    padding: 0;
     min-height: 100dvh;
-    margin: 0 auto;
+    margin: 0;
     overflow-x: hidden;
   }
 
   .mobile-9-16-frame {
-    width: min(100vw, 430px);
+    width: 100%;
+    max-width: none;
     min-height: 100dvh;
-    max-height: 100dvh;
-    aspect-ratio: 9 / 16;
-    margin: 0 auto;
-    overflow: hidden;
+    max-height: none;
+    aspect-ratio: auto;
+    margin: 0;
+    overflow-x: hidden;
     border-radius: 0;
     box-shadow: none;
   }
@@ -195,6 +198,86 @@
   .mobile-9-16-frame > main {
     width: 100%;
     max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Keep message content inside the viewport; wide content scrolls inside itself. */
+  [data-radix-scroll-area-viewport] {
+    max-width: 100vw;
+    overflow-x: hidden !important;
+  }
+
+  .chat-bubble {
+    max-width: calc(100vw - 3.75rem) !important;
+  }
+
+  .chat-bubble table {
+    min-width: 640px !important;
+    width: 640px !important;
+    table-layout: auto !important;
+  }
+
+  .chat-bubble pre,
+  .chat-bubble [data-radix-scroll-area-viewport] {
+    max-width: 100%;
+  }
+
+  .chat-bubble img,
+  .chat-bubble video,
+  .chat-bubble canvas,
+  .chat-bubble svg {
+    max-width: 100%;
+  }
+
+  /* Dialogs become edge-to-edge mobile sheets instead of overflowing. */
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem) !important;
+  }
+
+  [role="dialog"].max-w-4xl,
+  [role="dialog"].max-w-3xl,
+  [role="dialog"].max-w-2xl {
+    width: calc(100vw - 1rem) !important;
+    max-height: 90dvh;
+    overflow: auto;
+  }
+
+  /* Header controls remain reachable without widening the page. */
+  header {
+    max-width: 100vw;
+  }
+
+  /* File cards wrap cleanly and all actions stay visible. */
+  .chat-bubble [data-file-actions],
+  .chat-bubble [data-file-actions] > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-bubble {
+    max-width: calc(100vw - 3.25rem) !important;
+  }
+
+  .mobile-9-16-frame {
+    height: 100dvh;
+  }
+
+  [role="dialog"] {
+    padding: 1rem;
+  }
+
+  input,
+  textarea,
+  button,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Narrow screens keep the composer compact and fully visible. */
+  textarea {
+    min-width: 0;
   }
 }
 

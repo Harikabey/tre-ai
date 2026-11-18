@@ -426,8 +426,12 @@ export const ChatMessage = ({ message, onReact, onPreview, chatId, chatTitle }: 
                   },
                   table({ children }) {
                     return (
-                      <div className="my-3 block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border/60">
-                        <table className="w-full table-fixed border-collapse text-[11px] sm:w-max sm:min-w-full sm:table-auto sm:text-sm">
+                      <div
+                        className="chat-table-scroll my-3 block w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-lg border border-border/60"
+                        tabIndex={0}
+                        aria-label="Yatay kaydırılabilir tablo"
+                      >
+                        <table className="min-w-full w-max table-auto border-collapse text-[11px] sm:text-sm">
                           {children}
                         </table>
                       </div>

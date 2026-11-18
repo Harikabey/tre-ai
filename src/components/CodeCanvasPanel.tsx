@@ -50,7 +50,7 @@ const CodeCanvasPanel: React.FC<CodeCanvasPanelProps> = ({ isOpen, code, fileNam
   return (
     <div
       className={cn(
-        'fixed right-0 top-0 h-full w-[480px] max-w-[90vw] bg-card/95 backdrop-blur-lg border-l border-border/50 shadow-2xl z-50 transition-all duration-300 flex flex-col',
+        'fixed inset-0 h-[100dvh] w-screen max-w-full bg-card/95 backdrop-blur-lg border-border/50 shadow-2xl z-50 transition-all duration-300 flex flex-col sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[480px] sm:max-w-[90vw] sm:border-l',
         isMinimized ? 'h-[60px]' : 'h-full'
       )}
     >
