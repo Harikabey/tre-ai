@@ -80,11 +80,9 @@ const App = () => (
                 </Suspense>
               } />
               <Route path="/treos" element={
-                <ProtectedRoute>
-                  <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">TreOS yükleniyor...</main>}>
-                    <TreOS />
-                  </Suspense>
-                </ProtectedRoute>
+                <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-950 font-mono text-emerald-400">TreOS Terminal yükleniyor...</main>}>
+                  <TreOS />
+                </Suspense>
               } />
               <Route path="/simitci" element={
                 <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-background text-foreground">si-MİTÇİ yükleniyor...</main>}>
