@@ -26,8 +26,9 @@ class ChatScreen(Screen):
     ]
     CSS = """
     ChatScreen { layout: vertical; }
-    #chat { height: 1fr; border: round $primary; padding: 1; }
-    #prompt { dock: bottom; }
+    #chat { width: 1fr; height: 1fr; overflow-x: hidden; overflow-y: auto; border: round $primary; padding: 1; }
+    #chat Markdown { width: 1fr; text-wrap: wrap; }
+    #prompt { width: 1fr; dock: bottom; }
     """
 
     def __init__(self) -> None:

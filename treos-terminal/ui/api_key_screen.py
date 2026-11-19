@@ -13,7 +13,8 @@ class ApiKeyScreen(Screen):
 
     CSS = """
     ApiKeyScreen { align: center middle; }
-    #key-form { width: 70; height: auto; padding: 1 2; border: round $primary; }
+    #key-form { width: 90%; max-width: 70; height: auto; max-height: 90%; overflow-y: auto; padding: 1 2; border: round $primary; }
+    #key-form Static { width: 1fr; text-wrap: wrap; }
     #key-form Input, #key-form Select, #key-form Button { margin-top: 1; }
     """
 

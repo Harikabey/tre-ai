@@ -18,10 +18,10 @@ class ConfirmModal(ModalScreen[bool]):
     ]
     CSS = """
     ConfirmModal { align: center middle; }
-    #confirm-box { width: 80; height: auto; max-height: 85%; padding: 1 2; border: thick $warning; background: $surface; }
-    #todo-list { height: auto; max-height: 1fr; overflow-y: auto; }
-    #confirm-buttons { height: 3; align-horizontal: center; }
-    #confirm-buttons Button { margin: 0 1; }
+    #confirm-box { width: 90%; max-width: 80; height: auto; max-height: 85%; overflow-y: auto; padding: 1 2; border: thick $warning; background: $surface; }
+    #todo-list { width: 1fr; height: auto; max-height: 1fr; overflow-x: hidden; overflow-y: auto; text-wrap: wrap; }
+    #confirm-buttons { width: 100%; height: auto; align-horizontal: center; }
+    #confirm-buttons Button { width: 1fr; min-width: 0; margin: 0 1; }
     """
 
     def __init__(self, actions: list[dict]) -> None:
