@@ -103,22 +103,51 @@ const Settings = () => {
   const [importing, setImporting] = useState(false);
   const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
 
-  const getDesktopDownloadUrl = () => {
+  const getDesktopDownload = () => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (/mac|darwin/.test(userAgent)) {
-      return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.dmg';
+      return {
+        asset: 'Tre.dmg',
+        url: 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.dmg',
+      };
     }
     if (/linux/.test(userAgent)) {
-      return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.AppImage';
+      return {
+        asset: 'Tre.AppImage',
+        url: 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.AppImage',
+      };
     }
-    return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre-Setup.exe';
+    return {
+      asset: 'Tre-Setup.exe',
+      url: 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre-Setup.exe',
+    };
   };
 
-  const handleDesktopDownload = () => {
+  const handleDesktopDownload = async () => {
     try {
-      window.location.assign(getDesktopDownloadUrl());
+      const { asset, url } = getDesktopDownload();
+      const response = await fetch('https://api.github.com/repos/Harikabey/tre-ai/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+
+      if (response.status === 404) {
+        toast.info(t('Masaüstü uygulaması henüz yayınlanmadı. Yapım aşamasında.'));
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(`Release kontrolü başarısız (${response.status}).`);
+      }
+
+      const release = await response.json() as { assets?: Array<{ name: string }> };
+      if (!release.assets?.some((releaseAsset) => releaseAsset.name === asset)) {
+        toast.info(t('Bu platform için masaüstü uygulaması henüz yayınlanmadı. Yapım aşamasında.'));
+        return;
+      }
+
+      window.location.assign(url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('İndirme başlatılamadı.'));
+      console.error('Masaüstü uygulaması indirilemedi:', error);
+      toast.error(t('İndirme başlatılamadı.'));
     }
   };
 
