@@ -52,6 +52,22 @@ type ThemeOption = {
   icon: typeof Sun;
 };
 
+type ElectronAPI = {
+  runCommand: (command: string, cwd?: string) => Promise<{
+    success: boolean;
+    stdout: string;
+    stderr: string;
+    timedOut?: boolean;
+    error?: string;
+  }>;
+  checkForUpdates: () => Promise<{
+    updateAvailable: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    downloadUrl?: string;
+  }>;
+};
+
 const themeOptions: ThemeOption[] = [
   { id: 'light', nameKey: 'lightMode', descKey: 'lightDesc', icon: Sun },
   { id: 'dark', nameKey: 'darkMode', descKey: 'darkDesc', icon: Moon },
@@ -86,6 +102,48 @@ const Settings = () => {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [cooldownMs, setCooldownMs] = useState<number>(() => getCooldownRemainingMs());
+
+  const getDesktopDownloadUrl = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (/mac|darwin/.test(userAgent)) {
+      return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.dmg';
+    }
+    if (/linux/.test(userAgent)) {
+      return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre.AppImage';
+    }
+    return 'https://github.com/Harikabey/tre-ai/releases/latest/download/Tre-Setup.exe';
+  };
+
+  const handleDesktopDownload = () => {
+    try {
+      window.location.assign(getDesktopDownloadUrl());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('İndirme başlatılamadı.'));
+    }
+  };
+
+  const handleCheckForUpdates = async () => {
+    const electronAPI = (window as typeof window & { electronAPI?: ElectronAPI }).electronAPI;
+    if (!electronAPI) {
+      toast.info(t('Güncelleme kontrolü yalnızca masaüstü uygulamasında kullanılabilir.'));
+      return;
+    }
+
+    try {
+      const result = await electronAPI.checkForUpdates();
+      if (result.updateAvailable) {
+        const shouldDownload = window.confirm(t('Yeni sürüm mevcut! İndirmek ister misiniz?'));
+        if (shouldDownload && result.downloadUrl) {
+          window.location.assign(result.downloadUrl);
+        }
+      } else {
+        toast.success(t('Uygulamanız güncel.'));
+      }
+    } catch (error) {
+      console.error('Güncelleme kontrolü başarısız:', error);
+      toast.error(t('Güncelleme kontrol edilemedi'));
+    }
+  };
 
   const { backgroundImage, setBackground, clearBackground } = useChatBackground();
   const [backgroundUrl, setBackgroundUrl] = useState('');
@@ -1398,6 +1456,14 @@ const Settings = () => {
                 <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 text-xs text-muted-foreground leading-relaxed">
                   {t("Tarayıcı menüsünden")}<b>{t('settings.addToHomeScreen')}</b> / <b>{t("\"Uygulamayı yükle\"")}</b> {t("seçeneğini kullan. Bu özellik yalnızca yayınlanmış sürümde görünür.")}</div>
               )}
+              <Button className="w-full" variant="outline" onClick={handleDesktopDownload}>
+                <Download className="h-4 w-4 mr-2" />
+                {t("Tre'yi Masaüstü Uygulaması Olarak İndir")}
+              </Button>
+              <Button className="w-full" variant="secondary" onClick={() => void handleCheckForUpdates()}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {t("Güncellemeyi Kontrol Et")}
+              </Button>
             </CardContent>
             </AccordionContent>
           </Card>

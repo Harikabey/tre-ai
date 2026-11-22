@@ -1,14 +1,17 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "electron/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
     "@e965/xlsx": "^0.20.3",
@@ -90,6 +93,9 @@
     "@types/three": "^0.187.0",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^10.0.7",
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -98,12 +104,35 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "wait-on": "^9.5.1"
   },
   "overrides": {
     "dompurify": "^3.4.17"
   },
   "resolutions": {
     "dompurify": "^3.4.17"
+  },
+  "build": {
+    "appId": "com.harikabey.treai",
+    "productName": "Tre",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "Tre-Setup.exe"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "artifactName": "Tre.dmg"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "artifactName": "Tre.AppImage"
+    }
   }
 }

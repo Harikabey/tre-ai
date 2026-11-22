@@ -4,6 +4,24 @@ declare global {
   interface ImportMetaEnv {
     readonly VITE_TREOS_BRIDGE_EXE_AVAILABLE?: string;
   }
+
+  interface Window {
+    electronAPI?: {
+      runCommand: (command: string, cwd?: string) => Promise<{
+        success: boolean;
+        stdout: string;
+        stderr: string;
+        timedOut?: boolean;
+        error?: string;
+      }>;
+      checkForUpdates: () => Promise<{
+        updateAvailable: boolean;
+        currentVersion: string;
+        latestVersion?: string;
+        downloadUrl?: string;
+      }>;
+    };
+  }
 }
 
 declare module '@graphviz-wasm-wrapper' {
