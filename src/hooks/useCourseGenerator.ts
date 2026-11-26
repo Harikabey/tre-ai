@@ -31,7 +31,7 @@ export interface GeneratedCourse {
 
 const API_CONNECTION_ERROR = "API bağlantısı kurulamadı. Lütfen Ayarlar'dan API anahtarınızı kontrol edin.";
 const RATE_LIMIT_ERROR = 'İstek limiti aşıldı, lütfen biraz bekleyin.';
-const COURSE_SYSTEM_PROMPT = `Sen bir eğitim içeriği üreticisisin. Kullanıcının verdiği konu için 3 modüllük bir kurs planı oluştur. Her modül için: başlık, kısa teori, 1 quiz sorusu ve 1 interaktif etkinlik (sürükle-bırak veya boşluk doldurma) hazırla. Yanıtını KESİNLİKLE ve SADECE geçerli bir JSON formatında ver. JSON dışında hiçbir metin, açıklama veya markdown işareti yazma. Yanıtın ilk karakteri '{' son karakteri '}' olmalıdır. Beklenen biçim: { "modules": [ { "title": "...", "content": "...", "quiz": {...}, "activity": {...} } ] }`;
+const COURSE_SYSTEM_PROMPT = `Sen bir eğitim içeriği üreticisisin. Kullanıcının verdiği konu için 3 modüllük bir kurs planı oluştur. Her modül için: başlık, kısa teori, 1 quiz sorusu ve 1 interaktif etkinlik (sürükle-bırak veya boşluk doldurma) hazırla. Yanıtını KESİNLİKLE ve SADECE geçerli bir JSON formatında ver. JSON dışında hiçbir metin, açıklama veya markdown işareti yazma. Yanıtın ilk karakteri '{' son karakteri '}' olmalıdır. Eğer JSON formatında yanıt veremiyorsan, boş bir JSON nesnesi döndür: {}. Beklenen biçim: { "modules": [ { "title": "...", "content": "...", "quiz": {...}, "activity": {...} } ] }`;
 
 function escapeHtml(value: string): string {
   return value
@@ -162,13 +162,16 @@ export function useCourseGenerator() {
         throw new Error(API_CONNECTION_ERROR);
       }
 
-      console.debug('Tre Akademi API ham yanıtı:', completion);
       let parsed: unknown;
       try {
         parsed = parseJsonResponse(completion);
-        if (!isCoursePlan(parsed)) throw new Error('Yanıt beklenen kurs biçiminde değil.');
-      } catch {
-        throw new Error('Kurs oluşturulamadı, lütfen tekrar deneyin');
+      } catch (reason) {
+        console.error('Tre Akademi API JSON yanıtı ayrıştırılamadı. Ham yanıt:', completion, reason);
+        throw new Error('Kurs oluşturulamadı. API yanıtı beklenen formatta değil.');
+      }
+      if (!isCoursePlan(parsed)) {
+        console.error('Tre Akademi API JSON yanıtı beklenen kurs biçiminde değil. Ham yanıt:', completion);
+        throw new Error('Kurs oluşturulamadı. API yanıtı beklenen formatta değil.');
       }
       return { topic: normalizedTopic, modules: parsed.modules };
     } finally {
