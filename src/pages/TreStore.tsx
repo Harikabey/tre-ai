@@ -309,6 +309,16 @@ const Store = () => {
       actionLabel: 'Etkinleştir',
     },
     {
+      id: 'tre-akademi',
+      title: 'Tre Akademi',
+      description: 'İstediğin konudan interaktif 3 modüllü kurs üret, önizle ve tamamla.',
+      icon: <Package />,
+      gradient: 'from-cyan-500/20 via-card to-indigo-500/10',
+      requirements: ['🎓 3 modül', '🧩 İnteraktif etkinlik'],
+      activate: () => navigate('/tre-akademi'),
+      actionLabel: 'Etkinleştir',
+    },
+    {
       id: 'tre-fik',
       title: 'Tre-fik 🚦',
       description: 'Verilerinizi görselleştirin, şemalara dökün. Trafik polisi gibi düzenli!',

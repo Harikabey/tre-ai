@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{KONU}} - Tre Akademi</title>
+  <style>
+    :root { color-scheme: dark; --cyan:#22d3ee; --slate:#0f172a; }
+    * { box-sizing:border-box } body { margin:0; background:#020617; color:#e2e8f0; font-family:Inter,ui-sans-serif,system-ui,sans-serif }
+    .shell { max-width:980px; margin:auto; padding:28px 18px 64px }
+    .hero { border:1px solid rgba(34,211,238,.22); border-radius:24px; padding:28px; background:linear-gradient(135deg,rgba(34,211,238,.12),rgba(99,102,241,.08)); }
+    h1,h2,h3 { margin:0 } h1 { font-size:clamp(28px,6vw,44px) } h2 { font-size:20px } p { line-height:1.75; color:#cbd5e1 }
+    .eyebrow { color:#67e8f9; font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase }
+    .modules { display:grid; gap:18px; margin-top:20px }
+    .module { border:1px solid #1e293b; border-radius:18px; background:#0f172a; overflow:hidden }
+    .module-head { display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid #1e293b }
+    .number { width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#22d3ee;color:#082f49;font-weight:900 }
+    .module-body { padding:18px }
+    .content { white-space:pre-wrap }
+    .panel { margin-top:16px; padding:16px; border-radius:14px; background:#020617; border:1px solid #263449 }
+    .options { display:grid; gap:8px; margin-top:12px }
+    button { border:1px solid #334155; border-radius:10px; background:#172033; color:#f8fafc; padding:10px 12px; cursor:pointer }
+    button:hover { border-color:#22d3ee }
+    button.correct { border-color:#34d399;background:rgba(52,211,153,.12) }
+    button.wrong { border-color:#fb7185;background:rgba(251,113,133,.12) }
+    .activity-word { display:inline-block; border:1px dashed #22d3ee; border-radius:8px; min-width:90px; height:34px; vertical-align:middle; margin:0 4px }
+    .drag-list { display:flex;flex-wrap:wrap;gap:8px;margin-top:10px }
+    .drag-item { user-select:none }
+    .status { min-height:22px; margin-top:10px; color:#67e8f9; font-weight:700 }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero"><div class="eyebrow">Tre Akademi · İnteraktif Kurs</div><h1>{{KONU}}</h1></header>
+    <section class="modules">
+      <article class="module" data-module="0">
+        <div class="module-head"><span class="number">1</span><h2>{{MODUL_1_BASLIK}}</h2></div>
+        <div class="module-body"><p class="content">{{MODUL_1_ICERIK}}</p><div class="panel quiz-panel">{{MODUL_1_QUIZ}}</div><div class="panel activity-panel">{{MODUL_1_ETKINLIK}}</div></div>
+      </article>
+      <article class="module" data-module="1">
+        <div class="module-head"><span class="number">2</span><h2>{{MODUL_2_BASLIK}}</h2></div>
+        <div class="module-body"><p class="content">{{MODUL_2_ICERIK}}</p><div class="panel quiz-panel">{{MODUL_2_QUIZ}}</div><div class="panel activity-panel">{{MODUL_2_ETKINLIK}}</div></div>
+      </article>
+      <article class="module" data-module="2">
+        <div class="module-head"><span class="number">3</span><h2>{{MODUL_3_BASLIK}}</h2></div>
+        <div class="module-body"><p class="content">{{MODUL_3_ICERIK}}</p><div class="panel quiz-panel">{{MODUL_3_QUIZ}}</div><div class="panel activity-panel">{{MODUL_3_ETKINLIK}}</div></div>
+      </article>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const completed = new Set();
+      function emit(type, module, extra = {}) {
+        parent.postMessage({ type: 'tre-akademi', kind: type, courseId: '{{KURS_ID}}', moduleIndex: module, xp: type === 'xp' ? 10 : 0, ...extra }, '*');
+      }
+      document.querySelectorAll('.quiz-panel').forEach((panel, module) => {
+        panel.querySelectorAll('[data-correct]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const correct = button.dataset.correct === 'true';
+            panel.querySelectorAll('[data-correct]').forEach((item) => item.disabled = true);
+            button.classList.add(correct ? 'correct' : 'wrong');
+            if (correct) {
+              emit('quiz_correct', module);
+              completeModule(module);
+            } else {
+              emit('quiz_wrong', module, { topic: '{{KONU}}' });
+            }
+          });
+        });
+      });
+      function completeModule(module) {
+        if (completed.has(module)) return;
+        completed.add(module);
+        emit('xp', module);
+      }
+      document.querySelectorAll('.activity-panel').forEach((panel, module) => {
+        panel.querySelectorAll('[data-activity-correct]').forEach((item) => {
+          item.addEventListener('click', () => {
+            if (item.dataset.activityCorrect === 'true') {
+              item.classList.add('correct');
+              emit('activity_complete', module);
+              completeModule(module);
+            } else item.classList.add('wrong');
+          });
+        });
+        panel.querySelectorAll('.activity-word').forEach((slot) => {
+          slot.addEventListener('dragover', (event) => event.preventDefault());
+          slot.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const text = event.dataTransfer?.getData('text/plain') ?? '';
+            const item = [...panel.querySelectorAll('.drag-item')].find((candidate) => candidate.textContent === text);
+            if (!item) return;
+            const correct = item.dataset.activityCorrect === 'true';
+            slot.textContent = text;
+            slot.style.borderStyle = 'solid';
+            slot.style.borderColor = correct ? '#34d399' : '#fb7185';
+            if (correct) {
+              emit('activity_complete', module);
+              completeModule(module);
+            }
+          });
+        });
+        panel.querySelectorAll('.drag-item').forEach((item) => {
+          item.addEventListener('dragstart', (event) => {
+            event.dataTransfer?.setData('text/plain', item.textContent ?? '');
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

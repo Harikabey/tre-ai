@@ -37,6 +37,7 @@ const SimitciPage = lazy(() => import("./pages/SimitciPage"));
 const TreNtPage = lazy(() => import("./pages/TreNtPage"));
 const TreForgePage = lazy(() => import("./pages/TreForgePage"));
 const TreFikPage = lazy(() => import("./pages/TreFikPage"));
+const TreAkademiPage = lazy(() => import("./pages/TreAkademiPage"));
 const queryClient = new QueryClient();
 
 const ReminderNotificationRunner = () => {
@@ -102,6 +103,11 @@ const App = () => (
               <Route path="/tre-fik" element={
                 <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">Tre-fik yükleniyor...</main>}>
                   <TreFikPage />
+                </Suspense>
+              } />
+              <Route path="/tre-akademi" element={
+                <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">Tre Akademi yükleniyor...</main>}>
+                  <TreAkademiPage />
                 </Suspense>
               } />
 
