@@ -127,9 +127,15 @@ const TreAkademiPage = () => {
                 <Input value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Örn. Kuantum fiziği, Osmanlı tarihi, Python döngüleri..."
                   className="h-12 border-white/10 bg-slate-950 text-base" />
                 <Button type="submit" disabled={isGenerating || !topic.trim()} className="h-12 bg-cyan-300 px-5 text-slate-950 hover:bg-cyan-200">
-                  {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Kurs hazırlanıyor</> : <><Plus className="mr-2 h-4 w-4" />Kurs Oluştur</>}
+                  {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />İçerik hazırlanıyor</> : <><Plus className="mr-2 h-4 w-4" />Kurs Oluştur</>}
                 </Button>
               </form>
+              {isGenerating && (
+                <p role="status" className="mt-4 flex items-center gap-2 text-sm text-cyan-200">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Kurs içeriği yapay zeka tarafından hazırlanıyor...
+                </p>
+              )}
             </section>
           </TabsContent>
 

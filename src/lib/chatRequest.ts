@@ -137,7 +137,9 @@ export async function requestChatCompletion({
 
     const systemContext = isTreOSMode
       ? TREOS_JSON_SYSTEM_PROMPT
-      : [
+      : typeof sanitizedBody.systemPrompt === 'string' && sanitizedBody.systemPrompt.trim()
+        ? sanitizedBody.systemPrompt.trim()
+        : [
         "You are Tre, the user's helpful AI assistant.",
         typeof sanitizedBody.language === 'string' ? `Respond in ${sanitizedBody.language}.` : null,
         typeof sanitizedBody.personality === 'string' ? `Use a ${sanitizedBody.personality} personality.` : null,
