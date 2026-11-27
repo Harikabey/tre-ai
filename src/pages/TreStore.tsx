@@ -58,7 +58,7 @@ const pluginIcons = {
   z3: Cpu,
 } satisfies Record<PluginId, typeof Cpu>;
 
-type AgentModuleId = 'treos' | 'trejen' | 'simitci' | 'tre-nt' | 'treforge' | 'tre-fik';
+type AgentModuleId = 'treos' | 'trejen' | 'tremeji' | 'simitci' | 'tre-nt' | 'treforge' | 'tre-fik';
 type StoreModuleId = AgentModuleId | PluginId;
 
 const pluginGradients: Record<PluginId, string> = {
@@ -71,14 +71,14 @@ const pluginGradients: Record<PluginId, string> = {
 };
 
 const categories = [
-  { id: 'custom-tre', title: 'Özelleştirilmiş Tre', modules: ['treos', 'trejen', 'simitci', 'tre-nt', 'treforge'] },
+  { id: 'custom-tre', title: 'Özelleştirilmiş Tre', modules: ['treos', 'trejen', 'tremeji', 'simitci', 'tre-nt', 'treforge'] },
   { id: 'extensions', title: 'Tre Eklentisi', modules: STORE_PLUGINS.map((plugin) => plugin.id) },
   { id: 'creativity', title: 'Yaratıcılık', modules: ['trejen', 'tre-nt', 'image'] },
   { id: 'data-analysis', title: 'Veri Analizi', modules: ['tre-fik', 'treforge', 'papaparse', 'graphviz'] },
   { id: 'advanced-tools', title: 'Gelişmiş Araçlar', modules: ['treos', 'z3', 'sqlite'] },
 ] satisfies { id: string; title: string; modules: StoreModuleId[] }[];
 
-const featuredModuleIds = ['treos', 'trejen', 'tre-nt'];
+const featuredModuleIds = ['treos', 'trejen', 'tremeji', 'tre-nt'];
 
 interface AgentModule {
   id: AgentModuleId;
@@ -257,6 +257,35 @@ const Store = () => {
     ? 'Kullanılamıyor'
     : `${formatSize(capabilities.storageFreeBytes)} boş`;
   const memoryText = capabilities.memoryGb === null ? 'Bilinmiyor' : `${capabilities.memoryGb} GB`;
+  const downloadTreMeji = async () => {
+    const platform = navigator.platform.toLowerCase();
+    const assetName = platform.includes('win')
+      ? 'Tre-meji-Setup.exe'
+      : platform.includes('mac')
+        ? 'Tre-meji.dmg'
+        : 'Tre-meji.AppImage';
+
+    try {
+      const response = await fetch('https://api.github.com/repos/Harikabey/tre-ai/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (response.status === 404) {
+        toast.info('Tre-meji henüz yayınlanmadı. Yapım aşamasında.');
+        return;
+      }
+      if (!response.ok) throw new Error(`Release kontrolü başarısız (${response.status}).`);
+
+      const release = await response.json() as { assets?: Array<{ name: string }> };
+      if (!release.assets?.some((asset) => asset.name === assetName)) {
+        toast.info('Bu platform için Tre-meji paketi henüz yayınlanmadı.');
+        return;
+      }
+      window.location.assign(`https://github.com/Harikabey/tre-ai/releases/latest/download/${assetName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Tre-meji indirilemedi.');
+    }
+  };
+
   const agentModules: AgentModule[] = [
     {
       id: 'treos',
@@ -277,6 +306,16 @@ const Store = () => {
       requirements: ['🎹 Müzik stüdyosu', '🌐 Tarayıcı'],
       activate: () => navigate('/trejen'),
       actionLabel: 'Etkinleştir',
+    },
+    {
+      id: 'tremeji',
+      title: 'Tre-meji',
+      description: 'BYOK destekli, akıllı model yönlendiricili şeffaf masaüstü maskotu.',
+      icon: <Sparkles />,
+      gradient: 'from-violet-500/20 via-card to-pink-500/10',
+      requirements: ['🖥️ Masaüstü', '🔑 Groq / OpenRouter'],
+      activate: () => void downloadTreMeji(),
+      actionLabel: 'İndir',
     },
     {
       id: 'simitci',
@@ -461,6 +500,7 @@ const Store = () => {
     if (
       moduleId === 'treos'
       || moduleId === 'trejen'
+      || moduleId === 'tremeji'
       || moduleId === 'simitci'
       || moduleId === 'tre-nt'
       || moduleId === 'treforge'

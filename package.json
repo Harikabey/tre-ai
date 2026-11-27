@@ -124,19 +124,19 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "Tre-Setup.exe"
+      "artifactName": "Tre-meji-Setup.exe"
     },
     "mac": {
       "target": [
         "dmg"
       ],
-      "artifactName": "Tre.dmg"
+      "artifactName": "Tre-meji.dmg"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "artifactName": "Tre.AppImage"
+      "artifactName": "Tre-meji.AppImage"
     }
   }
 }
