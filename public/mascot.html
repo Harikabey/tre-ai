@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tre-meji</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, sans-serif; }
+      * { box-sizing: border-box; }
+      html, body { width: 350px; height: 500px; margin: 0; overflow: hidden; background: transparent; }
+      body { display: flex; align-items: flex-end; justify-content: center; }
+      .mascot { position: relative; width: 330px; height: 480px; display: flex; align-items: flex-end; justify-content: center; }
+      .logo-wrap { position: absolute; z-index: 3; bottom: 18px; width: 118px; height: 118px; display: grid; place-items: center; transition: transform .42s cubic-bezier(.22,.8,.22,1); }
+      .logo {
+        width: 94px; height: 94px; border-radius: 28px;
+        display: grid; place-items: center;
+        background: linear-gradient(135deg,#7dd3fc 0%,#8b5cf6 32%,#ec4899 64%,#fb923c 100%);
+        box-shadow: 0 12px 36px rgba(139,92,246,.42), inset 0 0 18px rgba(255,255,255,.38);
+        animation: breathe 3.2s ease-in-out infinite;
+        cursor: pointer;
+      }
+      .logo::before {
+        content:"—"; color:white; font-size:72px; line-height:.7; font-weight:800;
+        text-shadow: 0 3px 12px rgba(33,17,73,.6);
+      }
+      @keyframes breathe {
+        0%,100% { transform: scale(1) rotate(-2deg); filter: hue-rotate(0deg); }
+        50% { transform: scale(1.05) rotate(3deg); filter: hue-rotate(18deg); }
+      }
+      .panel {
+        position: absolute; z-index: 2; left: 5px; right: 5px; bottom: 82px;
+        max-height: 300px; overflow-y: auto;
+        transform: translateY(100%); opacity: 0; pointer-events: none;
+        transition: transform .42s cubic-bezier(.22,.8,.22,1), opacity .25s ease;
+        border: 1px solid rgba(255,255,255,.12); border-radius: 24px;
+        background: rgba(10,14,26,.94); backdrop-filter: blur(18px);
+        box-shadow: 0 18px 48px rgba(0,0,0,.48); padding: 14px;
+      }
+      .mascot:hover .logo-wrap, .mascot.open .logo-wrap { transform: translateY(-310px); }
+      .mascot:hover .panel, .mascot.open .panel { transform: translateY(0); opacity:1; pointer-events:auto; }
+      .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      button, input, select, textarea { font: inherit; }
+      button {
+        border:1px solid rgba(255,255,255,.1); border-radius:12px; color:#f8fafc;
+        background:rgba(255,255,255,.07); padding:10px 8px; cursor:pointer;
+      }
+      button:hover { background:rgba(139,92,246,.24); }
+      .view { display:none; margin-top:10px; }
+      .view.active { display:block; }
+      .view h3 { margin:4px 0 8px; font-size:14px; }
+      .chat-bubble { max-height:300px; overflow-y:auto; border-radius:14px; background:#11182a; padding:10px; margin-top:8px; white-space:pre-wrap; line-height:1.45; font-size:13px; }
+      .composer { display:flex; gap:6px; }
+      textarea { width:100%; min-height:62px; resize:vertical; max-height:120px; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:#090d18; color:white; padding:9px; }
+      .form-grid { display:grid; gap:8px; }
+      input, select { width:100%; border:1px solid rgba(255,255,255,.12); border-radius:10px; background:#090d18; color:white; padding:9px; }
+      .hint { color:#a9b1c5; font-size:11px; margin:6px 0 0; }
+      .status { color:#c4b5fd; font-size:12px; min-height:18px; }
+      .timer { text-align:center; font-size:40px; font-variant-numeric:tabular-nums; margin:10px 0; }
+      .full { width:100%; }
+    </style>
+  </head>
+  <body>
+    <div class="mascot" id="mascot">
+      <div class="logo-wrap"><div class="logo" id="logo" role="button" tabindex="0" aria-label="Tre-meji panelini aç"></div></div>
+      <section class="panel" id="panel" aria-label="Tre-meji paneli">
+        <div class="actions">
+          <button data-view="chat">💬 Soru Sor</button>
+          <button id="summarize">🖥️ Ekranı Özetle</button>
+          <button data-view="pomodoro">⏱️ Pomodoro Başlat</button>
+          <button data-view="settings">⚙️ Ayarlar</button>
+        </div>
+
+        <div class="view" id="chat">
+          <h3>Tre-meji'ye sor</h3>
+          <div class="composer">
+            <textarea id="question" placeholder="Sorunu yaz..."></textarea>
+            <button id="send" style="width:56px">Gönder</button>
+          </div>
+        </div>
+
+        <div class="view" id="pomodoro">
+          <h3>Pomodoro</h3>
+          <div class="timer" id="timer">25:00</div>
+          <button class="full" id="startTimer">Başlat</button>
+        </div>
+
+        <div class="view" id="settings">
+          <h3>Ayarlar</h3>
+          <div class="form-grid">
+            <label>Sağlayıcı
+              <select id="provider"><option value="groq">Groq</option><option value="openrouter">OpenRouter</option></select>
+            </label>
+            <label>API Anahtarı
+              <input id="apiKey" type="password" autocomplete="off" placeholder="API anahtarını gir" />
+            </label>
+            <button id="saveSettings">Kaydet</button>
+          </div>
+          <p class="hint">Model seçimi otomatik yapılır.</p>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="chat-bubble" id="bubble" hidden></div>
+      </section>
+    </div>
+    <script>
+      const mascot = document.getElementById('mascot');
+      const logo = document.getElementById('logo');
+      const bubble = document.getElementById('bubble');
+      const status = document.getElementById('status');
+
+      logo.addEventListener('click', () => mascot.classList.toggle('open'));
+      logo.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') mascot.classList.toggle('open');
+      });
+
+      function showView(id) {
+        document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.id === id));
+        mascot.classList.add('open');
+      }
+      document.querySelectorAll('[data-view]').forEach((button) => {
+        button.addEventListener('click', () => showView(button.dataset.view));
+      });
+
+      const provider = document.getElementById('provider');
+      const apiKey = document.getElementById('apiKey');
+      provider.value = localStorage.getItem('tremeji_provider') || 'groq';
+      apiKey.value = localStorage.getItem(`tremeji_api_key_${provider.value}`) || '';
+      provider.addEventListener('change', () => {
+        apiKey.value = localStorage.getItem(`tremeji_api_key_${provider.value}`) || '';
+      });
+      document.getElementById('saveSettings').addEventListener('click', () => {
+        localStorage.setItem('tremeji_provider', provider.value);
+        localStorage.setItem(`tremeji_api_key_${provider.value}`, apiKey.value.trim());
+        status.textContent = 'Ayarlar kaydedildi.';
+      });
+
+      function credentials() {
+        const selected = localStorage.getItem('tremeji_provider') || 'groq';
+        const key = localStorage.getItem(`tremeji_api_key_${selected}`)?.trim();
+        return { provider: selected, key };
+      }
+
+      function showError(message) {
+        status.textContent = `API bağlantısı kurulamadı: ${message}`;
+      }
+
+      async function requestCompletion(messages, imageBase64 = null) {
+        const { provider: selected, key } = credentials();
+        if (!key) throw new Error('Lütfen önce Ayarlar\'dan API anahtarınızı girin');
+
+        const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'];
+        const openRouterModels = ['openrouter/free'];
+        let models = selected === 'groq' ? groqModels : openRouterModels;
+
+        for (let index = 0; index < models.length; index += 1) {
+          const model = models[index];
+          const content = imageBase64
+            ? [{ type: 'text', text: messages[messages.length - 1].content }, { type: 'image_url', image_url: { url: imageBase64 } }]
+            : messages;
+          const body = {
+            model,
+            messages: imageBase64 ? [{ role: 'user', content }] : messages,
+            temperature: 0.2,
+          };
+          const url = selected === 'groq'
+            ? 'https://api.groq.com/openai/v1/chat/completions'
+            : 'https://openrouter.ai/api/v1/chat/completions';
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+            body: JSON.stringify(body),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const answer = data?.choices?.[0]?.message?.content;
+            if (!answer) throw new Error('Model boş cevap döndürdü.');
+            return answer;
+          }
+
+          let detail = `${response.status}`;
+          try {
+            const data = await response.json();
+            detail = data?.error?.message || data?.message || `${response.status}`;
+          } catch (_) {}
+
+          const shouldFallback = selected === 'groq' && (response.status === 429 || response.status >= 500);
+          if (shouldFallback && index === 0) continue;
+          throw new Error(detail);
+        }
+        throw new Error('Model isteği tamamlanamadı.');
+      }
+
+      async function sendQuestion() {
+        const question = document.getElementById('question').value.trim();
+        if (!question) return;
+        bubble.hidden = false;
+        bubble.textContent = 'Düşünüyor…';
+        status.textContent = '';
+        try {
+          const answer = await requestCompletion([{ role: 'user', content: question }]);
+          bubble.textContent = answer;
+        } catch (error) {
+          showError(error instanceof Error ? error.message : 'Bilinmeyen hata');
+          bubble.hidden = true;
+        }
+      }
+      document.getElementById('send').addEventListener('click', sendQuestion);
+      document.getElementById('question').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendQuestion(); }
+      });
+
+      document.getElementById('summarize').addEventListener('click', async () => {
+        bubble.hidden = false;
+        bubble.textContent = 'Ekran yakalanıyor ve özetleniyor…';
+        status.textContent = '';
+        try {
+          if (!window.electronAPI?.captureScreen) throw new Error('Ekran yakalama köprüsü kullanılamıyor.');
+          const capture = await window.electronAPI.captureScreen();
+          if (!capture.success) throw new Error(capture.error);
+          const answer = await requestCompletion(
+            [{ role: 'user', content: 'Bu ekran görüntüsünü kısa ve anlaşılır şekilde özetle.' }],
+            capture.base64,
+          );
+          bubble.textContent = answer;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Bilinmeyen hata';
+          showError(/image|görsel|vision|modalit/i.test(message) ? 'Seçili model görsel desteklemiyor veya bu sağlayıcı görsel isteğini reddetti.' : message);
+          bubble.hidden = true;
+        }
+      });
+
+      let timerId = null;
+      let remaining = 25 * 60;
+      document.getElementById('startTimer').addEventListener('click', () => {
+        if (timerId) return;
+        remaining = 25 * 60;
+        const update = () => {
+          const minutes = Math.floor(remaining / 60);
+          const seconds = remaining % 60;
+          document.getElementById('timer').textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+          if (remaining <= 0) {
+            clearInterval(timerId);
+            timerId = null;
+            window.electronAPI?.showNotification('Tre-meji Pomodoro', '25 dakikalık çalışma süresi tamamlandı.');
+            return;
+          }
+          remaining -= 1;
+        };
+        update();
+        timerId = setInterval(update, 1000);
+      });
+    </script>
+  </body>
+</html>

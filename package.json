@@ -112,8 +112,8 @@
     "dompurify": "^3.4.17"
   },
   "build": {
-    "appId": "com.harikabey.treai",
-    "productName": "Tre",
+    "appId": "com.harikabey.tremeji",
+    "productName": "Tre-meji",
     "asar": true,
     "files": [
       "dist/**/*",

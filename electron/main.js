@@ -1,7 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import electron from 'electron';
 import { exec } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const { app, BrowserWindow, desktopCapturer, ipcMain, Notification, screen } = electron;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,9 +40,20 @@ const isNewerVersion = (latest, current) => {
 };
 
 const createWindow = () => {
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
+  const windowWidth = 350;
+  const windowHeight = 500;
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: windowWidth,
+    height: windowHeight,
+    x: Math.max(0, width - windowWidth),
+    y: Math.max(0, height - windowHeight),
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -49,11 +62,46 @@ const createWindow = () => {
   });
 
   if (!app.isPackaged) {
-    void mainWindow.loadURL('http://localhost:5173');
+    void mainWindow.loadURL('http://localhost:5173/mascot.html');
   } else {
-    void mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
+    void mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'mascot.html'));
   }
 };
+
+ipcMain.handle('capture-screen', async () => {
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: screen.getPrimaryDisplay().size,
+    });
+
+    if (!sources.length) {
+      throw new Error('Yakalanabilir ekran bulunamadı.');
+    }
+
+    return {
+      success: true,
+      base64: `data:image/png;base64,${sources[0].thumbnail.toPNG().toString('base64')}`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      base64: null,
+      error: error instanceof Error ? error.message : 'Ekran görüntüsü alınamadı.',
+    };
+  }
+});
+
+ipcMain.handle('show-notification', async (_event, payload) => {
+  if (!Notification.isSupported) return false;
+
+  const notification = new Notification({
+    title: typeof payload?.title === 'string' ? payload.title : 'Tre-meji',
+    body: typeof payload?.body === 'string' ? payload.body : '25 dakikalık Pomodoro tamamlandı.',
+  });
+  notification.show();
+  return true;
+});
 
 ipcMain.handle('run-command', async (_event, payload) => {
   try {
